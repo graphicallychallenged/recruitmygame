@@ -1,103 +1,153 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/utils/supabase/client"
+import { Box, Button, Container, Heading, Text, VStack, HStack, Card, CardBody, Grid, GridItem } from "@chakra-ui/react"
+import { User, Video, Award, Calendar, MessageSquare, ArrowRight } from "lucide-react"
+import Link from "next/link"
+
+export default function HomePage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      // If user is already authenticated, redirect to dashboard
+      if (session) {
+        router.push("/dashboard")
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  const features = [
+    {
+      icon: User,
+      title: "Professional Profiles",
+      description: "Create stunning athlete profiles with your stats, achievements, and highlights",
+    },
+    {
+      icon: Video,
+      title: "Game Film Showcase",
+      description: "Upload and organize your best game footage for coaches to review",
+    },
+    {
+      icon: Award,
+      title: "Awards & Recognition",
+      description: "Display your achievements, honors, and academic accomplishments",
+    },
+    {
+      icon: Calendar,
+      title: "Schedule Management",
+      description: "Keep coaches updated with your upcoming games and events",
+    },
+    {
+      icon: MessageSquare,
+      title: "Coach Reviews",
+      description: "Showcase testimonials and recommendations from your coaches",
+    },
+  ]
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <Box minH="100vh" bg="gray.50">
+      {/* Hero Section */}
+      <Box bg="blue.600" color="white" py={20}>
+        <Container maxW="6xl">
+          <VStack spacing={8} textAlign="center">
+            <Heading size="2xl" fontWeight="bold">
+              Recruit My Game
+            </Heading>
+            <Text fontSize="xl" maxW="2xl">
+              The complete platform for student-athletes to create professional recruitment profiles, showcase their
+              talents, and connect with college coaches.
+            </Text>
+            <HStack spacing={4}>
+              <Link href="/login">
+                <Button size="lg" colorScheme="white" variant="solid" rightIcon={<ArrowRight size={20} />}>
+                  Get Started
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  color="white"
+                  borderColor="white"
+                  _hover={{ bg: "white", color: "blue.600" }}
+                >
+                  Sign In
+                </Button>
+              </Link>
+            </HStack>
+          </VStack>
+        </Container>
+      </Box>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+      {/* Features Section */}
+      <Container maxW="6xl" py={20}>
+        <VStack spacing={12}>
+          <Box textAlign="center">
+            <Heading size="xl" mb={4}>
+              Everything You Need for Recruitment Success
+            </Heading>
+            <Text fontSize="lg" color="gray.600" maxW="2xl">
+              Our platform provides all the tools student-athletes need to create professional profiles and get noticed
+              by college coaches.
+            </Text>
+          </Box>
+
+          <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={8}>
+            {features.map((feature, index) => (
+              <GridItem key={index}>
+                <Card h="full">
+                  <CardBody>
+                    <VStack spacing={4} align="start">
+                      <Box p={3} bg="blue.100" borderRadius="lg" color="blue.600">
+                        <feature.icon size={24} />
+                      </Box>
+                      <Heading size="md">{feature.title}</Heading>
+                      <Text color="gray.600">{feature.description}</Text>
+                    </VStack>
+                  </CardBody>
+                </Card>
+              </GridItem>
+            ))}
+          </Grid>
+        </VStack>
+      </Container>
+
+      {/* CTA Section */}
+      <Box bg="blue.600" color="white" py={16}>
+        <Container maxW="4xl">
+          <VStack spacing={6} textAlign="center">
+            <Heading size="lg">Ready to Get Recruited?</Heading>
+            <Text fontSize="lg">
+              Join thousands of student-athletes who are already using Recruit My Game to showcase their talents and
+              connect with college coaches.
+            </Text>
+            <Link href="/login">
+              <Button size="lg" colorScheme="white" variant="solid" rightIcon={<ArrowRight size={20} />}>
+                Create Your Profile Today
+              </Button>
+            </Link>
+          </VStack>
+        </Container>
+      </Box>
+
+      {/* Footer */}
+      <Box bg="gray.800" color="white" py={8}>
+        <Container maxW="6xl">
+          <VStack spacing={4} textAlign="center">
+            <Heading size="md">Recruit My Game</Heading>
+            <Text color="gray.400">© 2024 Recruit My Game. All rights reserved.</Text>
+          </VStack>
+        </Container>
+      </Box>
+    </Box>
+  )
 }
