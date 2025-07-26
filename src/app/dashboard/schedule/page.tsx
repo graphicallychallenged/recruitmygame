@@ -48,11 +48,11 @@ interface ScheduleEvent {
   event_name: string
   event_type: string
   event_date: string
-  event_time: string
+  event_time: string | null
   location: string
   description: string
   created_at: string
-  updated_at: string
+  updated_at?: string
 }
 
 const EVENT_TYPES = [
@@ -150,8 +150,14 @@ export default function SchedulePage() {
 
     setSaving(true)
     try {
+      // Prepare event data with proper null handling for time
       const eventData = {
-        ...formData,
+        event_name: formData.event_name,
+        event_type: formData.event_type,
+        event_date: formData.event_date,
+        event_time: formData.event_time || null, // Convert empty string to null
+        location: formData.location,
+        description: formData.description,
         athlete_id: athlete.id,
         updated_at: new Date().toISOString(),
       }
@@ -232,7 +238,7 @@ export default function SchedulePage() {
       event_name: event.event_name,
       event_type: event.event_type,
       event_date: event.event_date,
-      event_time: event.event_time,
+      event_time: event.event_time || "", // Convert null to empty string for form
       location: event.location,
       description: event.description,
     })
@@ -658,11 +664,12 @@ export default function SchedulePage() {
                     </FormControl>
 
                     <FormControl>
-                      <FormLabel>Time</FormLabel>
+                      <FormLabel>Time (Optional)</FormLabel>
                       <Input
                         type="time"
                         value={formData.event_time}
                         onChange={(e) => setFormData({ ...formData, event_time: e.target.value })}
+                        placeholder="Leave empty if no specific time"
                       />
                     </FormControl>
                   </Grid>

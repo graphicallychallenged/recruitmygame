@@ -1,103 +1,92 @@
-import type { Metadata } from "next"
-import { createStaticClient } from "@/utils/supabase/server"
 import { notFound } from "next/navigation"
+import { supabase } from "@/utils/supabase/client"
 import PublicProfileClient from "./PublicProfileClient"
+import type { AthleteProfile } from "@/types/database"
 
-interface PageProps {
+interface PublicProfilePageProps {
   params: {
     athleteName: string
   }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const supabase = createStaticClient()
-
-  console.log("generateMetadata - Full params object:", JSON.stringify(params, null, 2))
-  console.log("generateMetadata - athleteName:", params.athleteName)
-  console.log("generateMetadata - typeof athleteName:", typeof params.athleteName)
+export default async function PublicProfilePage({ params }: PublicProfilePageProps) {
+  const { athleteName } = params
 
   try {
-    const { data: athlete, error } = await supabase
-      .from("athletes")
-      .select("athlete_name, sport, school, location")
-      .eq("username", params.athleteName)
-      .single()
-
-    console.log("generateMetadata - Database query result:", { athlete, error })
-
-    if (!athlete || error) {
-      return {
-        title: "Athlete Not Found",
-        description: "The requested athlete profile could not be found.",
-      }
-    }
-
-    return {
-      title: `${athlete.athlete_name} - ${athlete.sport} | RecruitMyGame`,
-      description: `View ${athlete.athlete_name}'s athletic profile. ${athlete.sport} player from ${athlete.school} in ${athlete.location}.`,
-      openGraph: {
-        title: `${athlete.athlete_name} - ${athlete.sport}`,
-        description: `${athlete.sport} player from ${athlete.school}`,
-        type: "profile",
-      },
-    }
-  } catch (error) {
-    console.error("generateMetadata - Error:", error)
-    return {
-      title: "Athlete Profile | RecruitMyGame",
-      description: "View athlete profiles on RecruitMyGame",
-    }
-  }
-}
-
-export default async function AthletePage({ params }: PageProps) {
-  const supabase = createStaticClient()
-
-  console.log("AthletePage - Full params object:", JSON.stringify(params, null, 2))
-  console.log("AthletePage - athleteName:", params.athleteName)
-  console.log("AthletePage - typeof athleteName:", typeof params.athleteName)
-
-  try {
-    const { data: athlete, error } = await supabase
+    // Fetch athlete by username - get fresh data every time
+    const { data: athlete, error: athleteError } = await supabase
       .from("athletes")
       .select("*")
-      .eq("username", params.athleteName)
+      .eq("username", athleteName)
+      .eq("is_public", true)
       .single()
 
-    console.log("AthletePage - Database result:", { athlete, error, username: params.athleteName })
-
-    if (error || !athlete) {
-      console.log("AthletePage - Athlete not found, redirecting to 404")
+    if (athleteError || !athlete) {
       notFound()
     }
 
-    console.log("AthletePage - Found athlete:", athlete.athlete_name)
-    return <PublicProfileClient athlete={athlete} />
+    const athleteProfile: AthleteProfile = {
+      id: athlete.id,
+      user_id: athlete.user_id,
+      athlete_name: athlete.athlete_name,
+      username: athlete.username,
+      sport: athlete.sport,
+      sports: athlete.sports,
+      grade: athlete.grade,
+      graduation_year: athlete.graduation_year,
+      school: athlete.school,
+      location: athlete.location,
+      bio: athlete.bio,
+      height: athlete.height,
+      weight: athlete.weight,
+      gpa: athlete.gpa,
+      sat_score: athlete.sat_score,
+      act_score: athlete.act_score,
+      positions_played: athlete.positions_played,
+      profile_picture_url: athlete.profile_picture_url,
+      primary_color: athlete.primary_color,
+      secondary_color: athlete.secondary_color,
+      subscription_tier: athlete.subscription_tier,
+      is_profile_public: athlete.is_profile_public,
+      content_order: athlete.content_order,
+      created_at: athlete.created_at,
+      updated_at: athlete.updated_at,
+      theme_mode: athlete.theme_mode
+    }
+
+    return <PublicProfileClient athlete={athleteProfile} />
   } catch (error) {
-    console.error("AthletePage - Unexpected error:", error)
+    console.error("Error fetching profile:", error)
     notFound()
   }
 }
 
-export async function generateStaticParams() {
-  const supabase = createStaticClient()
+export async function generateMetadata({ params }: PublicProfilePageProps) {
+  const { athleteName } = params
 
   try {
-    const { data: athletes, error } = await supabase
+    const { data: athlete } = await supabase
       .from("athletes")
-      .select("username")
-      .eq("subscription_status", "active")
+      .select("athlete_name, bio, sport, school")
+      .eq("username", athleteName)
+      .eq("is_public", true)
+      .single()
 
-    console.log("generateStaticParams - Athletes found:", athletes?.length || 0)
-    console.log("generateStaticParams - Athletes data:", athletes)
+    if (!athlete) {
+      return {
+        title: "Athlete Not Found",
+      }
+    }
 
-    return (
-      athletes?.map((athlete) => ({
-        athleteName: athlete.username,
-      })) || []
-    )
+    return {
+      title: `${athlete.athlete_name} - ${athlete.sport} Athlete`,
+      description:
+        athlete.bio ||
+        `${athlete.athlete_name} is a ${athlete.sport} athlete${athlete.school ? ` at ${athlete.school}` : ""}.`,
+    }
   } catch (error) {
-    console.error("generateStaticParams - Error:", error)
-    return []
+    return {
+      title: "Athlete Profile",
+    }
   }
 }

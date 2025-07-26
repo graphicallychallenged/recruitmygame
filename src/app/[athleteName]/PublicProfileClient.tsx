@@ -21,10 +21,6 @@ import {
   Flex,
   Icon,
   SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
-  useColorModeValue,
   Divider,
   Wrap,
   WrapItem,
@@ -43,8 +39,35 @@ import {
   Textarea,
   useToast,
   Avatar,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  Progress,
+  CircularProgress,
+  CircularProgressLabel,
+  Tooltip,
 } from "@chakra-ui/react"
-import { MapPin, Calendar, Trophy, Star, Target, Award, Camera, Play, Mail, Phone, GraduationCap } from "lucide-react"
+import { keyframes } from "@emotion/react"
+import {
+  MapPin,
+  Calendar,
+  Trophy,
+  Star,
+  Target,
+  Award,
+  Camera,
+  Play,
+  Mail,
+  Phone,
+  GraduationCap,
+  Clock,
+  MapPinIcon,
+  TrendingUp,
+  Users,
+  Zap,
+} from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { VideoPlaylist } from "@/components/VideoPlaylist"
 import type {
@@ -79,6 +102,29 @@ const SPORT_HERO_IMAGES: Record<string, string> = {
   Other: "/hero/generic.jpg",
 }
 
+// Animation keyframes
+const pulseRing = keyframes`
+  0% {
+    transform: scale(0.33);
+  }
+  40%, 50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+`
+
+const float = keyframes`
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+`
+
 export default function PublicProfileClient({ athlete: initialAthlete }: PublicProfileClientProps) {
   const [athlete, setAthlete] = useState<AthleteProfile>(initialAthlete)
   const [photos, setPhotos] = useState<AthletePhoto[]>([])
@@ -98,8 +144,18 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
 
   const { isOpen, onOpen, onClose } = useDisclosure()
   const toast = useToast()
-  const bgColor = useColorModeValue("white", "gray.800")
-  const borderColor = useColorModeValue("gray.200", "gray.600")
+
+  // Theme colors based on athlete preferences
+  const isDarkTheme = athlete.theme_mode === "dark"
+  const primaryColor = athlete.primary_color || "#1a202c"
+  const secondaryColor = athlete.secondary_color || "#2d3748"
+
+  // Dynamic theme colors
+  const bgColor = isDarkTheme ? "gray.900" : "white"
+  const textColor = isDarkTheme ? "white" : "gray.800"
+  const cardBgColor = isDarkTheme ? "gray.800" : "white"
+  const borderColor = isDarkTheme ? "gray.600" : "gray.200"
+  const mutedTextColor = isDarkTheme ? "gray.300" : "gray.600"
 
   useEffect(() => {
     const fetchFreshData = async () => {
@@ -145,6 +201,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           phone: athleteData.phone,
           show_email: athleteData.show_email,
           show_phone: athleteData.show_phone,
+          theme_mode: athleteData.theme_mode || "light",
           created_at: athleteData.created_at,
           updated_at: athleteData.updated_at,
         }
@@ -179,7 +236,6 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             .select("*")
             .eq("athlete_id", athleteData.id)
             .eq("is_public", true)
-            .gte("event_date", new Date().toISOString())
             .order("event_date", { ascending: true }),
 
           supabase
@@ -232,7 +288,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           scheduleResult.data?.map((event) => ({
             id: event.id,
             athlete_id: event.athlete_id,
-            event_title: event.title,
+            event_title: event.event_name || event.event_title || event.title,
             event_date: event.event_date,
             event_time: event.event_time,
             location: event.location,
@@ -315,31 +371,307 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
 
   if (loading) {
     return (
-      <Flex justify="center" align="center" h="400px">
-        <Spinner size="xl" color="blue.500" />
+      <Flex justify="center" align="center" h="400px" bg={bgColor}>
+        <Spinner size="xl" color={primaryColor} />
       </Flex>
     )
   }
 
   const displayedPhotos = showAllPhotos ? photos : photos.slice(0, 6)
 
-  const stats = [
-    { label: "Sport", value: athlete.sport || "N/A", icon: Target },
-    { label: "Grade", value: athlete.grade || "N/A", icon: GraduationCap },
-    { label: "Class Year", value: athlete.graduation_year?.toString() || "N/A", icon: Calendar },
-    { label: "Height", value: athlete.height || "N/A", icon: Award },
-    { label: "Weight", value: athlete.weight || "N/A", icon: Award },
-    { label: "GPA", value: athlete.gpa?.toString() || "N/A", icon: Star },
-    { label: "SAT Score", value: athlete.sat_score?.toString() || "N/A", icon: Trophy },
-    { label: "ACT Score", value: athlete.act_score?.toString() || "N/A", icon: Trophy },
+  // Enhanced stats with different visual representations
+  const getGPAColor = (gpa: number | undefined | null) => {
+    if (!gpa) return "gray"
+    if (gpa >= 3.7) return "green"
+    if (gpa >= 3.0) return "blue"
+    if (gpa >= 2.5) return "yellow"
+    return "red"
+  }
+
+  const getGPAPercentage = (gpa: number | undefined | null) => {
+    if (!gpa) return 0
+    return Math.min((gpa / 4.0) * 100, 100)
+  }
+
+  const getSATPercentage = (score: number | undefined | null) => {
+    if (!score) return 0
+    return Math.min((score / 1600) * 100, 100)
+  }
+
+  const getACTPercentage = (score: number | undefined | null) => {
+    if (!score) return 0
+    return Math.min((score / 36) * 100, 100)
+  }
+
+  const enhancedStats = [
+    {
+      label: "Primary Sport",
+      value: athlete.sport || "N/A",
+      icon: Target,
+      type: "badge",
+      color: "blue",
+      description: "Main competitive sport",
+    },
+    {
+      label: "Academic Year",
+      value: athlete.grade || "N/A",
+      icon: GraduationCap,
+      type: "text",
+      color: "purple",
+      description: "Current grade level",
+    },
+    {
+      label: "Graduation",
+      value: athlete.graduation_year?.toString() || "N/A",
+      icon: Calendar,
+      type: "text",
+      color: "green",
+      description: "Expected graduation year",
+    },
+    {
+      label: "Height",
+      value: athlete.height || "N/A",
+      icon: TrendingUp,
+      type: "text",
+      color: "orange",
+      description: "Physical measurement",
+    },
+    {
+      label: "Weight",
+      value: athlete.weight || "N/A",
+      icon: Zap,
+      type: "text",
+      color: "red",
+      description: "Physical measurement",
+    },
+    {
+      label: "GPA",
+      value: athlete.gpa ? athlete.gpa.toFixed(2) : "N/A",
+      icon: Star,
+      type: "progress",
+      color: getGPAColor(athlete.gpa),
+      percentage: getGPAPercentage(athlete.gpa),
+      description: "Grade Point Average (4.0 scale)",
+    },
+    {
+      label: "SAT Score",
+      value: athlete.sat_score?.toString() || "N/A",
+      icon: Trophy,
+      type: "circular",
+      color: "blue",
+      percentage: getSATPercentage(athlete.sat_score),
+      description: "Standardized test score (1600 max)",
+    },
+    {
+      label: "ACT Score",
+      value: athlete.act_score?.toString() || "N/A",
+      icon: Award,
+      type: "circular",
+      color: "green",
+      percentage: getACTPercentage(athlete.act_score),
+      description: "Standardized test score (36 max)",
+    },
   ]
 
+  // Helper functions to categorize schedule events
+  const now = new Date()
+  const upcomingEvents = schedule.filter((event) => new Date(event.event_date) >= now)
+  const pastEvents = schedule.filter((event) => new Date(event.event_date) < now)
+
+  const renderScheduleEvent = (event: AthleteSchedule, isPast = false) => {
+    const eventDate = new Date(event.event_date)
+    const isToday = eventDate.toDateString() === now.toDateString()
+
+    return (
+      <Box key={event.id} opacity={isPast ? 0.7 : 1}>
+        <HStack justify="space-between" align="start">
+          <VStack align="start" spacing={1} flex={1}>
+            <Text fontWeight="semibold" color={textColor}>
+              {event.event_title}
+            </Text>
+            <HStack spacing={4} flexWrap="wrap">
+              <HStack spacing={1}>
+                <Icon as={Calendar} size={14} color={mutedTextColor} />
+                <Text fontSize="sm" color={mutedTextColor}>
+                  {eventDate.toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: eventDate.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+                  })}
+                </Text>
+              </HStack>
+              {event.event_time && (
+                <HStack spacing={1}>
+                  <Icon as={Clock} size={14} color={mutedTextColor} />
+                  <Text fontSize="sm" color={mutedTextColor}>
+                    {event.event_time}
+                  </Text>
+                </HStack>
+              )}
+              {event.location && (
+                <HStack spacing={1}>
+                  <Icon as={MapPinIcon} size={14} color={mutedTextColor} />
+                  <Text fontSize="sm" color={mutedTextColor}>
+                    {event.location}
+                  </Text>
+                </HStack>
+              )}
+            </HStack>
+            {event.description && (
+              <Text fontSize="sm" color={mutedTextColor}>
+                {event.description}
+              </Text>
+            )}
+          </VStack>
+          <VStack align="end" spacing={1}>
+            <Badge colorScheme={isPast ? "gray" : "green"} fontSize="xs" variant={isPast ? "outline" : "solid"}>
+              {event.event_type}
+            </Badge>
+            {isPast && (
+              <Badge colorScheme="gray" variant="subtle" fontSize="xs">
+                Past
+              </Badge>
+            )}
+            {isToday && (
+              <Badge colorScheme="orange" variant="solid" fontSize="xs">
+                Today
+              </Badge>
+            )}
+          </VStack>
+        </HStack>
+        <Divider mt={3} borderColor={borderColor} />
+      </Box>
+    )
+  }
+
+  const renderStatCard = (stat: any, index: number) => {
+    const isNA = stat.value === "N/A"
+
+    return (
+      <Tooltip key={index} label={stat.description} placement="top" hasArrow>
+        <Card
+          cursor="pointer"
+          transition="all 0.3s ease"
+          _hover={{
+            transform: "translateY(-8px)",
+            shadow: "xl",
+            borderColor: primaryColor,
+          }}
+          border="2px solid"
+          borderColor="transparent"
+          bg={cardBgColor}
+          position="relative"
+          overflow="hidden"
+          style={{
+            animation: `${float} 6s ease-in-out infinite`,
+            animationDelay: `${index * 0.2}s`,
+          }}
+        >
+          {/* Animated background pulse for non-N/A values */}
+          {!isNA && (
+            <Box
+              position="absolute"
+              top="50%"
+              left="50%"
+              w="100px"
+              h="100px"
+              bg={`${stat.color}.100`}
+              borderRadius="full"
+              transform="translate(-50%, -50%)"
+              style={{
+                animation: `${pulseRing} 3s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite`,
+                animationDelay: `${index * 0.3}s`,
+                opacity: 0.3,
+              }}
+            />
+          )}
+
+          <CardBody position="relative" zIndex={1}>
+            <VStack spacing={3} align="center">
+              <Box
+                p={3}
+                borderRadius="full"
+                bg={`${stat.color}.100`}
+                color={`${stat.color}.600`}
+                transition="all 0.3s ease"
+                _groupHover={{
+                  bg: `${stat.color}.200`,
+                  transform: "scale(1.1)",
+                }}
+              >
+                <Icon as={stat.icon} size={24} />
+              </Box>
+
+              <VStack spacing={1} align="center">
+                <Text fontSize="sm" color={mutedTextColor} fontWeight="medium" textAlign="center">
+                  {stat.label}
+                </Text>
+
+                {stat.type === "badge" && !isNA && (
+                  <Badge colorScheme={stat.color} variant="solid" fontSize="md" px={3} py={1}>
+                    {stat.value}
+                  </Badge>
+                )}
+
+                {stat.type === "text" && (
+                  <Text fontSize="xl" fontWeight="bold" color={isNA ? mutedTextColor : `${stat.color}.600`}>
+                    {stat.value}
+                  </Text>
+                )}
+
+                {stat.type === "progress" && (
+                  <VStack spacing={2} w="full">
+                    <Text fontSize="lg" fontWeight="bold" color={isNA ? mutedTextColor : `${stat.color}.600`}>
+                      {stat.value}
+                    </Text>
+                    {!isNA && (
+                      <Progress
+                        value={stat.percentage}
+                        colorScheme={stat.color}
+                        size="md"
+                        w="full"
+                        borderRadius="full"
+                        bg={isDarkTheme ? "gray.700" : "gray.100"}
+                      />
+                    )}
+                  </VStack>
+                )}
+
+                {stat.type === "circular" && (
+                  <VStack spacing={2}>
+                    {!isNA ? (
+                      <CircularProgress value={stat.percentage} color={`${stat.color}.400`} size="60px" thickness="8px">
+                        <CircularProgressLabel fontSize="xs" fontWeight="bold" color={textColor}>
+                          {Math.round(stat.percentage)}%
+                        </CircularProgressLabel>
+                      </CircularProgress>
+                    ) : (
+                      <Box w="60px" h="60px" display="flex" alignItems="center" justifyContent="center">
+                        <Text fontSize="sm" color={mutedTextColor}>
+                          N/A
+                        </Text>
+                      </Box>
+                    )}
+                    <Text fontSize="md" fontWeight="bold" color={isNA ? mutedTextColor : `${stat.color}.600`}>
+                      {stat.value}
+                    </Text>
+                  </VStack>
+                )}
+              </VStack>
+            </VStack>
+          </CardBody>
+        </Card>
+      </Tooltip>
+    )
+  }
+
   return (
-    <Box>
+    <Box bg={bgColor} minH="100vh">
       {/* Hero Section with Overlaid Content */}
       <Box
         position="relative"
-        h={{ base: "500px", md: "600px" }}
+        h={{ base: "400px", md: "500px" }}
         bgImage={`url('${getHeroImage()}')`}
         bgSize="cover"
         bgPosition="center"
@@ -367,13 +699,21 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
                   {athlete.athlete_name}
                 </Heading>
                 <HStack spacing={4} flexWrap="wrap" justify="center">
-                  <Badge colorScheme="blue" variant="solid" fontSize="md" px={3} py={1}>
+                  <Badge variant="solid" fontSize="md" px={3} py={1} bg={primaryColor} color="white">
                     {athlete.sport}
                   </Badge>
                   {athlete.sports && athlete.sports.length > 0 && (
                     <>
                       {athlete.sports.map((sport) => (
-                        <Badge key={sport} colorScheme="purple" variant="solid" fontSize="sm" px={2} py={1}>
+                        <Badge
+                          key={sport}
+                          variant="solid"
+                          fontSize="sm"
+                          px={2}
+                          py={1}
+                          bg={secondaryColor}
+                          color="white"
+                        >
                           {sport}
                         </Badge>
                       ))}
@@ -427,10 +767,10 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
                       href={`mailto:${athlete.email}`}
                       leftIcon={<Mail size={16} />}
                       size="md"
-                      colorScheme="blue"
                       variant="solid"
-                      bg="blue.500"
-                      _hover={{ bg: "blue.600" }}
+                      bg={primaryColor}
+                      color="white"
+                      _hover={{ opacity: 0.8 }}
                     >
                       Email
                     </Button>
@@ -441,10 +781,10 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
                       href={`tel:${athlete.phone}`}
                       leftIcon={<Phone size={16} />}
                       size="md"
-                      colorScheme="green"
                       variant="solid"
-                      bg="green.500"
-                      _hover={{ bg: "green.600" }}
+                      bg={secondaryColor}
+                      color="white"
+                      _hover={{ opacity: 0.8 }}
                     >
                       Call
                     </Button>
@@ -452,10 +792,10 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
                   <Button
                     leftIcon={<Mail size={16} />}
                     size="md"
-                    colorScheme="purple"
-                    variant="solid"
-                    bg="purple.500"
-                    _hover={{ bg: "purple.600" }}
+                    variant="outline"
+                    borderColor="white"
+                    color="white"
+                    _hover={{ bg: "whiteAlpha.200" }}
                     onClick={onOpen}
                   >
                     Contact
@@ -469,48 +809,12 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
 
       <Container maxW="6xl" py={8}>
         <VStack spacing={8} align="stretch">
-          {/* Bio Section */}
-          {athlete.bio && (
-            <Card>
-              <CardBody>
-                <Heading size="md" mb={4}>
-                  About {athlete.athlete_name}
-                </Heading>
-                <Text lineHeight="tall" color="gray.700">
-                  {athlete.bio}
-                </Text>
-              </CardBody>
-            </Card>
-          )}
-
-          {/* Stats Grid */}
-          <Card>
-            <CardBody>
-              <Heading size="md" mb={6}>
-                Athlete Stats
-              </Heading>
-              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={6}>
-                {stats.map((stat, index) => (
-                  <Stat key={index}>
-                    <StatLabel>
-                      <HStack spacing={2}>
-                        <Icon as={stat.icon} size={16} color="blue.500" />
-                        <Text>{stat.label}</Text>
-                      </HStack>
-                    </StatLabel>
-                    <StatNumber fontSize="lg">{stat.value}</StatNumber>
-                  </Stat>
-                ))}
-              </SimpleGrid>
-            </CardBody>
-          </Card>
-
-          {/* Videos Section - Full Width */}
+          {/* Videos Section - First Section */}
           {videos.length > 0 && (
             <Box>
-              <Heading size="lg" mb={4}>
+              <Heading size="lg" mb={4} color={textColor}>
                 <HStack spacing={2}>
-                  <Icon as={Play} color="blue.500" />
+                  <Icon as={Play} color={primaryColor} />
                   <Text>Game Film & Highlights</Text>
                 </HStack>
               </Heading>
@@ -518,16 +822,29 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             </Box>
           )}
 
+          {/* Enhanced Interactive Stats Grid */}
+          <Box>
+            <Heading size="lg" mb={6} textAlign="center" color={textColor}>
+              <HStack spacing={2} justify="center">
+                <Icon as={Users} color={primaryColor} />
+                <Text>Athlete Profile</Text>
+              </HStack>
+            </Heading>
+            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={6}>
+              {enhancedStats.map((stat, index) => renderStatCard(stat, index))}
+            </SimpleGrid>
+          </Box>
+
           {/* Awards and Photos Side by Side */}
           <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8}>
             {/* Awards Section */}
             {awards.length > 0 && (
               <GridItem>
-                <Card h="fit-content">
+                <Card h="fit-content" bg={cardBgColor} borderColor={borderColor}>
                   <CardBody>
-                    <Heading size="md" mb={4}>
+                    <Heading size="md" mb={4} color={textColor}>
                       <HStack spacing={2}>
-                        <Icon as={Trophy} color="gold" />
+                        <Icon as={Trophy} color={primaryColor} />
                         <Text>Awards & Honors</Text>
                       </HStack>
                     </Heading>
@@ -536,12 +853,14 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
                         <Box key={award.id}>
                           <HStack justify="space-between" align="start">
                             <VStack align="start" spacing={1} flex={1}>
-                              <Text fontWeight="semibold">{award.title}</Text>
-                              <Text fontSize="sm" color="gray.600">
+                              <Text fontWeight="semibold" color={textColor}>
+                                {award.title}
+                              </Text>
+                              <Text fontSize="sm" color={mutedTextColor}>
                                 {award.organization}
                               </Text>
                               {award.description && (
-                                <Text fontSize="sm" color="gray.500">
+                                <Text fontSize="sm" color={mutedTextColor}>
                                   {award.description}
                                 </Text>
                               )}
@@ -550,11 +869,11 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
                               {new Date(award.award_date).getFullYear()}
                             </Badge>
                           </HStack>
-                          <Divider mt={3} />
+                          <Divider mt={3} borderColor={borderColor} />
                         </Box>
                       ))}
                       {awards.length > 5 && (
-                        <Text fontSize="sm" color="gray.500" textAlign="center">
+                        <Text fontSize="sm" color={mutedTextColor} textAlign="center">
                           +{awards.length - 5} more awards
                         </Text>
                       )}
@@ -567,17 +886,22 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             {/* Photos Section */}
             {photos.length > 0 && (
               <GridItem>
-                <Card h="fit-content">
+                <Card h="fit-content" bg={cardBgColor} borderColor={borderColor}>
                   <CardBody>
                     <Flex justify="space-between" align="center" mb={4}>
-                      <Heading size="md">
+                      <Heading size="md" color={textColor}>
                         <HStack spacing={2}>
-                          <Icon as={Camera} color="purple.500" />
+                          <Icon as={Camera} color={primaryColor} />
                           <Text>Photo Gallery</Text>
                         </HStack>
                       </Heading>
                       {photos.length > 6 && (
-                        <Button size="sm" variant="ghost" onClick={() => setShowAllPhotos(!showAllPhotos)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setShowAllPhotos(!showAllPhotos)}
+                          color={textColor}
+                        >
                           {showAllPhotos ? "Show Less" : `View All (${photos.length})`}
                         </Button>
                       )}
@@ -605,89 +929,99 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             )}
           </Grid>
 
-          {/* Upcoming Schedule */}
+          {/* Schedule Section with Tabs */}
           {schedule.length > 0 && (
-            <Card>
+            <Card bg={cardBgColor} borderColor={borderColor}>
               <CardBody>
-                <Heading size="md" mb={4}>
+                <Heading size="md" mb={4} color={textColor}>
                   <HStack spacing={2}>
-                    <Icon as={Calendar} color="green.500" />
-                    <Text>Upcoming Schedule</Text>
+                    <Icon as={Calendar} color={primaryColor} />
+                    <Text>Schedule</Text>
                   </HStack>
                 </Heading>
-                <VStack spacing={4} align="stretch">
-                  {schedule.map((event) => (
-                    <Box key={event.id}>
-                      <HStack justify="space-between" align="start">
-                        <VStack align="start" spacing={1} flex={1}>
-                          <Text fontWeight="semibold">{event.event_title}</Text>
-                          <HStack spacing={4}>
-                            <Text fontSize="sm" color="gray.600">
-                              {new Date(event.event_date).toLocaleDateString()}
-                            </Text>
-                            {event.event_time && (
-                              <Text fontSize="sm" color="gray.600">
-                                {event.event_time}
-                              </Text>
-                            )}
-                            {event.location && (
-                              <Text fontSize="sm" color="gray.600">
-                                📍 {event.location}
-                              </Text>
-                            )}
-                          </HStack>
-                          {event.description && (
-                            <Text fontSize="sm" color="gray.500">
-                              {event.description}
-                            </Text>
-                          )}
+                <Tabs variant="enclosed" colorScheme="green">
+                  <TabList>
+                    <Tab color={textColor}>Upcoming ({upcomingEvents.length})</Tab>
+                    <Tab color={textColor}>Past ({pastEvents.length})</Tab>
+                    <Tab color={textColor}>All Events ({schedule.length})</Tab>
+                  </TabList>
+                  <TabPanels>
+                    <TabPanel px={0}>
+                      {upcomingEvents.length > 0 ? (
+                        <VStack spacing={4} align="stretch">
+                          {upcomingEvents.map((event) => renderScheduleEvent(event, false))}
                         </VStack>
-                        <Badge colorScheme="green" fontSize="xs">
-                          {event.event_type}
-                        </Badge>
-                      </HStack>
-                      <Divider mt={3} />
-                    </Box>
-                  ))}
-                </VStack>
+                      ) : (
+                        <Text color={mutedTextColor} textAlign="center" py={4}>
+                          No upcoming events scheduled
+                        </Text>
+                      )}
+                    </TabPanel>
+                    <TabPanel px={0}>
+                      {pastEvents.length > 0 ? (
+                        <VStack spacing={4} align="stretch">
+                          {pastEvents.reverse().map((event) => renderScheduleEvent(event, true))}
+                        </VStack>
+                      ) : (
+                        <Text color={mutedTextColor} textAlign="center" py={4}>
+                          No past events
+                        </Text>
+                      )}
+                    </TabPanel>
+                    <TabPanel px={0}>
+                      <VStack spacing={4} align="stretch">
+                        {schedule.map((event) => {
+                          const isPast = new Date(event.event_date) < now
+                          return renderScheduleEvent(event, isPast)
+                        })}
+                      </VStack>
+                    </TabPanel>
+                  </TabPanels>
+                </Tabs>
               </CardBody>
             </Card>
           )}
 
           {/* Reviews Section */}
           {reviews.length > 0 && (
-            <Card>
+            <Card bg={cardBgColor} borderColor={borderColor}>
               <CardBody>
-                <Heading size="md" mb={4}>
+                <Heading size="md" mb={4} color={textColor}>
                   <HStack spacing={2}>
-                    <Icon as={Star} color="yellow.500" />
+                    <Icon as={Star} color={primaryColor} />
                     <Text>Coach Reviews</Text>
                   </HStack>
                 </Heading>
                 <VStack spacing={4} align="stretch">
                   {reviews.slice(0, 3).map((review) => (
-                    <Box key={review.id} p={4} bg="gray.50" borderRadius="md">
+                    <Box key={review.id} p={4} bg={isDarkTheme ? "gray.700" : "gray.50"} borderRadius="md">
                       <VStack align="start" spacing={2}>
                         <HStack justify="space-between" w="full">
                           <VStack align="start" spacing={0}>
-                            <Text fontWeight="semibold">{review.reviewer_name}</Text>
+                            <Text fontWeight="semibold" color={textColor}>
+                              {review.reviewer_name}
+                            </Text>
                             {review.reviewer_title && review.reviewer_organization && (
-                              <Text fontSize="sm" color="gray.600">
+                              <Text fontSize="sm" color={mutedTextColor}>
                                 {review.reviewer_title} at {review.reviewer_organization}
                               </Text>
                             )}
                           </VStack>
-                          <HStack>
-                            {[...Array(5)].map((_, i) => (
+                          <HStack spacing={1}>
+                            {Array.from({ length: 5 }, (_, i) => (
                               <Star
                                 key={i}
                                 size={16}
-                                className={i < review.rating ? "text-yellow-400 fill-current" : "text-gray-300"}
+                                fill={i < review.rating ? "currentColor" : "none"}
+                                color={i < review.rating ? "#F6E05E" : "#E2E8F0"}
+                                style={{ color: i < review.rating ? "#F6E05E" : "#E2E8F0" }}
                               />
                             ))}
                           </HStack>
                         </HStack>
-                        <Text fontSize="sm">{review.review_text}</Text>
+                        <Text fontSize="sm" color={textColor}>
+                          {review.review_text}
+                        </Text>
                         {review.is_verified && (
                           <Badge colorScheme="green" size="sm">
                             Verified Review
@@ -700,59 +1034,92 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
               </CardBody>
             </Card>
           )}
+
+          {/* Bio Section - Moved to Bottom */}
+          {athlete.bio && (
+            <Card bg={cardBgColor} borderColor={borderColor}>
+              <CardBody>
+                <Heading size="md" mb={4} color={textColor}>
+                  About {athlete.athlete_name}
+                </Heading>
+                <Text lineHeight="tall" color={textColor}>
+                  {athlete.bio}
+                </Text>
+              </CardBody>
+            </Card>
+          )}
         </VStack>
       </Container>
 
       {/* Contact Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="lg">
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Contact {athlete.athlete_name}</ModalHeader>
-          <ModalCloseButton />
+        <ModalContent bg={cardBgColor}>
+          <ModalHeader color={textColor}>Contact {athlete.athlete_name}</ModalHeader>
+          <ModalCloseButton color={textColor} />
           <form onSubmit={handleContactSubmit}>
             <ModalBody>
               <VStack spacing={4}>
                 <FormControl isRequired>
-                  <FormLabel>Your Name</FormLabel>
+                  <FormLabel color={textColor}>Your Name</FormLabel>
                   <Input
                     value={contactForm.name}
                     onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                     placeholder="Enter your full name"
+                    bg={isDarkTheme ? "gray.700" : "white"}
+                    color={textColor}
+                    borderColor={borderColor}
                   />
                 </FormControl>
                 <FormControl isRequired>
-                  <FormLabel>Email Address</FormLabel>
+                  <FormLabel color={textColor}>Email Address</FormLabel>
                   <Input
                     type="email"
                     value={contactForm.email}
                     onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                     placeholder="Enter your email address"
+                    bg={isDarkTheme ? "gray.700" : "white"}
+                    color={textColor}
+                    borderColor={borderColor}
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>Organization</FormLabel>
+                  <FormLabel color={textColor}>Organization</FormLabel>
                   <Input
                     value={contactForm.organization}
                     onChange={(e) => setContactForm({ ...contactForm, organization: e.target.value })}
                     placeholder="School, team, or organization (optional)"
+                    bg={isDarkTheme ? "gray.700" : "white"}
+                    color={textColor}
+                    borderColor={borderColor}
                   />
                 </FormControl>
                 <FormControl isRequired>
-                  <FormLabel>Message</FormLabel>
+                  <FormLabel color={textColor}>Message</FormLabel>
                   <Textarea
                     value={contactForm.message}
                     onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                     placeholder="Enter your message..."
                     rows={4}
+                    bg={isDarkTheme ? "gray.700" : "white"}
+                    color={textColor}
+                    borderColor={borderColor}
                   />
                 </FormControl>
               </VStack>
             </ModalBody>
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
+              <Button variant="ghost" mr={3} onClick={onClose} color={textColor}>
                 Cancel
               </Button>
-              <Button type="submit" colorScheme="blue" isLoading={submittingContact} loadingText="Sending...">
+              <Button
+                type="submit"
+                bg={primaryColor}
+                color="white"
+                _hover={{ opacity: 0.8 }}
+                isLoading={submittingContact}
+                loadingText="Sending..."
+              >
                 Send Message
               </Button>
             </ModalFooter>

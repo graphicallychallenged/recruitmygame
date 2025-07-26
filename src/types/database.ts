@@ -8,23 +8,23 @@ export interface Database {
           username: string
           athlete_name: string
           sport: string
-          sports?: string[]
-          bio?: string
-          profile_picture_url?: string
-          school?: string
-          grade?: string
-          graduation_year?: number
-          height?: string
-          weight?: string
-          gpa?: number
-          sat_score?: number
-          act_score?: number
+          sports: string[]
+          bio: string
+          profile_picture_url: string
+          school: string
+          grade: string
+          graduation_year: number
+          height: string
+          weight: string
+          gpa: number
+          sat_score: number
+          act_score: number
           email?: string
           phone?: string
           show_email?: boolean
           show_phone?: boolean
-          primary_color?: string
-          secondary_color?: string
+          primary_color: string
+          secondary_color: string
           is_public: boolean
           created_at: string
           updated_at: string
@@ -32,7 +32,8 @@ export interface Database {
           location: string
           content_order: string[]
           is_profile_public: boolean
-          subscription_tier: "free" | "premium" | "pro"
+          subscription_tier: string
+          theme_mode: string
         }
         Insert: {
           id?: string
@@ -40,23 +41,23 @@ export interface Database {
           username: string
           athlete_name: string
           sport: string
-          sports?: string[]
-          bio?: string
-          profile_picture_url?: string
-          school?: string
-          grade?: string
-          graduation_year?: number
-          height?: string
-          weight?: string
-          gpa?: number
-          sat_score?: number
-          act_score?: number
+          sports: string[]
+          bio: string
+          profile_picture_url: string
+          school: string
+          grade: string
+          graduation_year: number
+          height: string
+          weight: string
+          gpa: number
+          sat_score: number
+          act_score: number
           email?: string
           phone?: string
           show_email?: boolean
           show_phone?: boolean
-          primary_color?: string
-          secondary_color?: string
+          primary_color: string
+          secondary_color: string
           is_public?: boolean
           created_at?: string
           updated_at?: string
@@ -64,7 +65,8 @@ export interface Database {
           location?: string
           content_order?: string[]
           is_profile_public?: boolean
-          subscription_tier?: "free" | "premium" | "pro"
+          subscription_tier?: string
+          theme_mode?: string
         }
         Update: {
           id?: string
@@ -96,7 +98,8 @@ export interface Database {
           location?: string
           content_order?: string[]
           is_profile_public?: boolean
-          subscription_tier?: "free" | "premium" | "pro"
+          subscription_tier?: string
+          theme_mode?: string
         }
       }
       athlete_videos: {
@@ -104,27 +107,25 @@ export interface Database {
           id: string
           athlete_id: string
           title: string
-          description?: string
+          description: string
           video_url: string
-          youtube_url?: string
-          thumbnail_url?: string
+          video_type: string
+          thumbnail_url: string
           is_public: boolean
           created_at: string
           updated_at: string
-          video_type: "upload" | "youtube"
         }
         Insert: {
           id?: string
           athlete_id: string
           title: string
-          description?: string
+          description: string
           video_url: string
-          youtube_url?: string
-          thumbnail_url?: string
+          video_type: string
+          thumbnail_url: string
           is_public?: boolean
           created_at?: string
           updated_at?: string
-          video_type?: "upload" | "youtube"
         }
         Update: {
           id?: string
@@ -132,12 +133,11 @@ export interface Database {
           title?: string
           description?: string
           video_url?: string
-          youtube_url?: string
+          video_type?: string
           thumbnail_url?: string
           is_public?: boolean
           created_at?: string
           updated_at?: string
-          video_type?: "upload" | "youtube"
         }
       }
       athlete_awards: {
@@ -145,31 +145,27 @@ export interface Database {
           id: string
           athlete_id: string
           title: string
-          description?: string
+          description: string
           award_type: string
-          organization?: string
-          date_received: string
+          organization: string
+          award_date: string
           is_public: boolean
           created_at: string
           updated_at: string
-          level?: string
-          award_date: string
-          award_type_new: "academic" | "athletic" | "leadership" | "community" | "other"
+          level: string
         }
         Insert: {
           id?: string
           athlete_id: string
           title: string
-          description?: string
+          description: string
           award_type: string
-          organization?: string
-          date_received: string
+          organization: string
+          award_date: string
           is_public?: boolean
           created_at?: string
           updated_at?: string
           level?: string
-          award_date?: string
-          award_type_new?: "academic" | "athletic" | "leadership" | "community" | "other"
         }
         Update: {
           id?: string
@@ -178,13 +174,11 @@ export interface Database {
           description?: string
           award_type?: string
           organization?: string
-          date_received?: string
+          award_date?: string
           is_public?: boolean
           created_at?: string
           updated_at?: string
           level?: string
-          award_date?: string
-          award_type_new?: "academic" | "athletic" | "leadership" | "community" | "other"
         }
       }
       athlete_photos: {
@@ -192,7 +186,7 @@ export interface Database {
           id: string
           athlete_id: string
           photo_url: string
-          caption?: string
+          caption: string
           is_public: boolean
           created_at: string
           updated_at: string
@@ -201,7 +195,7 @@ export interface Database {
           id?: string
           athlete_id: string
           photo_url: string
-          caption?: string
+          caption: string
           is_public?: boolean
           created_at?: string
           updated_at?: string
@@ -220,44 +214,41 @@ export interface Database {
         Row: {
           id: string
           athlete_id: string
-          title: string
-          description?: string
-          event_type: string
+          event_title: string
           event_date: string
-          event_time?: string
-          location?: string
+          event_time: string
+          location: string
+          event_type: string
+          description: string
           is_public: boolean
           created_at: string
           updated_at: string
-          event_type_new: "game" | "practice" | "tournament" | "showcase" | "camp" | "meeting" | "other"
         }
         Insert: {
           id?: string
           athlete_id: string
-          title: string
-          description?: string
-          event_type: string
+          event_title: string
           event_date: string
-          event_time?: string
-          location?: string
+          event_time: string
+          location: string
+          event_type: string
+          description: string
           is_public?: boolean
           created_at?: string
           updated_at?: string
-          event_type_new?: "game" | "practice" | "tournament" | "showcase" | "camp" | "meeting" | "other"
         }
         Update: {
           id?: string
           athlete_id?: string
-          title?: string
-          description?: string
-          event_type?: string
+          event_title?: string
           event_date?: string
           event_time?: string
           location?: string
+          event_type?: string
+          description?: string
           is_public?: boolean
           created_at?: string
           updated_at?: string
-          event_type_new?: "game" | "practice" | "tournament" | "showcase" | "camp" | "meeting" | "other"
         }
       }
       athlete_reviews: {
@@ -265,12 +256,12 @@ export interface Database {
           id: string
           athlete_id: string
           reviewer_name: string
-          reviewer_title?: string
-          reviewer_organization?: string
+          reviewer_title: string
+          reviewer_organization: string
           rating: number
           review_text: string
-          is_public: boolean
           is_verified: boolean
+          is_public: boolean
           review_token?: string
           created_at: string
           updated_at: string
@@ -279,12 +270,12 @@ export interface Database {
           id?: string
           athlete_id: string
           reviewer_name: string
-          reviewer_title?: string
-          reviewer_organization?: string
+          reviewer_title: string
+          reviewer_organization: string
           rating: number
           review_text: string
+          is_verified: boolean
           is_public?: boolean
-          is_verified?: boolean
           review_token?: string
           created_at?: string
           updated_at?: string
@@ -297,8 +288,8 @@ export interface Database {
           reviewer_organization?: string
           rating?: number
           review_text?: string
-          is_public?: boolean
           is_verified?: boolean
+          is_public?: boolean
           review_token?: string
           created_at?: string
           updated_at?: string
@@ -472,40 +463,41 @@ export interface AthleteProfile {
   athlete_name: string
   username: string
   sport: string
-  sports?: string[]
-  grade?: string
-  graduation_year?: number
-  school?: string
-  location?: string
-  bio?: string
-  height?: string
-  weight?: string
-  gpa?: number
-  sat_score?: number
-  act_score?: number
+  sports: string[]
+  grade: string
+  graduation_year: number
+  school: string
+  location: string
+  bio: string
+  height: string
+  weight: string
+  gpa: number
+  sat_score: number
+  act_score: number
+  positions_played: string[]
+  profile_picture_url: string
+  primary_color: string
+  secondary_color: string
+  subscription_tier: string
+  is_profile_public: boolean
+  content_order: string[]
   email?: string
   phone?: string
   show_email?: boolean
   show_phone?: boolean
-  positions_played?: string[]
-  profile_picture_url?: string
-  primary_color?: string
-  secondary_color?: string
-  subscription_tier: "free" | "premium" | "pro"
-  is_profile_public?: boolean
-  content_order?: string[]
   created_at: string
   updated_at: string
+  theme_mode: string
 }
 
 export interface AthleteVideo {
   id: string
   athlete_id: string
   title: string
-  description?: string
+  description: string
   video_url: string
-  video_type: "upload" | "youtube"
-  thumbnail_url?: string
+  video_type: string
+  thumbnail_url: string
   created_at: string
 }
 
@@ -513,7 +505,7 @@ export interface AthletePhoto {
   id: string
   athlete_id: string
   photo_url: string
-  caption?: string
+  caption: string
   created_at: string
 }
 
@@ -521,11 +513,11 @@ export interface AthleteAward {
   id: string
   athlete_id: string
   title: string
-  organization?: string
+  organization: string
   award_date: string
-  award_type: "academic" | "athletic" | "leadership" | "community" | "other"
-  level?: string
-  description?: string
+  award_type: string
+  level: string
+  description: string
   created_at: string
 }
 
@@ -534,10 +526,10 @@ export interface AthleteSchedule {
   athlete_id: string
   event_title: string
   event_date: string
-  event_time?: string
-  location?: string
-  event_type: "game" | "practice" | "tournament" | "showcase" | "camp" | "meeting" | "other"
-  description?: string
+  event_time: string
+  location: string
+  event_type: string
+  description: string
   created_at: string
 }
 
@@ -545,8 +537,8 @@ export interface AthleteReview {
   id: string
   athlete_id: string
   reviewer_name: string
-  reviewer_title?: string
-  reviewer_organization?: string
+  reviewer_title: string
+  reviewer_organization: string
   rating: number
   review_text: string
   is_verified: boolean

@@ -24,7 +24,7 @@ const REVIEW_TYPES = [
   { value: "academic", label: "Academic", icon: GraduationCap, color: "green" },
   { value: "coaching", label: "Coachability", icon: User, color: "purple" },
   { value: "general", label: "General", icon: Star, color: "yellow" },
-]
+] as const
 
 export function ReviewsSummary({ reviews, maxDisplay = 2 }: ReviewsSummaryProps) {
   const getReviewTypeInfo = (type: string) => {
@@ -33,7 +33,13 @@ export function ReviewsSummary({ reviews, maxDisplay = 2 }: ReviewsSummaryProps)
 
   const renderStars = (rating: number, size = 12) => {
     return Array.from({ length: 5 }, (_, i) => (
-      <Star key={i} size={size} fill={i < rating ? "#F6E05E" : "none"} color={i < rating ? "#F6E05E" : "#E2E8F0"} />
+      <Star
+        key={i}
+        size={size}
+        fill={i < rating ? "currentColor" : "none"}
+        color={i < rating ? "#F6E05E" : "#E2E8F0"}
+        style={{ color: i < rating ? "#F6E05E" : "#E2E8F0" }}
+      />
     ))
   }
 
