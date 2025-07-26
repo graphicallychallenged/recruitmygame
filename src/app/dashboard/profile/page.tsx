@@ -31,9 +31,13 @@ import {
   Switch,
   Badge,
   useToast,
+  SimpleGrid,
 } from "@chakra-ui/react"
 import { Plus, Save, Eye, EyeOff, ExternalLink } from "lucide-react"
 import { ProfilePictureUpload } from "@/components/ProfilePictureUpload"
+import { BusinessCardGenerator } from "@/components/BusinessCardGenerator"
+import { CoachReviewRequest } from "@/components/CoachReviewRequest"
+import { hasFeature, type SubscriptionTier } from "@/utils/tierFeatures"
 import Link from "next/link"
 
 interface AthleteProfile {
@@ -42,6 +46,7 @@ interface AthleteProfile {
   username: string
   athlete_name: string
   sport: string
+  sports?: string[]
   school: string
   location: string
   grade: string
@@ -56,6 +61,7 @@ interface AthleteProfile {
   secondary_color: string
   content_order: string[]
   is_profile_public: boolean
+  subscription_tier: SubscriptionTier
   created_at: string
   updated_at: string
 }
@@ -65,6 +71,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [newPosition, setNewPosition] = useState("")
+  const [newSport, setNewSport] = useState("")
   const [userId, setUserId] = useState<string>("")
   const [previewMode, setPreviewMode] = useState(false)
   const toast = useToast()
@@ -73,6 +80,7 @@ export default function ProfilePage() {
     username: "",
     athlete_name: "",
     sport: "",
+    sports: [] as string[],
     school: "",
     location: "",
     grade: "",
@@ -87,6 +95,7 @@ export default function ProfilePage() {
     secondary_color: "#2d3748",
     content_order: ["videos", "awards", "photos", "schedule", "reviews", "contact"] as string[],
     is_profile_public: true,
+    subscription_tier: "free" as SubscriptionTier,
   })
 
   useEffect(() => {
@@ -121,6 +130,7 @@ export default function ProfilePage() {
             username: data.username || "",
             athlete_name: data.athlete_name || "",
             sport: data.sport || "",
+            sports: data.sports || [],
             school: data.school || "",
             location: data.location || "",
             grade: data.grade || "",
@@ -135,6 +145,7 @@ export default function ProfilePage() {
             secondary_color: data.secondary_color || "#2d3748",
             content_order: data.content_order || ["videos", "awards", "photos", "schedule", "reviews", "contact"],
             is_profile_public: data.is_profile_public ?? true,
+            subscription_tier: data.subscription_tier || "free",
           })
         }
       } catch (error: any) {
@@ -173,7 +184,7 @@ export default function ProfilePage() {
         throw new Error("Full name is required")
       }
       if (!formData.sport.trim()) {
-        throw new Error("Sport is required")
+        throw new Error("Primary sport is required")
       }
 
       // Validate username format
@@ -334,10 +345,34 @@ export default function ProfilePage() {
     })
   }
 
+  const addSport = () => {
+    if (newSport.trim() && !formData.sports.includes(newSport.trim()) && newSport.trim() !== formData.sport) {
+      setFormData({
+        ...formData,
+        sports: [...formData.sports, newSport.trim()],
+      })
+      setNewSport("")
+    }
+  }
+
+  const removeSport = (sport: string) => {
+    setFormData({
+      ...formData,
+      sports: formData.sports.filter((s) => s !== sport),
+    })
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault()
       addPosition()
+    }
+  }
+
+  const handleSportKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      addSport()
     }
   }
 
@@ -393,6 +428,18 @@ export default function ProfilePage() {
             <HStack mt={2} spacing={2}>
               <Badge colorScheme={formData.is_profile_public ? "green" : "red"} variant="subtle">
                 {formData.is_profile_public ? "Public Profile" : "Private Profile"}
+              </Badge>
+              <Badge
+                colorScheme={
+                  formData.subscription_tier === "pro"
+                    ? "purple"
+                    : formData.subscription_tier === "premium"
+                      ? "blue"
+                      : "gray"
+                }
+                variant="solid"
+              >
+                {formData.subscription_tier.toUpperCase()}
               </Badge>
               {formData.username && (
                 <Badge colorScheme="blue" variant="outline">
@@ -463,11 +510,11 @@ export default function ProfilePage() {
                   <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6} w="full">
                     <GridItem>
                       <FormControl isRequired>
-                        <FormLabel>Sport</FormLabel>
+                        <FormLabel>Primary Sport</FormLabel>
                         <Select
                           value={formData.sport}
                           onChange={(e) => setFormData({ ...formData, sport: e.target.value })}
-                          placeholder="Select sport"
+                          placeholder="Select primary sport"
                         >
                           <option value="Football">Football</option>
                           <option value="Basketball">Basketball</option>
@@ -498,6 +545,58 @@ export default function ProfilePage() {
                       </FormControl>
                     </GridItem>
                   </Grid>
+
+                  {/* Additional Sports (Pro Feature) */}
+                  {hasFeature(formData.subscription_tier, "multiple_sports") && (
+                    <FormControl w="full">
+                      <FormLabel>
+                        Additional Sports
+                        <Badge colorScheme="purple" variant="solid" ml={2} fontSize="xs">
+                          Pro
+                        </Badge>
+                      </FormLabel>
+                      <HStack mb={3}>
+                        <Select
+                          value={newSport}
+                          onChange={(e) => setNewSport(e.target.value)}
+                          placeholder="Add another sport"
+                          onKeyPress={handleSportKeyPress}
+                        >
+                          <option value="Football">Football</option>
+                          <option value="Basketball">Basketball</option>
+                          <option value="Baseball">Baseball</option>
+                          <option value="Soccer">Soccer</option>
+                          <option value="Track & Field">Track & Field</option>
+                          <option value="Swimming">Swimming</option>
+                          <option value="Tennis">Tennis</option>
+                          <option value="Golf">Golf</option>
+                          <option value="Volleyball">Volleyball</option>
+                          <option value="Wrestling">Wrestling</option>
+                          <option value="Softball">Softball</option>
+                          <option value="Cross Country">Cross Country</option>
+                          <option value="Lacrosse">Lacrosse</option>
+                          <option value="Hockey">Hockey</option>
+                          <option value="Other">Other</option>
+                        </Select>
+                        <Button onClick={addSport} colorScheme="purple" size="sm" leftIcon={<Plus size={16} />}>
+                          Add
+                        </Button>
+                      </HStack>
+                      <Wrap>
+                        {formData.sports.map((sport) => (
+                          <WrapItem key={sport}>
+                            <Tag size="md" colorScheme="purple" variant="solid">
+                              <TagLabel>{sport}</TagLabel>
+                              <TagCloseButton onClick={() => removeSport(sport)} />
+                            </Tag>
+                          </WrapItem>
+                        ))}
+                      </Wrap>
+                      <Text fontSize="xs" color="gray.500" mt={1}>
+                        Showcase your multi-sport abilities to coaches
+                      </Text>
+                    </FormControl>
+                  )}
 
                   <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6} w="full">
                     <GridItem>
@@ -711,6 +810,32 @@ export default function ProfilePage() {
                 </VStack>
               </CardBody>
             </Card>
+
+            {/* Pro Features */}
+            {athlete && (
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                <BusinessCardGenerator
+                  athlete={{
+                    athlete_name: formData.athlete_name,
+                    sport: formData.sport,
+                    school: formData.school,
+                    location: formData.location,
+                    username: formData.username,
+                    profile_picture_url: formData.profile_picture_url,
+                    primary_color: formData.primary_color,
+                    secondary_color: formData.secondary_color,
+                  }}
+                  subscription_tier={formData.subscription_tier}
+                />
+
+                <CoachReviewRequest
+                  athleteId={athlete.id}
+                  athleteName={formData.athlete_name}
+                  username={formData.username}
+                  subscription_tier={formData.subscription_tier}
+                />
+              </SimpleGrid>
+            )}
 
             {/* Save Button */}
             <Button

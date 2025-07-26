@@ -8,51 +8,80 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Flex,
-  Grid,
-  GridItem,
+  Container,
   Heading,
   Text,
   VStack,
+  HStack,
   Stat,
   StatLabel,
   StatNumber,
-  Spinner,
-  Stack,
-  useBreakpointValue,
-  Progress,
   Badge,
-  HStack,
+  Spinner,
+  Center,
+  SimpleGrid,
   Avatar,
+  Progress,
 } from "@chakra-ui/react"
-import { User, Video, Award, ImageIcon, Calendar, MessageSquare, ExternalLink, TrendingUp, Eye } from "lucide-react"
+import { Trophy, Calendar, ImageIcon, Video, Star, User, TrendingUp, Lock, Zap, Eye } from "lucide-react"
 import Link from "next/link"
+import { ReviewsSummary } from "@/components/ReviewsSummary"
+import { getSubscriptionLimits, type SubscriptionTier } from "@/utils/subscription"
+import { hasFeature, getTierColor, getTierDisplayName } from "@/utils/tierFeatures"
 
-export default function DashboardOverview() {
-  const [athlete, setAthlete] = useState<any>(null)
-  const [stats, setStats] = useState({
-    videos: 0,
-    awards: 0,
-    photos: 0,
-    schedule: 0,
-    reviews: 0,
-    profileViews: 0,
+interface DashboardStats {
+  totalAwards: number
+  totalPhotos: number
+  totalVideos: number
+  totalEvents: number
+  totalReviews: number
+  averageRating: number
+  upcomingEvents: number
+}
+
+interface Review {
+  id: string
+  reviewer_name: string
+  reviewer_title: string
+  reviewer_organization: string
+  review_text: string
+  review_type: string
+  rating: number
+  created_at: string
+}
+
+interface AthleteProfile {
+  id: string
+  user_id: string
+  username: string
+  athlete_name: string
+  first_name: string
+  sport: string
+  school: string
+  profile_picture_url: string
+  subscription_tier: SubscriptionTier
+}
+
+export default function DashboardPage() {
+  const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
+  const [stats, setStats] = useState<DashboardStats>({
+    totalAwards: 0,
+    totalPhotos: 0,
+    totalVideos: 0,
+    totalEvents: 0,
+    totalReviews: 0,
+    averageRating: 0,
+    upcomingEvents: 0,
   })
+  const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
-  const [subscriptionTier, setSubscriptionTier] = useState<"free" | "premium" | "pro">("free")
-
-  // Responsive icon size
-  const iconSize = useBreakpointValue({ base: 16, md: 24 }) || 20
-
-  // Subscription limits
-  const tierLimits = {
-    free: { videos: 3, photos: 10, customization: false },
-    premium: { videos: 10, photos: 50, customization: true },
-    pro: { videos: 25, photos: 100, customization: true },
-  }
 
   useEffect(() => {
-    const fetchData = async () => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
       const {
         data: { session },
       } = await supabase.auth.getSession()
@@ -63,342 +92,508 @@ export default function DashboardOverview() {
 
       if (athleteData) {
         setAthlete(athleteData)
-        setSubscriptionTier(athleteData.subscription_tier || "free")
 
-        // Fetch stats
-        const [videos, awards, photos, schedule, reviews] = await Promise.all([
-          supabase.from("athlete_videos").select("id").eq("athlete_id", athleteData.id),
-          supabase.from("athlete_awards").select("id").eq("athlete_id", athleteData.id),
-          supabase.from("athlete_photos").select("id").eq("athlete_id", athleteData.id),
-          supabase.from("athlete_schedule").select("id").eq("athlete_id", athleteData.id),
-          supabase.from("athlete_reviews").select("id").eq("athlete_id", athleteData.id),
-        ])
+        // Fetch all stats in parallel using correct table names
+        const [awardsResult, photosResult, videosResult, scheduleResult, reviewsResult, upcomingEventsResult] =
+          await Promise.all([
+            supabase.from("athlete_awards").select("id").eq("athlete_id", athleteData.id),
+            supabase.from("athlete_photos").select("id").eq("athlete_id", athleteData.id),
+            supabase.from("athlete_videos").select("id").eq("athlete_id", athleteData.id),
+            // Only fetch schedule if user has premium or pro
+            hasFeature(athleteData.subscription_tier, "schedule")
+              ? supabase.from("athlete_schedule").select("id").eq("athlete_id", athleteData.id)
+              : Promise.resolve({ data: [] }),
+            // Only fetch reviews if user has premium or pro
+            hasFeature(athleteData.subscription_tier, "reviews")
+              ? supabase
+                  .from("athlete_reviews")
+                  .select("*")
+                  .eq("athlete_id", athleteData.id)
+                  .order("created_at", { ascending: false })
+              : Promise.resolve({ data: [] }),
+            // Only fetch upcoming events if user has premium or pro
+            hasFeature(athleteData.subscription_tier, "schedule")
+              ? supabase
+                  .from("athlete_schedule")
+                  .select("id")
+                  .eq("athlete_id", athleteData.id)
+                  .gte("event_date", new Date().toISOString().split("T")[0])
+                  .lte("event_date", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0])
+              : Promise.resolve({ data: [] }),
+          ])
+
+        // Calculate average rating
+        const reviewData = reviewsResult.data || []
+        const averageRating =
+          reviewData.length > 0 ? reviewData.reduce((sum, review) => sum + review.rating, 0) / reviewData.length : 0
 
         setStats({
-          videos: videos.data?.length || 0,
-          awards: awards.data?.length || 0,
-          photos: photos.data?.length || 0,
-          schedule: schedule.data?.length || 0,
-          reviews: reviews.data?.length || 0,
-          profileViews: Math.floor(Math.random() * 150) + 25, // Mock data for now
+          totalAwards: awardsResult.data?.length || 0,
+          totalPhotos: photosResult.data?.length || 0,
+          totalVideos: videosResult.data?.length || 0,
+          totalEvents: scheduleResult.data?.length || 0,
+          totalReviews: reviewData.length,
+          averageRating: Math.round(averageRating * 10) / 10,
+          upcomingEvents: upcomingEventsResult.data?.length || 0,
         })
-      }
 
+        setReviews(reviewData)
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error)
+    } finally {
       setLoading(false)
     }
-
-    fetchData()
-  }, [])
+  }
 
   if (loading) {
     return (
-      <Flex justify="center" align="center" h="400px">
+      <Center h="400px">
         <Spinner size="xl" color="blue.500" />
-      </Flex>
+      </Center>
     )
   }
 
   if (!athlete) {
     return (
-      <VStack spacing={6} textAlign="center" py={12} px={{ base: 4, md: 0 }}>
-        <Heading size={{ base: "md", md: "lg" }}>Welcome to Recruit My Game!</Heading>
-        <Text color="gray.600" fontSize={{ base: "sm", md: "md" }}>
-          Let's create your athlete profile to get started.
-        </Text>
-        <Link href="/dashboard/profile">
-          <Button colorScheme="blue" size={{ base: "md", md: "lg" }}>
-            Create Profile
-          </Button>
-        </Link>
-      </VStack>
+      <Container maxW="4xl">
+        <VStack spacing={8} textAlign="center" py={12}>
+          <Box>
+            <Heading size="xl" mb={4}>
+              Welcome to RecruitMyGame
+            </Heading>
+            <Text fontSize="lg" color="gray.600" mb={6}>
+              Create your athlete profile to start showcasing your achievements and connecting with coaches.
+            </Text>
+            <Link href="/dashboard/profile">
+              <Button colorScheme="blue" size="lg" leftIcon={<User size={20} />}>
+                Create Your Profile
+              </Button>
+            </Link>
+          </Box>
+        </VStack>
+      </Container>
     )
   }
 
-  const currentLimits = tierLimits[subscriptionTier]
+  const limits = getSubscriptionLimits(athlete.subscription_tier)
+  const totalContent = stats.totalVideos + stats.totalPhotos + stats.totalAwards
 
-  const statCards = [
+  const profileSections = [
     {
-      title: "Profile Views",
-      count: stats.profileViews,
-      icon: Eye,
-      href: "#",
-      color: "purple",
-      subtitle: "This month",
-    },
-    {
-      title: "Videos",
-      count: stats.videos,
+      title: "Game Film Showcase",
+      description: "Upload and organize your best game footage",
       icon: Video,
+      usage: stats.totalVideos,
+      limit: limits.videos,
+      color: "orange",
+      features: ["HD video streaming", "Custom thumbnails", "Easy sharing"],
       href: "/dashboard/videos",
-      color: "blue",
-      subtitle: `${stats.videos}/${currentLimits.videos} used`,
+      available: true,
+      requiredTier: "free" as SubscriptionTier,
     },
     {
-      title: "Photos",
-      count: stats.photos,
+      title: "Photo Gallery",
+      description: "Create a visual story of your athletic journey",
       icon: ImageIcon,
+      usage: stats.totalPhotos,
+      limit: limits.photos,
+      color: "blue",
+      features: ["High-quality images", "Gallery organization", "Mobile optimized"],
       href: "/dashboard/photos",
-      color: "green",
-      subtitle: `${stats.photos}/${currentLimits.photos} used`,
+      available: true,
+      requiredTier: "free" as SubscriptionTier,
     },
     {
-      title: "Awards",
-      count: stats.awards,
-      icon: Award,
-      href: "/dashboard/awards",
+      title: "Awards & Achievements",
+      description: "Showcase your athletic accomplishments",
+      icon: Trophy,
+      usage: stats.totalAwards,
+      limit: 999, // No limit on awards
       color: "yellow",
-      subtitle: "Achievements",
+      features: ["Award certificates", "Achievement timeline", "Statistics tracking"],
+      href: "/dashboard/awards",
+      available: true,
+      requiredTier: "free" as SubscriptionTier,
     },
     {
-      title: "Reviews",
-      count: stats.reviews,
-      icon: MessageSquare,
+      title: "Schedule & Events",
+      description: "Track games, practices, and important dates",
+      icon: Calendar,
+      usage: stats.totalEvents,
+      limit: 999, // No limit on schedule events
+      color: "green",
+      features: ["Event management", "Calendar integration", "Upcoming reminders"],
+      href: "/dashboard/schedule",
+      available: hasFeature(athlete.subscription_tier, "schedule"),
+      requiredTier: "premium" as SubscriptionTier,
+    },
+    {
+      title: "Coach Reviews",
+      description: "Collect testimonials from coaches and mentors",
+      icon: Star,
+      usage: stats.totalReviews,
+      limit: 999, // No limit on reviews
+      color: "purple",
+      features: ["Review management", "Rating system", "Testimonial display"],
       href: "/dashboard/reviews",
-      color: "teal",
-      subtitle: "Coach feedback",
+      available: hasFeature(athlete.subscription_tier, "reviews"),
+      requiredTier: "premium" as SubscriptionTier,
     },
   ]
 
-  const getSubscriptionBadgeColor = () => {
-    switch (subscriptionTier) {
-      case "premium":
-        return "blue"
-      case "pro":
-        return "purple"
-      default:
-        return "gray"
-    }
-  }
+  const proFeatures = [
+    {
+      title: "Business Cards",
+      description: "Generate professional business cards with QR codes",
+      icon: User,
+      available: hasFeature(athlete.subscription_tier, "business_cards"),
+      requiredTier: "pro" as SubscriptionTier,
+    },
+    {
+      title: "Verified Reviews",
+      description: "Send secure review requests to coaches",
+      icon: Star,
+      available: hasFeature(athlete.subscription_tier, "verified_reviews"),
+      requiredTier: "pro" as SubscriptionTier,
+    },
+    {
+      title: "Multiple Sports",
+      description: "Add multiple sports to your profile",
+      icon: Trophy,
+      available: hasFeature(athlete.subscription_tier, "multiple_sports"),
+      requiredTier: "pro" as SubscriptionTier,
+    },
+    {
+      title: "Advanced Analytics",
+      description: "Detailed insights and performance tracking",
+      icon: TrendingUp,
+      available: hasFeature(athlete.subscription_tier, "analytics"),
+      requiredTier: "premium" as SubscriptionTier,
+    },
+  ]
 
   return (
-    <VStack spacing={{ base: 6, md: 8 }} align="stretch">
-      {/* Header Section with Profile Summary */}
-      <Card>
-        <CardBody>
-          <Flex
-            justify="space-between"
-            align={{ base: "start", md: "center" }}
-            direction={{ base: "column", md: "row" }}
-            gap={{ base: 4, md: 0 }}
-          >
-            <HStack spacing={4}>
-              <Avatar src={athlete.profile_picture_url} size={{ base: "lg", md: "xl" }} name={athlete.athlete_name} />
-              <Box>
-                <HStack spacing={2} mb={1}>
-                  <Heading size={{ base: "md", md: "lg" }}>{athlete.athlete_name}</Heading>
-                  <Badge colorScheme={getSubscriptionBadgeColor()} variant="subtle">
-                    {subscriptionTier.toUpperCase()}
-                  </Badge>
-                </HStack>
-                <Text color="gray.600" fontSize={{ base: "sm", md: "md" }}>
+    <Container maxW="6xl">
+      <VStack spacing={8} align="stretch">
+        {/* Welcome Header */}
+        <Box>
+          <HStack spacing={4} mb={4}>
+            <Avatar src={athlete.profile_picture_url} name={athlete.athlete_name} size="lg" />
+            <VStack align="start" spacing={1}>
+              <HStack spacing={3}>
+                <Heading size="xl">Welcome back, {athlete.first_name || athlete.athlete_name.split(" ")[0]}!</Heading>
+                <Badge
+                  colorScheme={getTierColor(athlete.subscription_tier)}
+                  variant="solid"
+                  px={3}
+                  py={1}
+                  borderRadius="full"
+                  textTransform="uppercase"
+                  fontSize="xs"
+                  fontWeight="bold"
+                >
+                  {getTierDisplayName(athlete.subscription_tier)}
+                </Badge>
+              </HStack>
+              <Text color="gray.600" fontSize="lg">
+                Here's an overview of your athletic profile and recruitment progress.
+              </Text>
+              <HStack spacing={2}>
+                <Text fontSize="sm" color="gray.500">
                   {athlete.sport} • {athlete.school}
                 </Text>
-                <Text color="gray.500" fontSize="sm">
+                <Text fontSize="sm" color="blue.500">
                   Profile: {athlete.username}
                 </Text>
-              </Box>
-            </HStack>
-            <Stack direction={{ base: "column", sm: "row" }} spacing={3}>
-              <Link href={`/${athlete.username}`} target="_blank">
-                <Button
-                  variant="outline"
-                  leftIcon={<ExternalLink size={16} />}
-                  size={{ base: "sm", md: "md" }}
-                  w={{ base: "full", sm: "auto" }}
-                >
-                  View Public Profile
-                </Button>
-              </Link>
-              <Link href="/dashboard/profile">
-                <Button colorScheme="blue" size={{ base: "sm", md: "md" }} w={{ base: "full", sm: "auto" }}>
-                  Edit Profile
-                </Button>
-              </Link>
-            </Stack>
-          </Flex>
-        </CardBody>
-      </Card>
-
-      {/* Usage & Limits */}
-      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6}>
-        <Card>
-          <CardHeader pb={2}>
-            <Heading size="sm">Video Usage</Heading>
-          </CardHeader>
-          <CardBody pt={0}>
-            <VStack align="stretch" spacing={3}>
-              <Flex justify="space-between" align="center">
-                <Text fontSize="sm">Videos uploaded</Text>
-                <Text fontSize="sm" fontWeight="medium">
-                  {stats.videos} / {currentLimits.videos}
-                </Text>
-              </Flex>
-              <Progress
-                value={(stats.videos / currentLimits.videos) * 100}
-                colorScheme={stats.videos >= currentLimits.videos ? "red" : "blue"}
-                size="sm"
-              />
-              {stats.videos >= currentLimits.videos && (
-                <Text fontSize="xs" color="red.500">
-                  Limit reached. Upgrade to add more videos.
-                </Text>
-              )}
+              </HStack>
             </VStack>
-          </CardBody>
-        </Card>
+          </HStack>
 
-        <Card>
-          <CardHeader pb={2}>
-            <Heading size="sm">Photo Usage</Heading>
-          </CardHeader>
-          <CardBody pt={0}>
-            <VStack align="stretch" spacing={3}>
-              <Flex justify="space-between" align="center">
-                <Text fontSize="sm">Photos uploaded</Text>
-                <Text fontSize="sm" fontWeight="medium">
-                  {stats.photos} / {currentLimits.photos}
-                </Text>
-              </Flex>
-              <Progress
-                value={(stats.photos / currentLimits.photos) * 100}
-                colorScheme={stats.photos >= currentLimits.photos ? "red" : "green"}
-                size="sm"
-              />
-              {stats.photos >= currentLimits.photos && (
-                <Text fontSize="xs" color="red.500">
-                  Limit reached. Upgrade to add more photos.
-                </Text>
-              )}
-            </VStack>
-          </CardBody>
-        </Card>
-      </Grid>
-
-      {/* Stats Grid */}
-      <Grid
-        templateColumns={{
-          base: "repeat(2, 1fr)",
-          md: "repeat(3, 1fr)",
-          lg: "repeat(5, 1fr)",
-        }}
-        gap={{ base: 3, md: 6 }}
-      >
-        {statCards.map((card) => (
-          <GridItem key={card.title}>
-            <Card size={{ base: "sm", md: "md" }}>
-              <CardBody p={{ base: 3, md: 4 }}>
-                <Flex justify="space-between" align="center" mb={2}>
-                  <Stat>
-                    <StatLabel fontSize={{ base: "xs", md: "sm" }}>{card.title}</StatLabel>
-                    <StatNumber fontSize={{ base: "lg", md: "2xl" }}>{card.count}</StatNumber>
-                  </Stat>
-                  <Box color={`${card.color}.500`}>
-                    <card.icon size={iconSize} />
-                  </Box>
-                </Flex>
-                <Text fontSize="xs" color="gray.500" mb={2}>
-                  {card.subtitle}
-                </Text>
-                {card.href !== "#" && (
-                  <Link href={card.href}>
-                    <Button variant="link" size="xs" fontSize={{ base: "xs", md: "sm" }} p={0}>
-                      Manage
-                    </Button>
-                  </Link>
-                )}
-              </CardBody>
-            </Card>
-          </GridItem>
-        ))}
-      </Grid>
-
-      {/* Subscription Upgrade CTA */}
-      {subscriptionTier === "free" && (
-        <Card bg="blue.50" borderColor="blue.200">
-          <CardBody>
-            <Flex
-              justify="space-between"
-              align={{ base: "start", md: "center" }}
-              direction={{ base: "column", md: "row" }}
-              gap={4}
-            >
-              <Box>
-                <Heading size="sm" mb={1} color="blue.700">
-                  Unlock Your Full Potential
-                </Heading>
-                <Text fontSize="sm" color="blue.600">
-                  Upgrade to Premium for more videos, photos, and advanced customization options.
-                </Text>
-              </Box>
-              <Button colorScheme="blue" size="sm" leftIcon={<TrendingUp size={16} />}>
-                Upgrade Now
+          <HStack spacing={4}>
+            <Link href={`/${athlete.username}`} target="_blank">
+              <Button leftIcon={<Eye size={16} />} variant="outline">
+                View Public Profile
               </Button>
-            </Flex>
-          </CardBody>
-        </Card>
-      )}
+            </Link>
+            {(athlete.subscription_tier === "free" || athlete.subscription_tier === "premium") && (
+              <Link href="/subscription">
+                <Button leftIcon={<Zap size={16} />} colorScheme="purple">
+                  {athlete.subscription_tier === "free" ? "Upgrade to Premium" : "Upgrade to Pro"}
+                </Button>
+              </Link>
+            )}
+          </HStack>
+        </Box>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader pb={{ base: 2, md: 4 }}>
-          <Heading size={{ base: "sm", md: "md" }} mb={1}>
-            Quick Actions
+        {/* Key Metrics */}
+        <SimpleGrid columns={{ base: 2, md: 5 }} spacing={6}>
+          <Card>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color="blue.500">
+                  <Eye size={32} />
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">-</StatNumber>
+                  <StatLabel fontSize="sm">Profile Views</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  Coming soon
+                </Text>
+              </VStack>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color="green.500">
+                  <Trophy size={32} />
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">{totalContent}</StatNumber>
+                  <StatLabel fontSize="sm">Total Content</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  Videos, photos & awards
+                </Text>
+              </VStack>
+            </CardBody>
+          </Card>
+
+          <Card opacity={hasFeature(athlete.subscription_tier, "reviews") ? 1 : 0.6}>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color={hasFeature(athlete.subscription_tier, "reviews") ? "purple.500" : "gray.400"}>
+                  {hasFeature(athlete.subscription_tier, "reviews") ? <Star size={32} /> : <Lock size={32} />}
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">
+                    {hasFeature(athlete.subscription_tier, "reviews") ? stats.totalReviews : "-"}
+                  </StatNumber>
+                  <StatLabel fontSize="sm">Coach Reviews</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  {hasFeature(athlete.subscription_tier, "reviews")
+                    ? stats.averageRating > 0
+                      ? `${stats.averageRating} avg rating`
+                      : "No reviews yet"
+                    : "Premium feature"}
+                </Text>
+              </VStack>
+            </CardBody>
+          </Card>
+
+          <Card opacity={hasFeature(athlete.subscription_tier, "schedule") ? 1 : 0.6}>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color={hasFeature(athlete.subscription_tier, "schedule") ? "orange.500" : "gray.400"}>
+                  {hasFeature(athlete.subscription_tier, "schedule") ? <Calendar size={32} /> : <Lock size={32} />}
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">
+                    {hasFeature(athlete.subscription_tier, "schedule") ? stats.upcomingEvents : "-"}
+                  </StatNumber>
+                  <StatLabel fontSize="sm">Upcoming Events</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  {hasFeature(athlete.subscription_tier, "schedule") ? "Next 30 days" : "Premium feature"}
+                </Text>
+              </VStack>
+            </CardBody>
+          </Card>
+
+          <Card opacity={hasFeature(athlete.subscription_tier, "schedule") ? 1 : 0.6}>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color={hasFeature(athlete.subscription_tier, "schedule") ? "red.500" : "gray.400"}>
+                  {hasFeature(athlete.subscription_tier, "schedule") ? <Calendar size={32} /> : <Lock size={32} />}
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">
+                    {hasFeature(athlete.subscription_tier, "schedule") ? stats.totalEvents : "-"}
+                  </StatNumber>
+                  <StatLabel fontSize="sm">Total Events</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  {hasFeature(athlete.subscription_tier, "schedule") ? "All scheduled events" : "Premium feature"}
+                </Text>
+              </VStack>
+            </CardBody>
+          </Card>
+        </SimpleGrid>
+
+        {/* Profile Sections */}
+        <Box>
+          <Heading size="lg" mb={6}>
+            Your Profile Sections
           </Heading>
-          <Text color="gray.600" fontSize={{ base: "xs", md: "sm" }}>
-            Common tasks to improve your profile
-          </Text>
-        </CardHeader>
-        <CardBody pt={0}>
-          <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)" }} gap={{ base: 3, md: 4 }}>
-            <Link href="/dashboard/videos">
-              <Button
+          <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}>
+            {profileSections.map((section) => {
+              const usagePercentage =
+                section.limit > 0 && section.limit < 999 ? Math.round((section.usage / section.limit) * 100) : 0
+              const isNearLimit = usagePercentage >= 80
+              const hasLimit = section.limit < 999
+
+              return (
+                <Card
+                  key={section.title}
+                  variant="outline"
+                  opacity={section.available ? 1 : 0.7}
+                  borderColor={section.available ? "gray.200" : "gray.100"}
+                >
+                  <CardHeader pb={2}>
+                    <HStack spacing={3}>
+                      <Box color={section.available ? `${section.color}.500` : "gray.400"}>
+                        {section.available ? <section.icon size={24} /> : <Lock size={24} />}
+                      </Box>
+                      <VStack align="start" spacing={0} flex={1}>
+                        <HStack spacing={2}>
+                          <Text fontWeight="bold" fontSize="lg">
+                            {section.title}
+                          </Text>
+                          {!section.available && (
+                            <Badge
+                              colorScheme={getTierColor(section.requiredTier)}
+                              variant="solid"
+                              textTransform="uppercase"
+                              fontSize="xs"
+                            >
+                              {getTierDisplayName(section.requiredTier)}
+                            </Badge>
+                          )}
+                        </HStack>
+                        <Text fontSize="sm" color="gray.600">
+                          {section.description}
+                        </Text>
+                      </VStack>
+                    </HStack>
+                  </CardHeader>
+                  <CardBody pt={0}>
+                    <VStack spacing={4} align="stretch">
+                      {section.available ? (
+                        <>
+                          <Box>
+                            <HStack justify="space-between" mb={2}>
+                              <Text fontSize="sm" color="gray.600">
+                                {hasLimit ? `Usage: ${section.usage} / ${section.limit}` : `Total: ${section.usage}`}
+                              </Text>
+                              {hasLimit && (
+                                <Text fontSize="sm" fontWeight="bold" color={isNearLimit ? "red.500" : "gray.700"}>
+                                  {usagePercentage}%
+                                </Text>
+                              )}
+                            </HStack>
+                            {hasLimit && (
+                              <Progress
+                                value={usagePercentage}
+                                colorScheme={isNearLimit ? "red" : section.color}
+                                size="sm"
+                                borderRadius="full"
+                              />
+                            )}
+                            {!hasLimit && (
+                              <Box h="2px" bg="gray.100" borderRadius="full">
+                                <Box h="full" bg={`${section.color}.500`} borderRadius="full" w="100%" />
+                              </Box>
+                            )}
+                          </Box>
+
+                          <VStack spacing={1} align="start">
+                            {section.features.map((feature, index) => (
+                              <HStack key={index} spacing={2}>
+                                <Box color="green.500" fontSize="xs">
+                                  ✓
+                                </Box>
+                                <Text fontSize="xs" color="gray.600">
+                                  {feature}
+                                </Text>
+                              </HStack>
+                            ))}
+                          </VStack>
+
+                          <Link href={section.href}>
+                            <Button size="sm" colorScheme={section.color} variant="outline" w="full">
+                              Manage {section.title}
+                            </Button>
+                          </Link>
+                        </>
+                      ) : (
+                        <VStack spacing={3}>
+                          <Text fontSize="sm" color="gray.500" textAlign="center">
+                            This feature requires {getTierDisplayName(section.requiredTier)} subscription
+                          </Text>
+                          <Link href="/subscription">
+                            <Button size="sm" colorScheme="purple" variant="outline" w="full">
+                              Upgrade to {getTierDisplayName(section.requiredTier)}
+                            </Button>
+                          </Link>
+                        </VStack>
+                      )}
+                    </VStack>
+                  </CardBody>
+                </Card>
+              )
+            })}
+          </SimpleGrid>
+        </Box>
+
+        {/* Pro Features */}
+        <Box>
+          <Heading size="lg" mb={6}>
+            Advanced Features
+          </Heading>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            {proFeatures.map((feature) => (
+              <Card
+                key={feature.title}
                 variant="outline"
-                width="full"
-                leftIcon={<Video size={16} />}
-                size={{ base: "sm", md: "md" }}
-                justifyContent="flex-start"
-                isDisabled={stats.videos >= currentLimits.videos}
+                opacity={feature.available ? 1 : 0.7}
+                borderColor={feature.available ? "green.200" : "gray.200"}
               >
-                Add Game Film
-              </Button>
-            </Link>
-            <Link href="/dashboard/photos">
-              <Button
-                variant="outline"
-                width="full"
-                leftIcon={<ImageIcon size={16} />}
-                size={{ base: "sm", md: "md" }}
-                justifyContent="flex-start"
-                isDisabled={stats.photos >= currentLimits.photos}
-              >
-                Upload Photos
-              </Button>
-            </Link>
-            <Link href="/dashboard/schedule">
-              <Button
-                variant="outline"
-                width="full"
-                leftIcon={<Calendar size={16} />}
-                size={{ base: "sm", md: "md" }}
-                justifyContent="flex-start"
-              >
-                Update Schedule
-              </Button>
-            </Link>
-            <Link href="/dashboard/settings">
-              <Button
-                variant="outline"
-                width="full"
-                leftIcon={<User size={16} />}
-                size={{ base: "sm", md: "md" }}
-                justifyContent="flex-start"
-              >
-                Customize Design
-              </Button>
-            </Link>
-          </Grid>
-        </CardBody>
-      </Card>
-    </VStack>
+                <CardBody>
+                  <HStack spacing={4}>
+                    <Box color={feature.available ? "green.500" : "gray.400"}>
+                      {feature.available ? <feature.icon size={24} /> : <Lock size={24} />}
+                    </Box>
+                    <VStack align="start" spacing={1} flex={1}>
+                      <HStack spacing={2}>
+                        <Text fontWeight="bold">{feature.title}</Text>
+                        {!feature.available && (
+                          <Badge
+                            colorScheme={getTierColor(feature.requiredTier)}
+                            variant="solid"
+                            textTransform="uppercase"
+                            fontSize="xs"
+                          >
+                            {getTierDisplayName(feature.requiredTier)}
+                          </Badge>
+                        )}
+                      </HStack>
+                      <Text fontSize="sm" color="gray.600">
+                        {feature.description}
+                      </Text>
+                      {!feature.available && (
+                        <Link href="/subscription">
+                          <Button size="xs" colorScheme="purple" variant="outline" mt={2}>
+                            Upgrade to {getTierDisplayName(feature.requiredTier)}
+                          </Button>
+                        </Link>
+                      )}
+                    </VStack>
+                  </HStack>
+                </CardBody>
+              </Card>
+            ))}
+          </SimpleGrid>
+        </Box>
+
+        {/* Recent Reviews - Only show if user has reviews feature */}
+        {hasFeature(athlete.subscription_tier, "reviews") && stats.totalReviews > 0 && (
+          <ReviewsSummary reviews={reviews} maxDisplay={3} />
+        )}
+      </VStack>
+    </Container>
   )
 }
