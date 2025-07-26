@@ -1,592 +1,630 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { supabase } from "@/utils/supabase/client"
 import {
   Box,
   Button,
+  Card,
+  CardBody,
+  CardHeader,
   Container,
   Heading,
   Text,
   VStack,
   HStack,
-  SimpleGrid,
-  Card,
-  CardBody,
+  Stat,
+  StatLabel,
+  StatNumber,
   Badge,
-  List,
-  ListItem,
-  ListIcon,
-  Flex,
-  Icon,
-  useColorModeValue,
+  Spinner,
+  Center,
+  SimpleGrid,
+  Avatar,
+  Progress,
 } from "@chakra-ui/react"
-import {
-  Trophy,
-  Users,
-  Video,
-  Camera,
-  Calendar,
-  MessageSquare,
-  CheckCircle,
-  CreditCard,
-  Shield,
-  Zap,
-  Target,
-  ArrowRight,
-} from "lucide-react"
+import { Trophy, Calendar, ImageIcon, Video, Star, User, TrendingUp, Lock, Zap, Eye } from "lucide-react"
 import Link from "next/link"
-import { Logo } from "@/components/Logo"
+import { ReviewsSummary } from "@/components/ReviewsSummary"
+import {
+  hasFeature,
+  getTierColor,
+  getTierDisplayName,
+  getFeatureLimit,
+  type SubscriptionTier,
+} from "@/utils/tierFeatures"
 
-export default function HomePage() {
-  const bgGradient = useColorModeValue(
-    "linear(to-br, blue.50, purple.50, pink.50)",
-    "linear(to-br, blue.900, purple.900, pink.900)",
-  )
+interface DashboardStats {
+  totalAwards: number
+  totalPhotos: number
+  totalVideos: number
+  totalEvents: number
+  totalReviews: number
+  averageRating: number
+  upcomingEvents: number
+}
 
-  return (
-    <Box minH="100vh">
-      {/* Navigation */}
-      <Box as="nav" py={4} px={6} borderBottom="1px" borderColor="gray.200">
-        <Container maxW="7xl">
-          <Flex justify="space-between" align="center">
-            <Logo />
-            <HStack spacing={4}>
-              <Link href="/login">
-                <Button variant="ghost">Sign In</Button>
-              </Link>
-              <Link href="/subscription">
-                <Button colorScheme="blue">Get Started</Button>
-              </Link>
-            </HStack>
-          </Flex>
-        </Container>
-      </Box>
+interface Review {
+  id: string
+  reviewer_name: string
+  reviewer_title: string
+  reviewer_organization: string
+  review_text: string
+  review_type: string
+  rating: number
+  created_at: string
+}
 
-      {/* Hero Section */}
-      <Box bgGradient={bgGradient} py={20}>
-        <Container maxW="7xl">
-          <VStack spacing={8} textAlign="center">
-            <Badge colorScheme="purple" variant="subtle" px={4} py={2} fontSize="sm">
-              🚀 New: Pro Features Now Available
-            </Badge>
+interface AthleteProfile {
+  id: string
+  user_id: string
+  username: string
+  athlete_name: string
+  first_name: string
+  sport: string
+  school: string
+  profile_picture_url: string
+  subscription_tier: SubscriptionTier
+}
 
-            <Heading size="3xl" maxW="4xl">
-              Get Recruited with Your
-              <Text as="span" color="blue.500">
-                {" "}
-                Professional Athletic Profile
-              </Text>
+export default function DashboardPage() {
+  const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
+  const [stats, setStats] = useState<DashboardStats>({
+    totalAwards: 0,
+    totalPhotos: 0,
+    totalVideos: 0,
+    totalEvents: 0,
+    totalReviews: 0,
+    averageRating: 0,
+    upcomingEvents: 0,
+  })
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session) return
+
+      // Fetch athlete profile
+      const { data: athleteData } = await supabase.from("athletes").select("*").eq("user_id", session.user.id).single()
+
+      if (athleteData) {
+        setAthlete(athleteData)
+
+        // Fetch basic stats that are available to all users
+        const [awardsResult, photosResult, videosResult] = await Promise.all([
+          supabase.from("athlete_awards").select("id").eq("athlete_id", athleteData.id),
+          supabase.from("athlete_photos").select("id").eq("athlete_id", athleteData.id),
+          supabase.from("athlete_videos").select("id").eq("athlete_id", athleteData.id),
+        ])
+
+        // Initialize with default values
+        let scheduleCount = 0
+        let reviewsData: any[] = []
+        let upcomingEventsCount = 0
+
+        // Only fetch premium features if user has access
+        if (hasFeature(athleteData.subscription_tier, "schedule")) {
+          try {
+            const scheduleResult = await supabase.from("athlete_schedule").select("id").eq("athlete_id", athleteData.id)
+
+            const upcomingEventsResult = await supabase
+              .from("athlete_schedule")
+              .select("id")
+              .eq("athlete_id", athleteData.id)
+              .gte("event_date", new Date().toISOString().split("T")[0])
+              .lte("event_date", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0])
+
+            scheduleCount = scheduleResult.data?.length || 0
+            upcomingEventsCount = upcomingEventsResult.data?.length || 0
+          } catch (error) {
+            console.error("Error fetching schedule data:", error)
+          }
+        }
+
+        if (hasFeature(athleteData.subscription_tier, "reviews")) {
+          try {
+            const reviewsResult = await supabase
+              .from("athlete_reviews")
+              .select("*")
+              .eq("athlete_id", athleteData.id)
+              .order("created_at", { ascending: false })
+
+            reviewsData = reviewsResult.data || []
+          } catch (error) {
+            console.error("Error fetching reviews data:", error)
+          }
+        }
+
+        // Process reviews data and add review_type
+        const processedReviews: Review[] = reviewsData.map((review: any) => ({
+          id: review.id,
+          reviewer_name: review.reviewer_name || "",
+          reviewer_title: review.reviewer_title || "",
+          reviewer_organization: review.reviewer_organization || "",
+          review_text: review.review_text || "",
+          review_type: review.reviewer_title ? "coach" : "general",
+          rating: review.rating || 0,
+          created_at: review.created_at || "",
+        }))
+
+        // Calculate average rating
+        const averageRating =
+          processedReviews.length > 0
+            ? processedReviews.reduce((sum, review) => sum + review.rating, 0) / processedReviews.length
+            : 0
+
+        setStats({
+          totalAwards: awardsResult.data?.length || 0,
+          totalPhotos: photosResult.data?.length || 0,
+          totalVideos: videosResult.data?.length || 0,
+          totalEvents: scheduleCount,
+          totalReviews: processedReviews.length,
+          averageRating: Math.round(averageRating * 10) / 10,
+          upcomingEvents: upcomingEventsCount,
+        })
+
+        setReviews(processedReviews)
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <Center h="400px">
+        <Spinner size="xl" color="blue.500" />
+      </Center>
+    )
+  }
+
+  if (!athlete) {
+    return (
+      <Container maxW="4xl">
+        <VStack spacing={8} textAlign="center" py={12}>
+          <Box>
+            <Heading size="xl" mb={4}>
+              Welcome to RecruitMyGame
             </Heading>
-
-            <Text fontSize="xl" color="gray.600" maxW="3xl">
-              Create a stunning recruitment profile that showcases your athletic achievements, game film, and gets you
-              noticed by college coaches and recruiters.
+            <Text fontSize="lg" color="gray.600" mb={6}>
+              Create your athlete profile to start showcasing your achievements and connecting with coaches.
             </Text>
-
-            <HStack spacing={4}>
-              <Link href="/subscription">
-                <Button size="lg" colorScheme="blue" rightIcon={<ArrowRight size={20} />}>
-                  Start Building Your Profile
-                </Button>
-              </Link>
-              <Button size="lg" variant="outline" leftIcon={<Video size={20} />}>
-                Watch Demo
-              </Button>
-            </HStack>
-
-            {/* Quick Stats */}
-            <SimpleGrid columns={{ base: 2, md: 4 }} spacing={8} pt={8}>
-              <VStack>
-                <Text fontSize="3xl" fontWeight="bold" color="blue.500">
-                  10K+
-                </Text>
-                <Text color="gray.600">Athletes</Text>
-              </VStack>
-              <VStack>
-                <Text fontSize="3xl" fontWeight="bold" color="green.500">
-                  500+
-                </Text>
-                <Text color="gray.600">Colleges</Text>
-              </VStack>
-              <VStack>
-                <Text fontSize="3xl" fontWeight="bold" color="purple.500">
-                  2K+
-                </Text>
-                <Text color="gray.600">Scholarships</Text>
-              </VStack>
-              <VStack>
-                <Text fontSize="3xl" fontWeight="bold" color="orange.500">
-                  95%
-                </Text>
-                <Text color="gray.600">Success Rate</Text>
-              </VStack>
-            </SimpleGrid>
-          </VStack>
-        </Container>
-      </Box>
-
-      {/* Features Section */}
-      <Container maxW="7xl" py={20}>
-        <VStack spacing={16}>
-          <VStack spacing={4} textAlign="center">
-            <Heading size="xl">Everything You Need to Get Recruited</Heading>
-            <Text fontSize="lg" color="gray.600" maxW="3xl">
-              Our platform provides all the tools and features you need to create a professional athletic profile that
-              stands out to college coaches and recruiters.
-            </Text>
-          </VStack>
-
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
-            {/* Core Features */}
-            <Card>
-              <CardBody>
-                <VStack spacing={4} align="start">
-                  <Icon as={Video} size={40} color="blue.500" />
-                  <Heading size="md">Game Film Showcase</Heading>
-                  <Text color="gray.600">
-                    Upload and organize your best game footage with professional video player and descriptions.
-                  </Text>
-                  <List spacing={2} fontSize="sm">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      HD video streaming
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Custom thumbnails
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Easy sharing
-                    </ListItem>
-                  </List>
-                </VStack>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardBody>
-                <VStack spacing={4} align="start">
-                  <Icon as={Trophy} size={40} color="gold" />
-                  <Heading size="md">Awards & Achievements</Heading>
-                  <Text color="gray.600">
-                    Showcase your athletic accomplishments, awards, and recognition in a professional format.
-                  </Text>
-                  <List spacing={2} fontSize="sm">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Award certificates
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Achievement timeline
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Statistics tracking
-                    </ListItem>
-                  </List>
-                </VStack>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardBody>
-                <VStack spacing={4} align="start">
-                  <Icon as={Camera} size={40} color="purple.500" />
-                  <Heading size="md">Photo Gallery</Heading>
-                  <Text color="gray.600">
-                    Create a visual story of your athletic journey with action shots and team photos.
-                  </Text>
-                  <List spacing={2} fontSize="sm">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      High-quality images
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Gallery organization
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Mobile optimized
-                    </ListItem>
-                  </List>
-                </VStack>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardBody>
-                <VStack spacing={4} align="start">
-                  <Icon as={Calendar} size={40} color="green.500" />
-                  <Heading size="md">Schedule Management</Heading>
-                  <Text color="gray.600">Keep coaches updated on your upcoming games, tournaments, and showcases.</Text>
-                  <List spacing={2} fontSize="sm">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Event calendar
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Location details
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Automatic reminders
-                    </ListItem>
-                  </List>
-                </VStack>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardBody>
-                <VStack spacing={4} align="start">
-                  <Icon as={MessageSquare} size={40} color="blue.500" />
-                  <Heading size="md">Coach Reviews</Heading>
-                  <Text color="gray.600">Collect and display testimonials from coaches who have worked with you.</Text>
-                  <List spacing={2} fontSize="sm">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Star ratings
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Written testimonials
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Coach verification
-                    </ListItem>
-                  </List>
-                </VStack>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardBody>
-                <VStack spacing={4} align="start">
-                  <Icon as={Users} size={40} color="orange.500" />
-                  <Heading size="md">Direct Coach Contact</Heading>
-                  <Text color="gray.600">
-                    Make it easy for college coaches to reach out to you with built-in contact forms.
-                  </Text>
-                  <List spacing={2} fontSize="sm">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Secure messaging
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Contact tracking
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Response management
-                    </ListItem>
-                  </List>
-                </VStack>
-              </CardBody>
-            </Card>
-          </SimpleGrid>
-        </VStack>
-      </Container>
-
-      {/* Pro Features Highlight */}
-      <Box bg="purple.50" py={20}>
-        <Container maxW="7xl">
-          <VStack spacing={12}>
-            <VStack spacing={4} textAlign="center">
-              <Badge colorScheme="purple" variant="solid" px={4} py={2} fontSize="md">
-                🚀 NEW: Pro Features
-              </Badge>
-              <Heading size="xl">Take Your Profile to the Next Level</Heading>
-              <Text fontSize="lg" color="gray.600" maxW="3xl">
-                Unlock advanced features designed for serious athletes who want to maximize their recruitment
-                opportunities and stand out from the competition.
-              </Text>
-            </VStack>
-
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={8}>
-              <Card bg="white" shadow="md">
-                <CardBody textAlign="center">
-                  <VStack spacing={4}>
-                    <Icon as={CreditCard} size={40} color="purple.500" />
-                    <Heading size="md">Business Cards</Heading>
-                    <Text fontSize="sm" color="gray.600">
-                      Generate professional business cards with QR codes linking to your profile
-                    </Text>
-                    <Badge colorScheme="purple" variant="outline">
-                      250 cards included
-                    </Badge>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              <Card bg="white" shadow="md">
-                <CardBody textAlign="center">
-                  <VStack spacing={4}>
-                    <Icon as={Shield} size={40} color="green.500" />
-                    <Heading size="md">Verified Reviews</Heading>
-                    <Text fontSize="sm" color="gray.600">
-                      Send secure review requests to coaches with verified response links
-                    </Text>
-                    <Badge colorScheme="green" variant="outline">
-                      Verified badge
-                    </Badge>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              <Card bg="white" shadow="md">
-                <CardBody textAlign="center">
-                  <VStack spacing={4}>
-                    <Icon as={Target} size={40} color="blue.500" />
-                    <Heading size="md">Multiple Sports</Heading>
-                    <Text fontSize="sm" color="gray.600">
-                      Showcase expertise in multiple sports on a single profile
-                    </Text>
-                    <Badge colorScheme="blue" variant="outline">
-                      Multi-sport athlete
-                    </Badge>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              <Card bg="white" shadow="md">
-                <CardBody textAlign="center">
-                  <VStack spacing={4}>
-                    <Icon as={Zap} size={40} color="orange.500" />
-                    <Heading size="md">Priority Support</Heading>
-                    <Text fontSize="sm" color="gray.600">
-                      Get dedicated support and faster response times
-                    </Text>
-                    <Badge colorScheme="orange" variant="outline">
-                      24/7 support
-                    </Badge>
-                  </VStack>
-                </CardBody>
-              </Card>
-            </SimpleGrid>
-
-            <Link href="/subscription">
-              <Button size="lg" colorScheme="purple" rightIcon={<ArrowRight size={20} />}>
-                Upgrade to Pro
+            <Link href="/dashboard/profile">
+              <Button colorScheme="blue" size="lg" leftIcon={<User size={20} />}>
+                Create Your Profile
               </Button>
             </Link>
-          </VStack>
-        </Container>
-      </Box>
-
-      {/* Pricing Teaser */}
-      <Container maxW="7xl" py={20}>
-        <VStack spacing={12}>
-          <VStack spacing={4} textAlign="center">
-            <Heading size="xl">Choose Your Plan</Heading>
-            <Text fontSize="lg" color="gray.600">
-              Start free and upgrade as your recruitment journey progresses
-            </Text>
-          </VStack>
-
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8} maxW="5xl">
-            {/* Free Plan */}
-            <Card>
-              <CardBody textAlign="center">
-                <VStack spacing={4}>
-                  <Heading size="lg">Free</Heading>
-                  <Text fontSize="3xl" fontWeight="bold">
-                    $0
-                    <Text as="span" fontSize="lg" color="gray.500">
-                      /month
-                    </Text>
-                  </Text>
-                  <List spacing={2} fontSize="sm">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />3 videos
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      10 photos
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Basic profile
-                    </ListItem>
-                  </List>
-                  <Button w="full" variant="outline">
-                    Get Started
-                  </Button>
-                </VStack>
-              </CardBody>
-            </Card>
-
-            {/* Premium Plan */}
-            <Card borderColor="blue.500" borderWidth="2px">
-              <CardBody textAlign="center">
-                <VStack spacing={4}>
-                  <Badge colorScheme="blue" variant="solid">
-                    Most Popular
-                  </Badge>
-                  <Heading size="lg">Premium</Heading>
-                  <Text fontSize="3xl" fontWeight="bold">
-                    $9.99
-                    <Text as="span" fontSize="lg" color="gray.500">
-                      /month
-                    </Text>
-                  </Text>
-                  <List spacing={2} fontSize="sm">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      15 videos
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      50 photos
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Custom branding
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Analytics
-                    </ListItem>
-                  </List>
-                  <Button w="full" colorScheme="blue">
-                    Choose Premium
-                  </Button>
-                </VStack>
-              </CardBody>
-            </Card>
-
-            {/* Pro Plan */}
-            <Card borderColor="purple.500" borderWidth="2px">
-              <CardBody textAlign="center">
-                <VStack spacing={4}>
-                  <Badge colorScheme="purple" variant="solid">
-                    🚀 New
-                  </Badge>
-                  <Heading size="lg">Pro</Heading>
-                  <Text fontSize="3xl" fontWeight="bold">
-                    $19.99
-                    <Text as="span" fontSize="lg" color="gray.500">
-                      /month
-                    </Text>
-                  </Text>
-                  <List spacing={2} fontSize="sm">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Unlimited content
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Business cards
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Verified reviews
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="green.500" />
-                      Multiple sports
-                    </ListItem>
-                  </List>
-                  <Button w="full" colorScheme="purple">
-                    Choose Pro
-                  </Button>
-                </VStack>
-              </CardBody>
-            </Card>
-          </SimpleGrid>
-
-          <Link href="/subscription">
-            <Button variant="ghost" rightIcon={<ArrowRight size={16} />}>
-              View Full Pricing Details
-            </Button>
-          </Link>
+          </Box>
         </VStack>
       </Container>
+    )
+  }
 
-      {/* CTA Section */}
-      <Box bg="blue.600" color="white" py={20}>
-        <Container maxW="7xl">
-          <VStack spacing={8} textAlign="center">
-            <Heading size="xl">Ready to Get Recruited?</Heading>
-            <Text fontSize="lg" maxW="3xl">
-              Join thousands of athletes who have already created their professional recruitment profiles and connected
-              with college coaches.
-            </Text>
-            <HStack spacing={4}>
+  const totalContent = stats.totalVideos + stats.totalPhotos + stats.totalAwards
+
+  // Profile sections with proper tier restrictions
+  const profileSections = [
+    {
+      title: "Game Film Showcase",
+      description: "Upload and organize your best game footage",
+      icon: Video,
+      usage: stats.totalVideos,
+      limit: getFeatureLimit(athlete.subscription_tier, "videos"),
+      color: "orange",
+      features: ["HD video streaming", "Custom thumbnails", "Easy sharing"],
+      href: "/dashboard/videos",
+      available: true,
+    },
+    {
+      title: "Photo Gallery",
+      description: "Create a visual story of your athletic journey",
+      icon: ImageIcon,
+      usage: stats.totalPhotos,
+      limit: getFeatureLimit(athlete.subscription_tier, "photos"),
+      color: "blue",
+      features: ["High-quality images", "Gallery organization", "Mobile optimized"],
+      href: "/dashboard/photos",
+      available: true,
+    },
+    {
+      title: "Awards & Achievements",
+      description: "Showcase your athletic accomplishments",
+      icon: Trophy,
+      usage: stats.totalAwards,
+      limit: 999, // No limit on awards
+      color: "yellow",
+      features: ["Award certificates", "Achievement timeline", "Statistics tracking"],
+      href: "/dashboard/awards",
+      available: hasFeature(athlete.subscription_tier, "awards"),
+    },
+    {
+      title: "Schedule & Events",
+      description: "Track games, practices, and important dates",
+      icon: Calendar,
+      usage: stats.totalEvents,
+      limit: 999, // No limit on schedule events
+      color: "green",
+      features: ["Event management", "Calendar integration", "Upcoming reminders"],
+      href: "/dashboard/schedule",
+      available: hasFeature(athlete.subscription_tier, "schedule"),
+      requiredTier: "premium" as SubscriptionTier,
+    },
+    {
+      title: "Coach Reviews",
+      description: "Collect testimonials from coaches and mentors",
+      icon: Star,
+      usage: stats.totalReviews,
+      limit: 999, // No limit on reviews
+      color: "purple",
+      features: ["Review management", "Rating system", "Testimonial display"],
+      href: "/dashboard/reviews",
+      available: hasFeature(athlete.subscription_tier, "reviews"),
+      requiredTier: "premium" as SubscriptionTier,
+    },
+  ]
+
+  const proFeatures = [
+    {
+      title: "Business Cards",
+      description: "Generate professional business cards with QR codes",
+      icon: User,
+      available: hasFeature(athlete.subscription_tier, "business_cards"),
+      requiredTier: "pro" as SubscriptionTier,
+    },
+    {
+      title: "Verified Reviews",
+      description: "Send secure review requests to coaches",
+      icon: Star,
+      available: hasFeature(athlete.subscription_tier, "verified_reviews"),
+      requiredTier: "pro" as SubscriptionTier,
+    },
+    {
+      title: "Multiple Sports",
+      description: "Add multiple sports to your profile",
+      icon: Trophy,
+      available: hasFeature(athlete.subscription_tier, "multiple_sports"),
+      requiredTier: "pro" as SubscriptionTier,
+    },
+    {
+      title: "Advanced Analytics",
+      description: "Detailed insights and performance tracking",
+      icon: TrendingUp,
+      available: hasFeature(athlete.subscription_tier, "analytics"),
+      requiredTier: "premium" as SubscriptionTier,
+    },
+  ]
+
+  return (
+    <Container maxW="6xl">
+      <VStack spacing={8} align="stretch">
+        {/* Welcome Header */}
+        <Box>
+          <HStack spacing={4} mb={4}>
+            <Avatar src={athlete.profile_picture_url} name={athlete.athlete_name} size="lg" />
+            <VStack align="start" spacing={1}>
+              <HStack spacing={3}>
+                <Heading size="xl">Welcome back, {athlete.first_name || athlete.athlete_name.split(" ")[0]}!</Heading>
+                <Badge
+                  colorScheme={getTierColor(athlete.subscription_tier)}
+                  variant="solid"
+                  px={3}
+                  py={1}
+                  borderRadius="full"
+                  textTransform="uppercase"
+                  fontSize="xs"
+                  fontWeight="bold"
+                >
+                  {getTierDisplayName(athlete.subscription_tier)}
+                </Badge>
+              </HStack>
+              <Text color="gray.600" fontSize="lg">
+                Here's an overview of your athletic profile and recruitment progress.
+              </Text>
+              <HStack spacing={2}>
+                <Text fontSize="sm" color="gray.500">
+                  {athlete.sport} • {athlete.school}
+                </Text>
+                <Text fontSize="sm" color="blue.500">
+                  Profile: {athlete.username}
+                </Text>
+              </HStack>
+            </VStack>
+          </HStack>
+
+          <HStack spacing={4}>
+            <Link href={`/${athlete.username}`} target="_blank">
+              <Button leftIcon={<Eye size={16} />} variant="outline">
+                View Public Profile
+              </Button>
+            </Link>
+            {(athlete.subscription_tier === "free" || athlete.subscription_tier === "premium") && (
               <Link href="/subscription">
-                <Button size="lg" colorScheme="whiteAlpha" variant="solid">
-                  Start Your Profile Today
+                <Button leftIcon={<Zap size={16} />} colorScheme="purple">
+                  {athlete.subscription_tier === "free" ? "Upgrade to Premium" : "Upgrade to Pro"}
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" colorScheme="whiteAlpha">
-                Contact Sales
-              </Button>
-            </HStack>
-          </VStack>
-        </Container>
-      </Box>
+            )}
+          </HStack>
+        </Box>
 
-      {/* Footer */}
-      <Box bg="gray.900" color="white" py={12}>
-        <Container maxW="7xl">
-          <SimpleGrid columns={{ base: 1, md: 4 }} spacing={8}>
-            <VStack align="start" spacing={4}>
-              <Logo />
-              <Text fontSize="sm" color="gray.400">
-                The premier platform for athletic recruitment profiles.
-              </Text>
-            </VStack>
-            <VStack align="start" spacing={3}>
-              <Heading size="sm">Product</Heading>
-              <Link href="/features">
-                <Text fontSize="sm" color="gray.400" _hover={{ color: "white" }}>
-                  Features
+        {/* Key Metrics */}
+        <SimpleGrid columns={{ base: 2, md: 5 }} spacing={6}>
+          <Card>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color="blue.500">
+                  <Eye size={32} />
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">-</StatNumber>
+                  <StatLabel fontSize="sm">Profile Views</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  Coming soon
                 </Text>
-              </Link>
-              <Link href="/subscription">
-                <Text fontSize="sm" color="gray.400" _hover={{ color: "white" }}>
-                  Pricing
+              </VStack>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color="green.500">
+                  <Trophy size={32} />
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">{totalContent}</StatNumber>
+                  <StatLabel fontSize="sm">Total Content</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  Videos, photos & awards
                 </Text>
-              </Link>
-            </VStack>
-            <VStack align="start" spacing={3}>
-              <Heading size="sm">Support</Heading>
-              <Link href="/help">
-                <Text fontSize="sm" color="gray.400" _hover={{ color: "white" }}>
-                  Help Center
+              </VStack>
+            </CardBody>
+          </Card>
+
+          <Card opacity={hasFeature(athlete.subscription_tier, "reviews") ? 1 : 0.6}>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color={hasFeature(athlete.subscription_tier, "reviews") ? "purple.500" : "gray.400"}>
+                  {hasFeature(athlete.subscription_tier, "reviews") ? <Star size={32} /> : <Lock size={32} />}
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">
+                    {hasFeature(athlete.subscription_tier, "reviews") ? stats.totalReviews : "-"}
+                  </StatNumber>
+                  <StatLabel fontSize="sm">Coach Reviews</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  {hasFeature(athlete.subscription_tier, "reviews")
+                    ? stats.averageRating > 0
+                      ? `${stats.averageRating} avg rating`
+                      : "No reviews yet"
+                    : "Premium feature"}
                 </Text>
-              </Link>
-              <Link href="/contact">
-                <Text fontSize="sm" color="gray.400" _hover={{ color: "white" }}>
-                  Contact Us
+              </VStack>
+            </CardBody>
+          </Card>
+
+          <Card opacity={hasFeature(athlete.subscription_tier, "schedule") ? 1 : 0.6}>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color={hasFeature(athlete.subscription_tier, "schedule") ? "orange.500" : "gray.400"}>
+                  {hasFeature(athlete.subscription_tier, "schedule") ? <Calendar size={32} /> : <Lock size={32} />}
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">
+                    {hasFeature(athlete.subscription_tier, "schedule") ? stats.upcomingEvents : "-"}
+                  </StatNumber>
+                  <StatLabel fontSize="sm">Upcoming Events</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  {hasFeature(athlete.subscription_tier, "schedule") ? "Next 30 days" : "Premium feature"}
                 </Text>
-              </Link>
-            </VStack>
-            <VStack align="start" spacing={3}>
-              <Heading size="sm">Legal</Heading>
-              <Link href="/privacy">
-                <Text fontSize="sm" color="gray.400" _hover={{ color: "white" }}>
-                  Privacy Policy
+              </VStack>
+            </CardBody>
+          </Card>
+
+          <Card opacity={hasFeature(athlete.subscription_tier, "schedule") ? 1 : 0.6}>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color={hasFeature(athlete.subscription_tier, "schedule") ? "red.500" : "gray.400"}>
+                  {hasFeature(athlete.subscription_tier, "schedule") ? <Calendar size={32} /> : <Lock size={32} />}
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">
+                    {hasFeature(athlete.subscription_tier, "schedule") ? stats.totalEvents : "-"}
+                  </StatNumber>
+                  <StatLabel fontSize="sm">Total Events</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  {hasFeature(athlete.subscription_tier, "schedule") ? "All scheduled events" : "Premium feature"}
                 </Text>
-              </Link>
-              <Link href="/terms">
-                <Text fontSize="sm" color="gray.400" _hover={{ color: "white" }}>
-                  Terms of Service
-                </Text>
-              </Link>
-            </VStack>
+              </VStack>
+            </CardBody>
+          </Card>
+        </SimpleGrid>
+
+        {/* Profile Sections */}
+        <Box>
+          <Heading size="lg" mb={6}>
+            Your Profile Sections
+          </Heading>
+          <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}>
+            {profileSections.map((section) => {
+              const usagePercentage =
+                section.limit > 0 && section.limit < 999 ? Math.round((section.usage / section.limit) * 100) : 0
+              const isNearLimit = usagePercentage >= 80
+              const hasLimit = section.limit < 999
+
+              return (
+                <Card
+                  key={section.title}
+                  variant="outline"
+                  opacity={section.available ? 1 : 0.7}
+                  borderColor={section.available ? "gray.200" : "gray.300"}
+                >
+                  <CardHeader pb={2}>
+                    <HStack spacing={3}>
+                      <Box color={section.available ? `${section.color}.500` : "gray.400"}>
+                        {section.available ? <section.icon size={24} /> : <Lock size={24} />}
+                      </Box>
+                      <VStack align="start" spacing={0} flex={1}>
+                        <HStack spacing={2}>
+                          <Text fontWeight="bold" fontSize="lg">
+                            {section.title}
+                          </Text>
+                          {!section.available && section.requiredTier && (
+                            <Badge
+                              colorScheme={getTierColor(section.requiredTier)}
+                              variant="solid"
+                              fontSize="xs"
+                              textTransform="uppercase"
+                            >
+                              {getTierDisplayName(section.requiredTier)}
+                            </Badge>
+                          )}
+                        </HStack>
+                        <Text fontSize="sm" color="gray.600">
+                          {section.description}
+                        </Text>
+                      </VStack>
+                    </HStack>
+                  </CardHeader>
+                  <CardBody pt={0}>
+                    <VStack spacing={4} align="stretch">
+                      {section.available ? (
+                        <>
+                          <Box>
+                            <HStack justify="space-between" mb={2}>
+                              <Text fontSize="sm" color="gray.600">
+                                {hasLimit ? `Usage: ${section.usage} / ${section.limit}` : `Total: ${section.usage}`}
+                              </Text>
+                              {hasLimit && (
+                                <Text fontSize="sm" fontWeight="bold" color={isNearLimit ? "red.500" : "gray.700"}>
+                                  {usagePercentage}%
+                                </Text>
+                              )}
+                            </HStack>
+                            {hasLimit && (
+                              <Progress
+                                value={usagePercentage}
+                                colorScheme={isNearLimit ? "red" : section.color}
+                                size="sm"
+                                borderRadius="full"
+                              />
+                            )}
+                            {!hasLimit && (
+                              <Box h="2px" bg="gray.100" borderRadius="full">
+                                <Box h="full" bg={`${section.color}.500`} borderRadius="full" w="100%" />
+                              </Box>
+                            )}
+                          </Box>
+
+                          <VStack spacing={1} align="start">
+                            {section.features.map((feature, index) => (
+                              <HStack key={index} spacing={2}>
+                                <Box color="green.500" fontSize="xs">
+                                  ✓
+                                </Box>
+                                <Text fontSize="xs" color="gray.600">
+                                  {feature}
+                                </Text>
+                              </HStack>
+                            ))}
+                          </VStack>
+
+                          <Link href={section.href}>
+                            <Button size="sm" colorScheme={section.color} variant="outline" w="full">
+                              Manage {section.title}
+                            </Button>
+                          </Link>
+                        </>
+                      ) : (
+                        <VStack spacing={3} align="stretch">
+                          <Text fontSize="sm" color="gray.600" textAlign="center">
+                            This feature requires a {getTierDisplayName(section.requiredTier!)} subscription.
+                          </Text>
+                          <Link href="/subscription">
+                            <Button size="sm" colorScheme="purple" variant="outline" w="full">
+                              Upgrade to {getTierDisplayName(section.requiredTier!)}
+                            </Button>
+                          </Link>
+                        </VStack>
+                      )}
+                    </VStack>
+                  </CardBody>
+                </Card>
+              )
+            })}
           </SimpleGrid>
-          <Box borderTop="1px" borderColor="gray.700" mt={8} pt={8} textAlign="center">
-            <Text fontSize="sm" color="gray.400">
-              © 2024 RecruitMyGame. All rights reserved.
-            </Text>
-          </Box>
-        </Container>
-      </Box>
-    </Box>
+        </Box>
+
+        {/* Pro Features */}
+        <Box>
+          <Heading size="lg" mb={6}>
+            Advanced Features
+          </Heading>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            {proFeatures.map((feature) => (
+              <Card
+                key={feature.title}
+                variant="outline"
+                opacity={feature.available ? 1 : 0.7}
+                borderColor={feature.available ? "green.200" : "gray.200"}
+              >
+                <CardBody>
+                  <HStack spacing={4}>
+                    <Box color={feature.available ? "green.500" : "gray.400"}>
+                      {feature.available ? <feature.icon size={24} /> : <Lock size={24} />}
+                    </Box>
+                    <VStack align="start" spacing={1} flex={1}>
+                      <HStack spacing={2}>
+                        <Text fontWeight="bold">{feature.title}</Text>
+                        {!feature.available && (
+                          <Badge
+                            colorScheme={getTierColor(feature.requiredTier)}
+                            variant="solid"
+                            textTransform="uppercase"
+                            fontSize="xs"
+                          >
+                            {getTierDisplayName(feature.requiredTier)}
+                          </Badge>
+                        )}
+                      </HStack>
+                      <Text fontSize="sm" color="gray.600">
+                        {feature.description}
+                      </Text>
+                      {!feature.available && (
+                        <Link href="/subscription">
+                          <Button size="xs" colorScheme="purple" variant="outline" mt={2}>
+                            Upgrade to {getTierDisplayName(feature.requiredTier)}
+                          </Button>
+                        </Link>
+                      )}
+                    </VStack>
+                  </HStack>
+                </CardBody>
+              </Card>
+            ))}
+          </SimpleGrid>
+        </Box>
+
+        {/* Recent Reviews - Only show if reviews feature is available */}
+        {hasFeature(athlete.subscription_tier, "reviews") && stats.totalReviews > 0 && (
+          <ReviewsSummary reviews={reviews} maxDisplay={3} />
+        )}
+      </VStack>
+    </Container>
   )
 }

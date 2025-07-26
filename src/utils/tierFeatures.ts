@@ -100,3 +100,52 @@ export function getRequiredTier(feature: keyof TierFeatures): SubscriptionTier {
 export function canAccessFeature(userTier: SubscriptionTier, feature: keyof TierFeatures): boolean {
   return hasFeature(userTier, feature)
 }
+
+// Filter content based on subscription tier limits
+export function filterContentByTier<T extends any[]>(
+  content: T,
+  tier: SubscriptionTier,
+  contentType: "videos" | "photos" | "awards" | "schedule" | "reviews",
+): T {
+  if (!content || content.length === 0) return content
+
+  // For features that are boolean (awards, schedule, reviews), return all if feature is available
+  if (contentType === "awards" || contentType === "schedule" || contentType === "reviews") {
+    return hasFeature(tier, contentType) ? content : ([] as unknown as T)
+  }
+
+  // For videos and photos, apply limits
+  if (contentType === "videos" || contentType === "photos") {
+    const limit = getFeatureLimit(tier, contentType)
+    if (limit >= 999) return content // Unlimited
+    return content.slice(0, limit) as T
+  }
+
+  return content
+}
+
+// Check if user has reached their tier limit for a specific content type
+export function hasReachedLimit(
+  currentCount: number,
+  tier: SubscriptionTier,
+  contentType: "videos" | "photos",
+): boolean {
+  const limit = getFeatureLimit(tier, contentType)
+  return limit < 999 && currentCount >= limit
+}
+
+// Get remaining slots for a content type
+export function getRemainingSlots(
+  currentCount: number,
+  tier: SubscriptionTier,
+  contentType: "videos" | "photos",
+): number {
+  const limit = getFeatureLimit(tier, contentType)
+  if (limit >= 999) return 999 // Unlimited
+  return Math.max(0, limit - currentCount)
+}
+
+// Check if content should be visible on public profile based on tier
+export function isContentVisibleOnPublicProfile(contentType: keyof TierFeatures, tier: SubscriptionTier): boolean {
+  return hasFeature(tier, contentType)
+}

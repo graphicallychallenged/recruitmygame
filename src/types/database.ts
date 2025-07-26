@@ -16,7 +16,6 @@ export interface Database {
           graduation_year?: number
           height?: string
           weight?: string
-          position?: string
           gpa?: number
           primary_color?: string
           secondary_color?: string
@@ -43,7 +42,6 @@ export interface Database {
           graduation_year?: number
           height?: string
           weight?: string
-          position?: string
           gpa?: number
           primary_color?: string
           secondary_color?: string
@@ -70,7 +68,6 @@ export interface Database {
           graduation_year?: number
           height?: string
           weight?: string
-          position?: string
           gpa?: number
           primary_color?: string
           secondary_color?: string
@@ -471,6 +468,8 @@ export interface AthleteProfile {
   primary_color?: string
   secondary_color?: string
   subscription_tier: "free" | "premium" | "pro"
+  is_profile_public?: boolean
+  content_order?: string[]
   created_at: string
   updated_at: string
 }
