@@ -4,25 +4,26 @@ import { notFound } from "next/navigation"
 import PublicProfileClient from "./PublicProfileClient"
 
 interface PageProps {
-  params: Promise<{
+  params: {
     athleteName: string
-  }>
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const resolvedParams = await params
   const supabase = createStaticClient()
 
-  console.log("generateMetadata - Looking for athlete:", resolvedParams.athleteName)
+  console.log("generateMetadata - Full params object:", JSON.stringify(params, null, 2))
+  console.log("generateMetadata - athleteName:", params.athleteName)
+  console.log("generateMetadata - typeof athleteName:", typeof params.athleteName)
 
   try {
     const { data: athlete, error } = await supabase
       .from("athletes")
       .select("athlete_name, sport, school, location")
-      .eq("username", resolvedParams.athleteName)
+      .eq("username", params.athleteName)
       .single()
 
-    console.log("generateMetadata - Result:", { athlete, error })
+    console.log("generateMetadata - Database query result:", { athlete, error })
 
     if (!athlete || error) {
       return {
@@ -50,19 +51,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function AthletePage({ params }: PageProps) {
-  const resolvedParams = await params
   const supabase = createStaticClient()
 
-  console.log("AthletePage - Looking for athlete:", resolvedParams.athleteName)
+  console.log("AthletePage - Full params object:", JSON.stringify(params, null, 2))
+  console.log("AthletePage - athleteName:", params.athleteName)
+  console.log("AthletePage - typeof athleteName:", typeof params.athleteName)
 
   try {
     const { data: athlete, error } = await supabase
       .from("athletes")
       .select("*")
-      .eq("username", resolvedParams.athleteName)
+      .eq("username", params.athleteName)
       .single()
 
-    console.log("AthletePage - Database result:", { athlete, error, username: resolvedParams.athleteName })
+    console.log("AthletePage - Database result:", { athlete, error, username: params.athleteName })
 
     if (error || !athlete) {
       console.log("AthletePage - Athlete not found, redirecting to 404")
@@ -87,6 +89,7 @@ export async function generateStaticParams() {
       .eq("subscription_status", "active")
 
     console.log("generateStaticParams - Athletes found:", athletes?.length || 0)
+    console.log("generateStaticParams - Athletes data:", athletes)
 
     return (
       athletes?.map((athlete) => ({

@@ -22,20 +22,10 @@ import {
   IconButton,
   Spinner,
   Center,
+  Avatar,
 } from "@chakra-ui/react"
-import {
-  User,
-  Settings,
-  FileText,
-  Video,
-  Award,
-  Calendar,
-  MessageSquare,
-  ImageIcon,
-  LogOut,
-  Home,
-  Menu,
-} from "lucide-react"
+import { User, Settings, Video, Award, Calendar, MessageSquare, ImageIcon, LogOut, Home, Menu } from "lucide-react"
+import { Logo } from "@/components/Logo"
 
 const menuItems = [
   { title: "Overview", icon: Home, href: "/dashboard" },
@@ -63,13 +53,8 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 
   return (
     <VStack spacing={0} align="stretch" h="full">
-      <Box p={4} borderBottom="1px" borderColor="gray.200">
-        <HStack>
-          <Box w={8} h={8} bg="blue.500" borderRadius="lg" display="flex" alignItems="center" justifyContent="center">
-            <FileText size={16} color="white" />
-          </Box>
-          <Text fontWeight="semibold">Recruit My Game</Text>
-        </HStack>
+      <Box p={4} borderBottom="1px" borderColor="gray.200" textAlign="center">
+        <Logo height="40px" maxWidth="200px" />
       </Box>
 
       <VStack spacing={1} p={2} flex={1}>
@@ -108,6 +93,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [user, setUser] = useState<any>(null)
+  const [athlete, setAthlete] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const { isOpen, onOpen, onClose } = useDisclosure()
 
@@ -117,6 +103,18 @@ export default function DashboardLayout({
         data: { session },
       } = await supabase.auth.getSession()
       setUser(session?.user || null)
+
+      if (session?.user) {
+        // Fetch athlete data to get profile picture
+        const { data: athleteData } = await supabase
+          .from("athletes")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .single()
+
+        setAthlete(athleteData)
+      }
+
       setLoading(false)
     }
 
@@ -124,12 +122,40 @@ export default function DashboardLayout({
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user || null)
+
+      if (session?.user) {
+        // Fetch athlete data when auth state changes
+        const { data: athleteData } = await supabase
+          .from("athletes")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .single()
+
+        setAthlete(athleteData)
+      } else {
+        setAthlete(null)
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Listen for profile picture updates
+  useEffect(() => {
+    const handleProfileUpdate = (event: CustomEvent) => {
+      if (athlete && event.detail.athleteId === athlete.id) {
+        setAthlete({ ...athlete, profile_picture_url: event.detail.newUrl })
+      }
+    }
+
+    window.addEventListener("profilePictureUpdated", handleProfileUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener("profilePictureUpdated", handleProfileUpdate as EventListener)
+    }
+  }, [athlete])
 
   if (loading) {
     return (
@@ -183,9 +209,12 @@ export default function DashboardLayout({
               Dashboard
             </Text>
           </HStack>
-          <Text fontSize="sm" color="gray.600">
-            {user?.email}
-          </Text>
+          <HStack spacing={3}>
+            <Avatar src={athlete?.profile_picture_url} name={athlete?.athlete_name || user?.email} size="sm" />
+            <Text fontSize="sm" color="gray.600">
+              {user?.email}
+            </Text>
+          </HStack>
         </Flex>
 
         {/* Page Content */}
