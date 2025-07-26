@@ -19,12 +19,12 @@ import {
   SimpleGrid,
 } from "@chakra-ui/react"
 import { Upload, X, ImageIcon } from "lucide-react"
-import { uploadMedia, type UploadResult } from "@/utils/supabase/storage"
+import { uploadMedia } from "@/utils/supabase/storage"
 
 interface PhotoUploadProps {
-  onUploadComplete?: (result: UploadResult) => void
+  onUploadComplete?: () => void
   onUploadStart?: () => void
-  userId: string
+  athleteId: string
   currentPhotoUrl?: string
   onDelete?: () => void
   multiple?: boolean
@@ -34,7 +34,7 @@ interface PhotoUploadProps {
 export function PhotoUpload({
   onUploadComplete,
   onUploadStart,
-  userId,
+  athleteId,
   currentPhotoUrl,
   onDelete,
   multiple = false,
@@ -63,7 +63,6 @@ export function PhotoUpload({
     setUploading(true)
     setError(null)
     setUploadProgress(0)
-    onUploadStart?.()
 
     try {
       // Validate file size (10MB limit for photos)
@@ -83,7 +82,8 @@ export function PhotoUpload({
         setUploadProgress((prev) => Math.min(prev + 10, 90))
       }, 200)
 
-      const result = await uploadMedia(file, userId, "photo")
+      // Use athleteId instead of generic userId for the folder structure
+      const result = await uploadMedia(file, athleteId, "photo")
 
       clearInterval(progressInterval)
       setUploadProgress(100)
@@ -96,7 +96,7 @@ export function PhotoUpload({
           duration: 3000,
           isClosable: true,
         })
-        onUploadComplete?.(result)
+        onUploadComplete?.()
       } else {
         setError(result.error || "Upload failed")
         toast({
@@ -134,7 +134,7 @@ export function PhotoUpload({
         const baseProgress = (index / files.length) * 100
         setUploadProgress(baseProgress)
 
-        const result = await uploadMedia(file, userId, "photo")
+        const result = await uploadMedia(file, athleteId, "photo")
         return result
       })
 
@@ -166,7 +166,7 @@ export function PhotoUpload({
         // Return the first successful result for compatibility
         const firstSuccess = results.find((r) => r.success)
         if (firstSuccess) {
-          onUploadComplete?.(firstSuccess)
+          onUploadComplete?.()
         }
       } else {
         throw new Error("All uploads failed")

@@ -65,7 +65,7 @@ export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVi
         setUploadProgress((prev) => Math.min(prev + 5, 90))
       }, 500)
 
-      const result = await uploadMedia(file, userId, "video")
+      const result = await uploadMedia(file, userId, "video") // Pass userId directly
 
       clearInterval(progressInterval)
       setUploadProgress(100)

@@ -57,6 +57,12 @@ interface AthleteProfile {
   bio: string
   height: string
   weight: string
+  sat_score: number | null
+  act_score: number | null
+  email: string
+  phone: string
+  show_email: boolean
+  show_phone: boolean
   primary_color: string
   secondary_color: string
   content_order: string[]
@@ -64,6 +70,161 @@ interface AthleteProfile {
   subscription_tier: SubscriptionTier
   created_at: string
   updated_at: string
+}
+
+// Sport-specific positions mapping
+const SPORT_POSITIONS: Record<string, string[]> = {
+  Football: [
+    "Quarterback",
+    "Running Back",
+    "Fullback",
+    "Wide Receiver",
+    "Tight End",
+    "Offensive Line",
+    "Center",
+    "Guard",
+    "Tackle",
+    "Defensive End",
+    "Defensive Tackle",
+    "Nose Tackle",
+    "Linebacker",
+    "Outside Linebacker",
+    "Middle Linebacker",
+    "Cornerback",
+    "Safety",
+    "Free Safety",
+    "Strong Safety",
+    "Kicker",
+    "Punter",
+    "Long Snapper",
+    "Return Specialist",
+  ],
+  Basketball: [
+    "Point Guard",
+    "Shooting Guard",
+    "Small Forward",
+    "Power Forward",
+    "Center",
+    "Combo Guard",
+    "Wing",
+    "Stretch Four",
+    "Sixth Man",
+  ],
+  Baseball: [
+    "Pitcher",
+    "Catcher",
+    "First Base",
+    "Second Base",
+    "Third Base",
+    "Shortstop",
+    "Left Field",
+    "Center Field",
+    "Right Field",
+    "Designated Hitter",
+    "Utility Player",
+    "Relief Pitcher",
+    "Closer",
+    "Setup Man",
+  ],
+  Soccer: [
+    "Goalkeeper",
+    "Center Back",
+    "Left Back",
+    "Right Back",
+    "Defensive Midfielder",
+    "Central Midfielder",
+    "Attacking Midfielder",
+    "Left Midfielder",
+    "Right Midfielder",
+    "Left Winger",
+    "Right Winger",
+    "Striker",
+    "Center Forward",
+    "False 9",
+  ],
+  "Track & Field": [
+    "Sprinter",
+    "Distance Runner",
+    "Middle Distance",
+    "Hurdler",
+    "Jumper",
+    "High Jump",
+    "Long Jump",
+    "Triple Jump",
+    "Pole Vault",
+    "Thrower",
+    "Shot Put",
+    "Discus",
+    "Javelin",
+    "Hammer Throw",
+    "Decathlete",
+    "Heptathlete",
+  ],
+  Swimming: [
+    "Freestyle",
+    "Backstroke",
+    "Breaststroke",
+    "Butterfly",
+    "Individual Medley",
+    "Distance Freestyle",
+    "Sprint Freestyle",
+    "Open Water",
+  ],
+  Tennis: ["Singles Player", "Doubles Player", "All-Court Player", "Baseline Player", "Serve and Volley", "Net Player"],
+  Golf: ["Individual Player", "Team Player", "Long Drive", "Short Game Specialist"],
+  Volleyball: [
+    "Outside Hitter",
+    "Middle Blocker",
+    "Opposite Hitter",
+    "Setter",
+    "Libero",
+    "Defensive Specialist",
+    "Serving Specialist",
+  ],
+  Wrestling: [
+    "Heavyweight",
+    "Light Heavyweight",
+    "Middleweight",
+    "Welterweight",
+    "Lightweight",
+    "Featherweight",
+    "Bantamweight",
+    "Flyweight",
+  ],
+  Softball: [
+    "Pitcher",
+    "Catcher",
+    "First Base",
+    "Second Base",
+    "Third Base",
+    "Shortstop",
+    "Left Field",
+    "Center Field",
+    "Right Field",
+    "Designated Player",
+    "Utility Player",
+  ],
+  "Cross Country": ["Distance Runner", "5K Specialist", "10K Specialist", "Trail Runner"],
+  Lacrosse: [
+    "Attack",
+    "Midfield",
+    "Defense",
+    "Goalie",
+    "Face-off Specialist",
+    "Long Stick Middie",
+    "Short Stick Defensive Middie",
+  ],
+  Hockey: [
+    "Center",
+    "Left Wing",
+    "Right Wing",
+    "Left Defense",
+    "Right Defense",
+    "Goaltender",
+    "Power Play Specialist",
+    "Penalty Kill Specialist",
+  ],
+  Other: ["Player", "Athlete", "Competitor", "Team Member"],
 }
 
 export default function ProfilePage() {
@@ -91,6 +252,12 @@ export default function ProfilePage() {
     bio: "",
     height: "",
     weight: "",
+    sat_score: "",
+    act_score: "",
+    email: "",
+    phone: "",
+    show_email: true,
+    show_phone: true,
     primary_color: "#1a202c",
     secondary_color: "#2d3748",
     content_order: ["videos", "awards", "photos", "schedule", "reviews", "contact"] as string[],
@@ -141,6 +308,12 @@ export default function ProfilePage() {
             bio: data.bio || "",
             height: data.height || "",
             weight: data.weight || "",
+            sat_score: data.sat_score?.toString() || "",
+            act_score: data.act_score?.toString() || "",
+            email: data.email || "",
+            phone: data.phone || "",
+            show_email: data.show_email ?? true,
+            show_phone: data.show_phone ?? true,
             primary_color: data.primary_color || "#1a202c",
             secondary_color: data.secondary_color || "#2d3748",
             content_order: data.content_order || ["videos", "awards", "photos", "schedule", "reviews", "contact"],
@@ -197,6 +370,8 @@ export default function ProfilePage() {
         ...formData,
         gpa: formData.gpa ? Number.parseFloat(formData.gpa) : null,
         graduation_year: formData.graduation_year ? Number.parseInt(formData.graduation_year) : null,
+        sat_score: formData.sat_score ? Number.parseInt(formData.sat_score) : null,
+        act_score: formData.act_score ? Number.parseInt(formData.act_score) : null,
         updated_at: new Date().toISOString(),
       }
 
@@ -326,6 +501,10 @@ export default function ProfilePage() {
         })
       }
     }
+  }
+
+  const getAvailablePositions = () => {
+    return SPORT_POSITIONS[formData.sport] || SPORT_POSITIONS["Other"]
   }
 
   const addPosition = () => {
@@ -630,7 +809,7 @@ export default function ProfilePage() {
                     </GridItem>
                   </Grid>
 
-                  <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={6} w="full">
+                  <Grid templateColumns={{ base: "1fr", md: "repeat(4, 1fr)" }} gap={6} w="full">
                     <GridItem>
                       <FormControl>
                         <FormLabel>GPA</FormLabel>
@@ -647,6 +826,32 @@ export default function ProfilePage() {
                     </GridItem>
                     <GridItem>
                       <FormControl>
+                        <FormLabel>SAT Score</FormLabel>
+                        <Input
+                          type="number"
+                          min="400"
+                          max="1600"
+                          value={formData.sat_score}
+                          onChange={(e) => setFormData({ ...formData, sat_score: e.target.value })}
+                          placeholder="1450"
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>ACT Score</FormLabel>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="36"
+                          value={formData.act_score}
+                          onChange={(e) => setFormData({ ...formData, act_score: e.target.value })}
+                          placeholder="32"
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
                         <FormLabel>Graduation Year</FormLabel>
                         <Input
                           type="number"
@@ -658,17 +863,74 @@ export default function ProfilePage() {
                         />
                       </FormControl>
                     </GridItem>
+                  </Grid>
+
+                  <FormControl>
+                    <FormLabel>Profile Visibility</FormLabel>
+                    <HStack>
+                      <Switch
+                        isChecked={formData.is_profile_public}
+                        onChange={(e) => setFormData({ ...formData, is_profile_public: e.target.checked })}
+                        colorScheme="green"
+                      />
+                      <Text fontSize="sm" color="gray.600">
+                        {formData.is_profile_public ? "Public" : "Private"}
+                      </Text>
+                    </HStack>
+                  </FormControl>
+                </VStack>
+              </CardBody>
+            </Card>
+
+            {/* Contact Information */}
+            <Card>
+              <CardHeader>
+                <Heading size="md">Contact Information</Heading>
+                <Text color="gray.600">How coaches can reach you directly</Text>
+              </CardHeader>
+              <CardBody>
+                <VStack spacing={6}>
+                  <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6} w="full">
                     <GridItem>
                       <FormControl>
-                        <FormLabel>Profile Visibility</FormLabel>
-                        <HStack>
+                        <FormLabel>Email Address</FormLabel>
+                        <Input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          placeholder="athlete@email.com"
+                        />
+                        <HStack mt={2}>
                           <Switch
-                            isChecked={formData.is_profile_public}
-                            onChange={(e) => setFormData({ ...formData, is_profile_public: e.target.checked })}
+                            size="sm"
+                            isChecked={formData.show_email}
+                            onChange={(e) => setFormData({ ...formData, show_email: e.target.checked })}
+                            colorScheme="blue"
+                          />
+                          <Text fontSize="sm" color="gray.600">
+                            Show email on public profile
+                          </Text>
+                        </HStack>
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Phone Number</FormLabel>
+                        <Input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          placeholder="(555) 123-4567"
+                        />
+                        <HStack mt={2}>
+                          <Switch
+                            size="sm"
+                            isChecked={formData.show_phone}
+                            onChange={(e) => setFormData({ ...formData, show_phone: e.target.checked })}
                             colorScheme="green"
                           />
                           <Text fontSize="sm" color="gray.600">
-                            {formData.is_profile_public ? "Public" : "Private"}
+                            Show phone on public profile
                           </Text>
                         </HStack>
                       </FormControl>
@@ -689,12 +951,18 @@ export default function ProfilePage() {
                   <FormControl w="full">
                     <FormLabel>Positions Played</FormLabel>
                     <HStack mb={3}>
-                      <Input
+                      <Select
                         value={newPosition}
                         onChange={(e) => setNewPosition(e.target.value)}
-                        placeholder="Add position"
+                        placeholder="Select position"
                         onKeyPress={handleKeyPress}
-                      />
+                      >
+                        {getAvailablePositions().map((position) => (
+                          <option key={position} value={position}>
+                            {position}
+                          </option>
+                        ))}
+                      </Select>
                       <Button onClick={addPosition} colorScheme="blue" size="sm" leftIcon={<Plus size={16} />}>
                         Add
                       </Button>
@@ -709,6 +977,9 @@ export default function ProfilePage() {
                         </WrapItem>
                       ))}
                     </Wrap>
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      Select from sport-specific positions for {formData.sport || "your sport"}
+                    </Text>
                   </FormControl>
 
                   <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6} w="full">

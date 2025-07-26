@@ -17,6 +17,12 @@ export interface Database {
           height?: string
           weight?: string
           gpa?: number
+          sat_score?: number
+          act_score?: number
+          email?: string
+          phone?: string
+          show_email?: boolean
+          show_phone?: boolean
           primary_color?: string
           secondary_color?: string
           is_public: boolean
@@ -43,6 +49,12 @@ export interface Database {
           height?: string
           weight?: string
           gpa?: number
+          sat_score?: number
+          act_score?: number
+          email?: string
+          phone?: string
+          show_email?: boolean
+          show_phone?: boolean
           primary_color?: string
           secondary_color?: string
           is_public?: boolean
@@ -69,6 +81,12 @@ export interface Database {
           height?: string
           weight?: string
           gpa?: number
+          sat_score?: number
+          act_score?: number
+          email?: string
+          phone?: string
+          show_email?: boolean
+          show_phone?: boolean
           primary_color?: string
           secondary_color?: string
           is_public?: boolean
@@ -463,6 +481,12 @@ export interface AthleteProfile {
   height?: string
   weight?: string
   gpa?: number
+  sat_score?: number
+  act_score?: number
+  email?: string
+  phone?: string
+  show_email?: boolean
+  show_phone?: boolean
   positions_played?: string[]
   profile_picture_url?: string
   primary_color?: string

@@ -49,6 +49,16 @@ function validateFile(file: File, options: UploadOptions): string | null {
 // Upload file to Supabase Storage
 export async function uploadFile(file: File, options: UploadOptions): Promise<UploadResult> {
   try {
+    // Check if user is authenticated
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError || !session) {
+      return { success: false, error: "User not authenticated" }
+    }
+
     // Validate file
     const validationError = validateFile(file, { ...DEFAULT_OPTIONS, ...options })
     if (validationError) {
@@ -60,6 +70,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
     const filePath = options.folder ? `${options.folder}/${fileName}` : fileName
 
     console.log(`Uploading file to: ${options.bucket}/${filePath}`)
+    console.log(`User ID: ${session.user.id}`)
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage.from(options.bucket).upload(filePath, file, {
@@ -148,13 +159,13 @@ export async function uploadProfilePicture(file: File, userId: string): Promise<
   })
 }
 
-// Upload media files (videos, photos)
+// Upload media files (videos, photos) - Use user_id for folder structure to match storage policies
 export async function uploadMedia(file: File, userId: string, type: "video" | "photo"): Promise<UploadResult> {
   const isVideo = type === "video"
 
   return uploadFile(file, {
     bucket: isVideo ? "athlete-videos" : "athlete-photos",
-    folder: userId,
+    folder: userId, // Use userId to match storage policy expectations
     maxSizeBytes: isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024, // 100MB for videos, 10MB for photos
     allowedTypes: isVideo
       ? ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"]

@@ -68,16 +68,52 @@ export default function VideosPage() {
     video_url: "",
   })
   const toast = useToast()
+  const [session, setSession] = useState<any>(null)
 
   useEffect(() => {
-    fetchData()
+    const fetchSessionAndData = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      setSession(session)
+      if (!session) return
+
+      // Fetch athlete profile
+      const { data: athleteData } = await supabase.from("athletes").select("*").eq("user_id", session.user.id).single()
+
+      if (athleteData) {
+        setAthlete(athleteData)
+        setSubscriptionTier(athleteData.subscription_tier || "free")
+
+        // Fetch videos
+        const { data: videosData, error } = await supabase
+          .from("athlete_videos")
+          .select("*")
+          .eq("athlete_id", athleteData.id)
+          .order("created_at", { ascending: false })
+
+        if (error) throw error
+        setVideos(videosData || [])
+      }
+    }
+
+    fetchSessionAndData()
+      .catch((error: any) => {
+        toast({
+          title: "Error loading videos",
+          description: error.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        })
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [])
 
   const fetchData = async () => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
       if (!session) return
 
       // Fetch athlete profile
@@ -105,8 +141,6 @@ export default function VideosPage() {
         duration: 5000,
         isClosable: true,
       })
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -231,6 +265,10 @@ export default function VideosPage() {
     return url.includes("youtube.com") || url.includes("youtu.be")
   }
 
+  const isVimeoUrl = (url: string) => {
+    return url.includes("vimeo.com")
+  }
+
   const getYouTubeEmbedUrl = (url: string) => {
     if (url.includes("youtube.com/watch?v=")) {
       const videoId = url.split("v=")[1]?.split("&")[0]
@@ -239,6 +277,14 @@ export default function VideosPage() {
     if (url.includes("youtu.be/")) {
       const videoId = url.split("youtu.be/")[1]?.split("?")[0]
       return `https://www.youtube.com/embed/${videoId}`
+    }
+    return url
+  }
+
+  const getVimeoEmbedUrl = (url: string) => {
+    if (url.includes("vimeo.com/")) {
+      const videoId = url.split("vimeo.com/")[1]?.split("?")[0]?.split("/")[0]
+      return `https://player.vimeo.com/video/${videoId}`
     }
     return url
   }
@@ -253,6 +299,11 @@ export default function VideosPage() {
       return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
     }
     return "/placeholder.svg?height=200&width=300&text=Video"
+  }
+
+  const getVimeoThumbnail = (url: string) => {
+    // For Vimeo, we'll use a placeholder since getting thumbnails requires API calls
+    return "/placeholder.svg?height=200&width=300&text=Vimeo+Video"
   }
 
   if (loading) {
@@ -384,6 +435,15 @@ export default function VideosPage() {
                               allowFullScreen
                               style={{ width: "100%", height: "100%" }}
                             />
+                          ) : isVimeoUrl(video.video_url) ? (
+                            <iframe
+                              src={getVimeoEmbedUrl(video.video_url)}
+                              title={video.title}
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              style={{ width: "100%", height: "100%" }}
+                            />
                           ) : (
                             <video
                               controls
@@ -432,9 +492,9 @@ export default function VideosPage() {
                               colorScheme="red"
                               onClick={() => handleDelete(video)}
                             />
-                            {isYouTubeUrl(video.video_url) && (
+                            {(isYouTubeUrl(video.video_url) || isVimeoUrl(video.video_url)) && (
                               <IconButton
-                                aria-label="Open in YouTube"
+                                aria-label="Open in new tab"
                                 icon={<ExternalLink size={16} />}
                                 size="sm"
                                 variant="ghost"
@@ -488,7 +548,7 @@ export default function VideosPage() {
                       <Input
                         value={formData.video_url}
                         onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                        placeholder="YouTube URL or paste video link"
+                        placeholder="YouTube, Vimeo URL or paste video link"
                       />
 
                       <Text fontSize="sm" color="gray.500" textAlign="center">
@@ -498,7 +558,7 @@ export default function VideosPage() {
                       <FileUpload
                         uploadOptions={{
                           bucket: "athlete-videos",
-                          folder: athlete.id,
+                          folder: session?.user?.id, // Use user ID for storage policy compatibility
                           maxSizeBytes: 100 * 1024 * 1024, // 100MB
                           allowedTypes: ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"],
                         }}

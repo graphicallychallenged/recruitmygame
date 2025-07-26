@@ -32,6 +32,10 @@ export function VideoPlayer({ videoUrl, title, thumbnailUrl, autoPlay = false, c
     return url.includes("youtube.com") || url.includes("youtu.be")
   }
 
+  const isVimeoUrl = (url: string) => {
+    return url.includes("vimeo.com")
+  }
+
   const getYouTubeEmbedUrl = (url: string) => {
     if (url.includes("youtube.com/watch?v=")) {
       const videoId = url.split("v=")[1]?.split("&")[0]
@@ -40,6 +44,14 @@ export function VideoPlayer({ videoUrl, title, thumbnailUrl, autoPlay = false, c
     if (url.includes("youtu.be/")) {
       const videoId = url.split("youtu.be/")[1]?.split("?")[0]
       return `https://www.youtube.com/embed/${videoId}?autoplay=${autoPlay ? 1 : 0}`
+    }
+    return url
+  }
+
+  const getVimeoEmbedUrl = (url: string) => {
+    if (url.includes("vimeo.com/")) {
+      const videoId = url.split("vimeo.com/")[1]?.split("?")[0]?.split("/")[0]
+      return `https://player.vimeo.com/video/${videoId}?autoplay=${autoPlay ? 1 : 0}`
     }
     return url
   }
@@ -56,11 +68,34 @@ export function VideoPlayer({ videoUrl, title, thumbnailUrl, autoPlay = false, c
     return thumbnailUrl || "/placeholder.svg?height=200&width=300&text=Video"
   }
 
+  const getVimeoThumbnail = (url: string) => {
+    // For Vimeo, we'll use the provided thumbnail or a placeholder
+    // Getting Vimeo thumbnails requires API calls, so we'll keep it simple
+    return thumbnailUrl || "/placeholder.svg?height=200&width=300&text=Vimeo+Video"
+  }
+
   const renderVideo = (fullscreen = false) => {
     if (isYouTubeUrl(videoUrl)) {
       return (
         <iframe
           src={getYouTubeEmbedUrl(videoUrl)}
+          title={title}
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          style={{
+            width: "100%",
+            height: fullscreen ? "80vh" : "100%",
+            minHeight: fullscreen ? "400px" : "auto",
+          }}
+        />
+      )
+    }
+
+    if (isVimeoUrl(videoUrl)) {
+      return (
+        <iframe
+          src={getVimeoEmbedUrl(videoUrl)}
           title={title}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
