@@ -246,7 +246,7 @@ export default function DashboardLayout({
 
               {/* Quick Actions */}
               <HStack spacing={2}>
-                <Link href={`/${athlete.username}`} target="_blank">
+                <Link href={`https://${athlete.username}.recruitmygame.com`} target="_blank">
                   <Button size="sm" variant="outline" leftIcon={<ExternalLink size={14} />} flex={1}>
                     View Profile
                   </Button>

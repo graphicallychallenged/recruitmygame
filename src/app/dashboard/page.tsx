@@ -311,7 +311,7 @@ export default function DashboardPage() {
           </HStack>
 
           <HStack spacing={4}>
-            <Link href={`/${athlete.username}`} target="_blank">
+            <Link href={`http://${athlete.username}.recruitmygame.com`} target="_blank">
               <Button leftIcon={<Eye size={16} />} variant="outline">
                 View Public Profile
               </Button>
