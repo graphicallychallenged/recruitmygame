@@ -231,18 +231,18 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           })) || [],
         )
 
-        // Process schedule data - use event_name not event_title
-        const processedSchedule =
+        // Process schedule data - use event_name and map to AthleteSchedule type
+        const processedSchedule: AthleteSchedule[] =
           scheduleData?.map((event) => ({
             id: event.id,
             athlete_id: event.athlete_id,
-            event_name: event.event_name, // This is the correct field name
+            event_name: event.event_name,
             event_date: event.event_date,
             event_time: event.event_time,
             location: event.location,
             event_type: event.event_type,
             description: event.description,
-            is_public: event.is_public ?? true, // Default to true if null
+            is_public: event.is_public ?? true,
             created_at: event.created_at,
             updated_at: event.updated_at,
           })) || []
@@ -469,8 +469,6 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
         isOpen={isOpen}
         onClose={onClose}
         athleteName={athlete.athlete_name}
-        formData={contactForm}
-        onFormChange={handleFormChange}
         onSubmit={handleContactSubmit}
         isSubmitting={submittingContact}
         primaryColor={primaryColor}

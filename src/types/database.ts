@@ -250,7 +250,7 @@ export type Database = {
         Row: {
           id: string
           athlete_id: string
-          event_title: string
+          event_name: string
           event_date: string
           event_time: string | null
           location: string | null
@@ -263,7 +263,7 @@ export type Database = {
         Insert: {
           id?: string
           athlete_id: string
-          event_title: string
+          event_name: string
           event_date: string
           event_time?: string | null
           location?: string | null
@@ -276,7 +276,7 @@ export type Database = {
         Update: {
           id?: string
           athlete_id?: string
-          event_title?: string
+          event_name?: string
           event_date?: string
           event_time?: string | null
           location?: string | null
@@ -517,7 +517,7 @@ export type AthleteAward = {
 export type AthleteSchedule = {
   id: string
   athlete_id: string
-  event_title: string
+  event_name: string
   event_date: string
   event_time: string | null
   location: string | null

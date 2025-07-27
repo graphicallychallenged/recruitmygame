@@ -34,6 +34,7 @@ import {
   CreditCard,
   Shield,
   Target,
+  HelpCircle
 } from "lucide-react"
 import Link from "next/link"
 import { type SubscriptionTier, hasFeature, getTierColor, getTierDisplayName } from "@/utils/tierFeatures"
@@ -88,6 +89,7 @@ const navItems: NavItem[] = [
   },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
   { href: "/subscription", icon: CreditCard, label: "Subscription" },
+  { href: "/dashboard/support", icon: HelpCircle, label: "Support" },
 ]
 
 export default function DashboardLayout({
