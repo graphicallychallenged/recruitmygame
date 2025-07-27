@@ -28,7 +28,7 @@ interface ContactModalProps {
   athleteName: string
 }
 
-export function ContactModal({ isOpen, onClose, athleteId, athleteName }: ContactModalProps) {
+export function ContactModal({ isOpen, onClose, athleteId, athleteName, }: ContactModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",

@@ -44,7 +44,6 @@ import { Plus, Star, MessageCircle, Trash2, Edit, Upload } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { ReviewsDisplay } from "@/components/ReviewsDisplay"
-import { FileUpload } from "@/components/FileUpload"
 
 interface Review {
   id: string
@@ -59,6 +58,8 @@ interface Review {
   reviewer_phone?: string
   reviewer_image_url?: string
   can_contact_reviewer?: boolean
+  review_type?: string
+  relationship_duration?: string | null
 }
 
 interface ContactMessage {
@@ -78,6 +79,7 @@ export default function ReviewsPage() {
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [editingReview, setEditingReview] = useState<Review | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const { isOpen, onOpen, onClose } = useDisclosure()
   const toast = useToast()
   const supabase = createClient()
@@ -94,6 +96,8 @@ export default function ReviewsPage() {
     location: "",
     reviewer_image_url: "",
     can_contact_reviewer: false,
+    review_type: "general",
+    relationship_duration: null,
   })
 
   useEffect(() => {
@@ -177,12 +181,20 @@ export default function ReviewsPage() {
       if (!athlete) throw new Error("Athlete profile not found")
 
       const reviewData = {
-        ...formData,
         athlete_id: athlete.id,
-        reviewer_phone: formData.reviewer_phone || null,
-        location: formData.location || null,
+        reviewer_name: formData.reviewer_name,
+        reviewer_title: formData.reviewer_title,
+        reviewer_organization: formData.reviewer_organization,
         reviewer_email: formData.reviewer_email || null,
+        reviewer_phone: formData.reviewer_phone || null,
+        rating: formData.rating,
+        review_text: formData.review_text,
+        review_date: formData.review_date,
+        location: formData.location || null,
         reviewer_image_url: formData.reviewer_image_url || null,
+        can_contact_reviewer: formData.can_contact_reviewer,
+        review_type: formData.review_type,
+        relationship_duration: formData.relationship_duration,
       }
 
       if (editingReview) {
@@ -265,6 +277,8 @@ export default function ReviewsPage() {
       location: review.location || "",
       reviewer_image_url: review.reviewer_image_url || "",
       can_contact_reviewer: review.can_contact_reviewer || false,
+      review_type: review.review_type || "general",
+      relationship_duration: review.relationship_duration || null,
     })
     onOpen()
   }
@@ -282,21 +296,42 @@ export default function ReviewsPage() {
       location: "",
       reviewer_image_url: "",
       can_contact_reviewer: false,
+      review_type: "general",
+      relationship_duration: null,
     })
     setEditingReview(null)
   }
 
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+
     try {
+      // Get current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
       const fileExt = file.name.split(".").pop()
-      const fileName = `${Math.random()}.${fileExt}`
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
       const filePath = `reviewer-images/${fileName}`
 
-      const { error: uploadError } = await supabase.storage.from("athlete-files").upload(filePath, file)
+      console.log("Uploading to path:", filePath)
 
-      if (uploadError) throw uploadError
+      const { error: uploadError } = await supabase.storage.from("athlete-photos").upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
 
-      const { data } = supabase.storage.from("athlete-files").getPublicUrl(filePath)
+      if (uploadError) {
+        console.error("Upload error:", uploadError)
+        throw uploadError
+      }
+
+      const { data } = supabase.storage.from("athlete-photos").getPublicUrl(filePath)
 
       setFormData((prev) => ({ ...prev, reviewer_image_url: data.publicUrl }))
 
@@ -310,10 +345,13 @@ export default function ReviewsPage() {
       console.error("Error uploading image:", error)
       toast({
         title: "Error uploading image",
+        description: error instanceof Error ? error.message : "Please try again",
         status: "error",
         duration: 3000,
         isClosable: true,
       })
+    } finally {
+      setUploadingImage(false)
     }
   }
 
@@ -425,7 +463,8 @@ export default function ReviewsPage() {
                             <Text fontWeight="semibold">{review.reviewer_name}</Text>
                             <Badge colorScheme="blue">{review.reviewer_title}</Badge>
                             {review.can_contact_reviewer && (
-                              <Badge colorScheme="green">{<MessageCircle size={12} />}
+                              <Badge colorScheme="green" display="flex" alignItems="center" gap={1}>
+                                <MessageCircle size={12} />
                                 Contactable
                               </Badge>
                             )}
@@ -572,15 +611,25 @@ export default function ReviewsPage() {
                         </Button>
                       </HStack>
                     )}
-                    <FileUpload
-                      onFileSelect={handleImageUpload}
+                    <Input
+                      type="file"
                       accept="image/*"
-                      maxSize={5 * 1024 * 1024} // 5MB
+                      onChange={handleImageUpload}
+                      style={{ display: "none" }}
+                      id="reviewer-photo-upload"
                     />
-                      <Button leftIcon={<Upload size={16} />} variant="outline" size="sm">
-                        Upload Reviewer Photo
-                      </Button>
-                    
+                    <Button
+                      as="label"
+                      htmlFor="reviewer-photo-upload"
+                      leftIcon={<Upload size={16} />}
+                      variant="outline"
+                      size="sm"
+                      isLoading={uploadingImage}
+                      loadingText="Uploading..."
+                      cursor="pointer"
+                    >
+                      Upload Reviewer Photo
+                    </Button>
                   </VStack>
                 </FormControl>
 

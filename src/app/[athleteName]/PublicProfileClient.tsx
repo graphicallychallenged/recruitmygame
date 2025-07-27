@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { HStack } from "@chakra-ui/react" // Import HStack
+import { HStack } from "@chakra-ui/react"
 import { useEffect, useState } from "react"
 import {
   Box,
@@ -96,6 +96,8 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
   useEffect(() => {
     const fetchFreshData = async () => {
       try {
+        console.log("Fetching data for athlete:", initialAthlete.username)
+
         // Fetch fresh athlete data
         const { data: athleteData, error: athleteError } = await supabase
           .from("athletes")
@@ -105,8 +107,11 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           .single()
 
         if (athleteError || !athleteData) {
+          console.error("Athlete error:", athleteError)
           throw new Error("Athlete not found")
         }
+
+        console.log("Found athlete:", athleteData)
 
         // Transform athlete data
         const transformedAthlete: AthleteProfile = {
@@ -144,8 +149,18 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
 
         setAthlete(transformedAthlete)
 
-        // Fetch all related data in parallel
-        const [photosResult, videosResult, awardsResult, scheduleResult, reviewsResult] = await Promise.all([
+        // Fetch schedule data with detailed logging
+        console.log("Fetching schedule for athlete_id:", athleteData.id)
+        const { data: scheduleData, error: scheduleError } = await supabase
+          .from("athlete_schedule")
+          .select("*")
+          .eq("athlete_id", athleteData.id)
+          .order("event_date", { ascending: true })
+
+        console.log("Schedule query result:", { data: scheduleData, error: scheduleError })
+
+        // Fetch all other related data in parallel
+        const [photosResult, videosResult, awardsResult, reviewsResult] = await Promise.all([
           supabase
             .from("athlete_photos")
             .select("*")
@@ -168,27 +183,20 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             .order("award_date", { ascending: false }),
 
           supabase
-            .from("athlete_schedule")
-            .select("*")
-            .eq("athlete_id", athleteData.id)
-            .eq("is_public", true)
-            .order("event_date", { ascending: true }),
-
-          supabase
             .from("athlete_reviews")
             .select("*")
             .eq("athlete_id", athleteData.id)
             .order("created_at", { ascending: false }),
         ])
 
-        // Transform data
+        // Transform data with all required fields
         setPhotos(
           photosResult.data?.map((photo) => ({
             id: photo.id,
             athlete_id: photo.athlete_id,
             photo_url: photo.photo_url,
             caption: photo.caption,
-            is_public: photo.is_public, // Add this missing field
+            is_public: photo.is_public,
             created_at: photo.created_at,
           })) || [],
         )
@@ -202,7 +210,9 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             video_url: video.video_url,
             video_type: video.video_type,
             thumbnail_url: video.thumbnail_url,
+            is_public: video.is_public,
             created_at: video.created_at,
+            updated_at: video.updated_at,
           })) || [],
         )
 
@@ -216,23 +226,34 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             award_type: award.award_type,
             level: award.level,
             description: award.description,
+            is_public: award.is_public,
             created_at: award.created_at,
           })) || [],
         )
 
-        setSchedule(
-          scheduleResult.data?.map((event) => ({
+        // Process schedule data - use event_name not event_title
+        const processedSchedule =
+          scheduleData?.map((event) => ({
             id: event.id,
             athlete_id: event.athlete_id,
-            event_title: event.event_title,
+            event_name: event.event_name, // This is the correct field name
             event_date: event.event_date,
             event_time: event.event_time,
             location: event.location,
             event_type: event.event_type,
             description: event.description,
+            is_public: event.is_public ?? true, // Default to true if null
             created_at: event.created_at,
-          })) || [],
-        )
+            updated_at: event.updated_at,
+          })) || []
+
+        console.log("Processed schedule data:", processedSchedule)
+
+        // Filter for public events only
+        const publicSchedule = processedSchedule.filter((event) => event.is_public)
+        console.log("Public schedule events:", publicSchedule)
+
+        setSchedule(publicSchedule)
 
         setReviews(
           reviewsResult.data?.map((review) => ({
@@ -323,6 +344,8 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
     )
   }
 
+  console.log("Rendering with schedule:", schedule)
+
   return (
     <Box bg={bgColor} minH="100vh">
       {/* Hero Section */}
@@ -393,21 +416,19 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             </GridItem>
           </Grid>
 
-          {/* Schedule Section */}
-          {schedule.length > 0 && (
-            <Card bg={cardBgColor} borderColor={borderColor}>
-              <CardBody>
-                <ScheduleSection
-                  schedule={schedule}
-                  primaryColor={primaryColor}
-                  textColor={textColor}
-                  mutedTextColor={mutedTextColor}
-                  cardBgColor={cardBgColor}
-                  borderColor={borderColor}
-                />
-              </CardBody>
-            </Card>
-          )}
+          {/* Schedule Section - Always show, even if empty */}
+          <Card bg={cardBgColor} borderColor={borderColor}>
+            <CardBody>
+              <ScheduleSection
+                schedule={schedule}
+                primaryColor={primaryColor}
+                textColor={textColor}
+                mutedTextColor={mutedTextColor}
+                cardBgColor={cardBgColor}
+                borderColor={borderColor}
+              />
+            </CardBody>
+          </Card>
 
           {/* Reviews Section */}
           {reviews.length > 0 && (
