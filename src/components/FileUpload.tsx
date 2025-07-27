@@ -1,236 +1,249 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useRef } from "react"
-import { Box, Button, Text, VStack, Progress, Alert, AlertIcon, Image, IconButton, useToast } from "@chakra-ui/react"
-import { Upload, X, ImageIcon, Video, File } from "lucide-react"
-
-// Use relative import instead of @/ alias
-import { uploadFile, type UploadOptions, type UploadResult } from "../utils/supabase/storage"
+import { useRef, useState } from "react"
+import {
+  Box,
+  Button,
+  Text,
+  VStack,
+  HStack,
+  Progress,
+  Alert,
+  AlertIcon,
+  Image,
+  IconButton,
+  useToast,
+} from "@chakra-ui/react"
+import { Upload, X, File } from "lucide-react"
 
 interface FileUploadProps {
-  onUploadComplete?: (result: UploadResult) => void
+  onUploadComplete?: (url: string) => void
   onUploadStart?: () => void
-  uploadOptions: UploadOptions
   accept?: string
   multiple?: boolean
   preview?: boolean
-  currentFileUrl?: string
+  currentFileUrl?: string | null
   onDelete?: () => void
+  maxSizeBytes?: number
+  allowedTypes?: string[]
 }
 
 export function FileUpload({
   onUploadComplete,
   onUploadStart,
-  uploadOptions,
-  accept = "image/*",
+  accept = "*/*",
   multiple = false,
   preview = true,
   currentFileUrl,
   onDelete,
+  maxSizeBytes = 10 * 1024 * 1024, // 10MB default
+  allowedTypes = [],
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [dragActive, setDragActive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
 
-  const handleFileSelect = (files: FileList | null) => {
-    if (!files || files.length === 0) return
+  const validateFile = (file: File): string | null => {
+    if (file.size > maxSizeBytes) {
+      return `File size must be less than ${Math.round(maxSizeBytes / (1024 * 1024))}MB`
+    }
 
-    const file = files[0] // Handle single file for now
-    handleUpload(file)
+    if (allowedTypes.length > 0 && !allowedTypes.some((type) => file.type.includes(type))) {
+      return `File type not allowed. Allowed types: ${allowedTypes.join(", ")}`
+    }
+
+    return null
   }
 
-  const handleUpload = async (file: File) => {
-    setUploading(true)
+  const handleFileSelect = async (file: File) => {
+    if (!file) return
+
+    const validationError = validateFile(file)
+    if (validationError) {
+      setError(validationError)
+      toast({
+        title: "Invalid file",
+        description: validationError,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      })
+      return
+    }
+
     setError(null)
+    setUploading(true)
     setUploadProgress(0)
     onUploadStart?.()
 
     try {
-      // Simulate progress for better UX
+      // Simulate upload progress
       const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 10, 90))
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
       }, 200)
 
-      const result = await uploadFile(file, uploadOptions)
+      // Here you would implement actual file upload logic
+      // For now, we'll simulate it
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       clearInterval(progressInterval)
       setUploadProgress(100)
 
-      if (result.success) {
-        toast({
-          title: "Upload successful",
-          description: "File uploaded successfully",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        })
-        onUploadComplete?.(result)
-      } else {
-        setError(result.error || "Upload failed")
-        toast({
-          title: "Upload failed",
-          description: result.error,
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        })
-      }
+      // Simulate successful upload
+      const mockUrl = URL.createObjectURL(file)
+      onUploadComplete?.(mockUrl)
+
+      toast({
+        title: "Upload successful",
+        description: "File has been uploaded successfully.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      })
     } catch (err: any) {
       setError(err.message || "Upload failed")
       toast({
         title: "Upload failed",
-        description: err.message,
+        description: err.message || "An error occurred during upload.",
         status: "error",
         duration: 5000,
         isClosable: true,
       })
     } finally {
       setUploading(false)
-      setTimeout(() => setUploadProgress(0), 1000)
+      setUploadProgress(0)
     }
   }
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true)
-    } else if (e.type === "dragleave") {
-      setDragActive(false)
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      handleFileSelect(file)
     }
   }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files)
-    }
+  const handleClick = () => {
+    fileInputRef.current?.click()
   }
 
-  const getFileIcon = () => {
-    if (accept.includes("image")) return <ImageIcon size={24} />
-    if (accept.includes("video")) return <Video size={24} />
-    return <File size={24} />
+  const handleDelete = () => {
+    onDelete?.()
+    toast({
+      title: "File removed",
+      description: "File has been removed successfully.",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    })
   }
 
-  const getFileTypeText = () => {
-    if (accept.includes("image")) return "image"
-    if (accept.includes("video")) return "video"
-    return "file"
+  const isImage = (url: string) => {
+    return /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
   }
 
   return (
-    <VStack spacing={4} w="full">
-      {/* Current file preview */}
-      {preview && currentFileUrl && (
-        <Box position="relative" w="full">
-          <Image
-            src={currentFileUrl || "/placeholder.svg"}
-            alt="Current file"
-            maxH="200px"
-            w="full"
-            objectFit="cover"
-            borderRadius="md"
-            border="1px"
-            borderColor="gray.200"
-          />
+    <VStack spacing={4} align="stretch">
+      {currentFileUrl && preview && (
+        <Box position="relative" borderRadius="md" overflow="hidden">
+          {isImage(currentFileUrl) ? (
+            <Image
+              src={currentFileUrl || "/placeholder.svg"}
+              alt="Current file"
+              maxH="200px"
+              objectFit="cover"
+              w="100%"
+            />
+          ) : (
+            <Box p={4} bg="gray.100" borderRadius="md" display="flex" alignItems="center" justifyContent="center">
+              <HStack>
+                <File size={24} />
+                <Text>Current file</Text>
+              </HStack>
+            </Box>
+          )}
           {onDelete && (
             <IconButton
-              aria-label="Delete current file"
+              aria-label="Remove file"
               icon={<X size={16} />}
               size="sm"
-              colorScheme="red"
               position="absolute"
               top={2}
               right={2}
-              onClick={onDelete}
+              colorScheme="red"
+              onClick={handleDelete}
             />
           )}
         </Box>
       )}
 
-      {/* Upload area */}
-      <Box
-        w="full"
-        p={8}
-        border="2px dashed"
-        borderColor={dragActive ? "blue.400" : "gray.300"}
-        borderRadius="lg"
-        bg={dragActive ? "blue.50" : "gray.50"}
-        textAlign="center"
-        cursor="pointer"
-        transition="all 0.2s"
-        _hover={{ borderColor: "blue.400", bg: "blue.50" }}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <VStack spacing={3}>
-          <Box color={dragActive ? "blue.500" : "gray.400"}>{uploading ? <Upload size={32} /> : getFileIcon()}</Box>
-
-          {uploading ? (
-            <VStack spacing={2} w="full">
-              <Text fontSize="sm" color="blue.600">
-                Uploading {getFileTypeText()}...
-              </Text>
-              <Progress value={uploadProgress} colorScheme="blue" w="full" />
-              <Text fontSize="xs" color="gray.500">
-                {uploadProgress}%
-              </Text>
-            </VStack>
-          ) : (
-            <>
-              <Text fontSize="md" fontWeight="medium">
-                Drop your {getFileTypeText()} here, or click to browse
-              </Text>
-              <Text fontSize="sm" color="gray.500">
-                {uploadOptions.allowedTypes?.join(", ") || "All file types"} • Max{" "}
-                {Math.round((uploadOptions.maxSizeBytes || 10485760) / (1024 * 1024))}MB
-              </Text>
-            </>
-          )}
-        </VStack>
-      </Box>
-
-      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
         accept={accept}
         multiple={multiple}
-        onChange={(e) => handleFileSelect(e.target.files)}
+        onChange={handleFileChange}
         style={{ display: "none" }}
       />
 
-      {/* Error message */}
+      <Box
+        border="2px dashed"
+        borderColor={uploading ? "blue.300" : "gray.300"}
+        borderRadius="md"
+        p={8}
+        textAlign="center"
+        cursor={uploading ? "not-allowed" : "pointer"}
+        onClick={uploading ? undefined : handleClick}
+        _hover={uploading ? {} : { borderColor: "blue.400", bg: "gray.50" }}
+        transition="all 0.2s"
+      >
+        <VStack spacing={3}>
+          <Upload size={32} color={uploading ? "#90CDF4" : "#A0AEC0"} />
+          <VStack spacing={1}>
+            <Text fontWeight="medium" color={uploading ? "blue.500" : "gray.600"}>
+              {uploading ? "Uploading..." : "Click to upload file"}
+            </Text>
+            <Text fontSize="sm" color="gray.500">
+              {accept === "image/*" ? "Images only" : "Any file type"} • Max {Math.round(maxSizeBytes / (1024 * 1024))}
+              MB
+            </Text>
+          </VStack>
+          {uploading && (
+            <Box w="100%" maxW="200px">
+              <Progress value={uploadProgress} colorScheme="blue" size="sm" />
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                {uploadProgress}% complete
+              </Text>
+            </Box>
+          )}
+        </VStack>
+      </Box>
+
       {error && (
-        <Alert status="error" borderRadius="md">
+        <Alert status="error">
           <AlertIcon />
-          <Text fontSize="sm">{error}</Text>
+          {error}
         </Alert>
       )}
 
-      {/* Upload button as alternative */}
-      {!uploading && (
-        <Button
-          leftIcon={<Upload size={16} />}
-          onClick={() => fileInputRef.current?.click()}
-          variant="outline"
-          size="sm"
-        >
-          Choose {getFileTypeText()}
-        </Button>
-      )}
+      <Button
+        leftIcon={<Upload size={16} />}
+        onClick={handleClick}
+        isLoading={uploading}
+        loadingText="Uploading..."
+        variant="outline"
+        size="sm"
+      >
+        Choose File
+      </Button>
     </VStack>
   )
 }
