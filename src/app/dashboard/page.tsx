@@ -99,7 +99,7 @@ export default function DashboardPage() {
             supabase.from("athlete_awards").select("id").eq("athlete_id", athleteData.id),
             supabase.from("athlete_photos").select("id").eq("athlete_id", athleteData.id),
             supabase.from("athlete_videos").select("id").eq("athlete_id", athleteData.id),
-            // Only fetch schedule if user has premium or pro
+            // Only fetch schedule if user has pro
             hasFeature(athleteData.subscription_tier, "schedule")
               ? supabase.from("athlete_schedule").select("id").eq("athlete_id", athleteData.id)
               : Promise.resolve({ data: [] }),
@@ -111,7 +111,7 @@ export default function DashboardPage() {
                   .eq("athlete_id", athleteData.id)
                   .order("created_at", { ascending: false })
               : Promise.resolve({ data: [] }),
-            // Only fetch upcoming events if user has premium or pro
+            // Only fetch upcoming events if user has pro
             hasFeature(athleteData.subscription_tier, "schedule")
               ? supabase
                   .from("athlete_schedule")
@@ -226,7 +226,7 @@ export default function DashboardPage() {
       features: ["Event management", "Calendar integration", "Upcoming reminders"],
       href: "/dashboard/schedule",
       available: hasFeature(athlete.subscription_tier, "schedule"),
-      requiredTier: "premium" as SubscriptionTier,
+      requiredTier: "pro" as SubscriptionTier,
     },
     {
       title: "Coach Reviews",
@@ -398,7 +398,7 @@ export default function DashboardPage() {
                   <StatLabel fontSize="sm">Upcoming Events</StatLabel>
                 </Stat>
                 <Text fontSize="xs" color="gray.500">
-                  {hasFeature(athlete.subscription_tier, "schedule") ? "Next 30 days" : "Premium feature"}
+                  {hasFeature(athlete.subscription_tier, "schedule") ? "Next 30 days" : "Pro feature"}
                 </Text>
               </VStack>
             </CardBody>
@@ -417,7 +417,7 @@ export default function DashboardPage() {
                   <StatLabel fontSize="sm">Total Events</StatLabel>
                 </Stat>
                 <Text fontSize="xs" color="gray.500">
-                  {hasFeature(athlete.subscription_tier, "schedule") ? "All scheduled events" : "Premium feature"}
+                  {hasFeature(athlete.subscription_tier, "schedule") ? "All scheduled events" : "Pro feature"}
                 </Text>
               </VStack>
             </CardBody>

@@ -1,155 +1,122 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Container,
   VStack,
   HStack,
-  Heading,
   Text,
-  Button,
+  Heading,
   Card,
   CardBody,
-  CardHeader,
-  Grid,
+  Button,
   Badge,
   List,
   ListItem,
   ListIcon,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
-  Divider,
-  useColorModeValue,
+  useToast,
   Spinner,
-  Center,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  Grid,
+  GridItem,
+  Flex,
+  Icon,
 } from "@chakra-ui/react"
-import { Check, Star, Zap, Crown, ArrowRight, CheckCircle } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Check, X, Crown, Star, Zap, ArrowLeft } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
-import { type SubscriptionTier, getTierColor, getTierDisplayName } from "@/utils/tierFeatures"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import type { AthleteProfile } from "@/types/database"
 
-interface AthleteProfile {
+interface PricingPlan {
   id: string
-  subscription_tier: SubscriptionTier
-  athlete_name: string
+  name: string
+  price: string
+  period: string
+  description: string
+  features: string[]
+  unavailable?: string[]
+  popular?: boolean
+  icon: any
+  color: string
 }
 
-const plans = [
+const PRICING_PLANS: PricingPlan[] = [
   {
+    id: "free",
     name: "Free",
     price: "$0",
     period: "forever",
-    description: "Perfect for getting started",
+    description: "Perfect for getting started with your athlete profile",
+    icon: Star,
+    color: "gray",
     features: [
-      "Basic profile creation",
-      "Up to 3 videos",
-      "Up to 10 photos",
-      "Awards & achievements showcase",
-      "Public profile URL",
+      "5 Photos",
+      "Public profile link",
+      "Basic stats display",
+      "Profile customization",
       "Mobile responsive design",
     ],
-    limitations: ["No schedule management", "No coach reviews", "Limited customization", "Community support only"],
-    buttonText: "Current Plan",
-    buttonVariant: "outline" as const,
-    popular: false,
-    icon: Star,
-    tier: "free" as SubscriptionTier,
+    unavailable: ["Videos", "Awards & Honors", "Reviews", "Custom theming", "Schedule management", "Analytics"],
   },
   {
+    id: "premium",
     name: "Premium",
     price: "$9.99",
     period: "per month",
-    description: "Most popular for serious athletes",
+    description: "Enhanced features for serious athletes",
+    icon: Crown,
+    color: "blue",
+    popular: true,
     features: [
       "Everything in Free",
-      "Up to 10 videos",
-      "Up to 50 photos",
-      "Schedule management",
-      "Coach review system",
-      "Advanced profile customization",
-      "Custom branding colors",
-      "Priority support",
-      "Advanced analytics",
+      "15 Photos (3x more)",
+      "5 Videos",
+      "Awards & Honors section",
+      "Manual Reviews",
+      "Custom theming",
+      "Priority email support",
     ],
-    limitations: ["No business cards", "No verified reviews", "No multiple sports"],
-    buttonText: "Upgrade to Premium",
-    buttonVariant: "solid" as const,
-    popular: true,
-    icon: Zap,
-    tier: "premium" as SubscriptionTier,
+    unavailable: [
+      "Unlimited content",
+      "Schedule management",
+      "Validated Reviews",
+      "Custom URL",
+      "Business Card Generator",
+      "Analytics",
+    ],
   },
   {
+    id: "pro",
     name: "Pro",
     price: "$19.99",
     period: "per month",
-    description: "Complete solution for elite athletes",
+    description: "Complete solution for elite athletes and recruitment",
+    icon: Zap,
+    color: "purple",
     features: [
       "Everything in Premium",
-      "Unlimited videos",
-      "Unlimited photos",
-      "Business card generator",
-      "Verified coach review requests",
-      "Multiple sports support",
-      "Advanced video analytics",
-      "Recruiting timeline tracker",
-      "College coach outreach tools",
-      "Custom domain (yourname.com)",
-      "White-label branding",
-      "API access",
-      "Dedicated account manager",
+      "Unlimited videos and images",
+      "Schedule management",
+      "Validated Reviews",
+      "Custom URL",
+      "Business Card Generator with QR Code",
+      "Advanced Analytics",
+      "Priority support",
     ],
-    limitations: [],
-    buttonText: "Upgrade to Pro",
-    buttonVariant: "solid" as const,
-    popular: false,
-    icon: Crown,
-    tier: "pro" as SubscriptionTier,
-  },
-]
-
-const faqs = [
-  {
-    question: "Can I change my plan at any time?",
-    answer:
-      "Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate any billing differences.",
-  },
-  {
-    question: "Is there a free trial for paid plans?",
-    answer:
-      "Yes, we offer a 14-day free trial for both Premium and Pro plans. No credit card required to start your trial.",
-  },
-  {
-    question: "What happens to my content if I downgrade?",
-    answer:
-      "Your content remains safe, but some features may be limited based on your new plan. For example, if you downgrade from Premium to Free, schedule and reviews features will be disabled.",
-  },
-  {
-    question: "Do you offer student discounts?",
-    answer:
-      "Yes! We offer a 50% student discount on all paid plans. Contact our support team with your student ID for verification.",
-  },
-  {
-    question: "Can I cancel my subscription anytime?",
-    answer:
-      "Absolutely. You can cancel your subscription at any time from your account settings. Your plan will remain active until the end of your current billing period.",
-  },
-  {
-    question: "What's the difference between regular and verified reviews?",
-    answer:
-      "Regular reviews (Premium) allow you to collect testimonials from coaches. Verified reviews (Pro) let you send secure, authenticated review requests that coaches can respond to directly through a verified link.",
   },
 ]
 
 export default function SubscriptionPage() {
-  const router = useRouter()
-  const bgColor = useColorModeValue("gray.50", "gray.900")
-  const cardBg = useColorModeValue("white", "gray.800")
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null)
+  const toast = useToast()
+  const router = useRouter()
 
   useEffect(() => {
     fetchAthleteData()
@@ -158,462 +125,358 @@ export default function SubscriptionPage() {
   const fetchAthleteData = async () => {
     try {
       const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session) {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) {
         router.push("/login")
         return
       }
 
-      const { data: athleteData } = await supabase
-        .from("athletes")
-        .select("id, subscription_tier, athlete_name")
-        .eq("user_id", session.user.id)
-        .single()
+      const { data: athleteData, error } = await supabase.from("athletes").select("*").eq("user_id", user.id).single()
 
-      if (athleteData) {
-        setAthlete(athleteData)
+      if (error) {
+        console.error("Error fetching athlete:", error)
+        return
       }
+
+      setAthlete(athleteData)
     } catch (error) {
-      console.error("Error fetching athlete data:", error)
+      console.error("Error:", error)
     } finally {
       setLoading(false)
     }
   }
 
+  const handleSubscribe = async (planId: string) => {
+    if (!athlete) return
+
+    if (planId === "free") {
+      // Handle downgrade to free
+      setProcessingPlan(planId)
+      try {
+        const { error } = await supabase
+          .from("athletes")
+          .update({
+            subscription_tier: "free",
+            subscription_status: "active",
+          })
+          .eq("id", athlete.id)
+
+        if (error) throw error
+
+        toast({
+          title: "Plan Updated",
+          description: "You've been downgraded to the Free plan.",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        })
+
+        // Refresh athlete data
+        await fetchAthleteData()
+      } catch (error: any) {
+        console.error("Error downgrading to free:", error)
+        toast({
+          title: "Error",
+          description: "Failed to downgrade to free plan. Please try again.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        })
+      } finally {
+        setProcessingPlan(null)
+      }
+      return
+    }
+
+    setProcessingPlan(planId)
+
+    try {
+      const priceId =
+        planId === "premium"
+          ? process.env.NEXT_PUBLIC_STRIPE_PREMIUM_MONTHLY_PRICE_ID
+          : process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID
+
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          priceId,
+          userId: athlete.user_id,
+        }),
+      })
+
+      const { url } = await response.json()
+      if (url) {
+        window.location.href = url
+      }
+    } catch (error: any) {
+      console.error("Error creating checkout session:", error)
+      toast({
+        title: "Error",
+        description: "Failed to start checkout process. Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setProcessingPlan(null)
+    }
+  }
+
+  const handleManageBilling = async () => {
+    if (!athlete) return
+
+    try {
+      const response = await fetch("/api/stripe/create-portal-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerId: athlete.stripe_customer_id,
+        }),
+      })
+
+      const { url } = await response.json()
+      if (url) {
+        window.location.href = url
+      }
+    } catch (error: any) {
+      console.error("Error creating portal session:", error)
+      toast({
+        title: "Error",
+        description: "Failed to open billing portal. Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      })
+    }
+  }
+
   if (loading) {
     return (
-      <Center h="100vh">
-        <Spinner size="xl" color="blue.500" />
-      </Center>
+      <Container maxW="6xl" py={8}>
+        <Flex justify="center" align="center" h="400px">
+          <Spinner size="xl" color="blue.500" />
+        </Flex>
+      </Container>
     )
   }
 
-  const currentTier = athlete?.subscription_tier || "free"
+  if (!athlete) {
+    return (
+      <Container maxW="6xl" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          <AlertTitle>Profile not found!</AlertTitle>
+          <AlertDescription>Unable to load your athlete profile. Please try refreshing the page.</AlertDescription>
+        </Alert>
+      </Container>
+    )
+  }
+
+  const currentTier = athlete.subscription_tier || "free"
 
   return (
-    <Box minH="100vh" bg={bgColor}>
-      <Container maxW="7xl" py={16}>
-        <VStack spacing={16}>
-          {/* Header */}
-          <VStack spacing={6} textAlign="center" maxW="3xl">
-            <Badge colorScheme="blue" px={4} py={2} borderRadius="full" fontSize="sm">
-              Choose Your Plan
-            </Badge>
-            <Heading size="2xl" fontWeight="bold">
-              Unlock Your Athletic Potential
-            </Heading>
-            <Text fontSize="xl" color="gray.600">
-              Join thousands of student-athletes who are already using RecruitMyGame to showcase their talents and
-              connect with college coaches.
-            </Text>
-            {athlete && (
-              <HStack spacing={2}>
-                <Text fontSize="lg" color="gray.700">
-                  Current Plan:
-                </Text>
-                <Badge
-                  colorScheme={getTierColor(currentTier)}
-                  variant="solid"
-                  px={3}
-                  py={1}
-                  borderRadius="full"
-                  textTransform="uppercase"
-                  fontSize="sm"
-                  fontWeight="bold"
-                >
-                  {getTierDisplayName(currentTier)}
-                </Badge>
+    <Container maxW="6xl" py={8}>
+      <VStack spacing={8} align="stretch">
+        {/* Back to Dashboard Button */}
+        <Box>
+          <Button as={Link} href="/dashboard" leftIcon={<ArrowLeft />} variant="ghost" colorScheme="blue">
+            Back to Dashboard
+          </Button>
+        </Box>
+
+        {/* Header */}
+        <Box textAlign="center">
+          <Heading size="xl" mb={4}>
+            Choose Your Plan
+          </Heading>
+          <Text fontSize="lg" color="gray.600" maxW="2xl" mx="auto">
+            Unlock powerful features to showcase your athletic achievements and connect with coaches and recruiters.
+          </Text>
+        </Box>
+
+        {/* Current Plan Status */}
+        {currentTier !== "free" && (
+          <Card bg="blue.50" borderColor="blue.200">
+            <CardBody>
+              <HStack justify="space-between" align="center">
+                <Box>
+                  <Text fontWeight="semibold" color="blue.700">
+                    Current Plan: {currentTier.charAt(0).toUpperCase() + currentTier.slice(1)}
+                  </Text>
+                  <Text fontSize="sm" color="blue.600">
+                    {athlete.subscription_status === "active"
+                      ? "Active subscription"
+                      : "Subscription status: " + athlete.subscription_status}
+                  </Text>
+                </Box>
+                <Button colorScheme="blue" variant="outline" onClick={handleManageBilling}>
+                  Manage Billing
+                </Button>
               </HStack>
-            )}
-          </VStack>
+            </CardBody>
+          </Card>
+        )}
 
-          {/* Pricing Cards */}
-          <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={8} w="full">
-            {plans.map((plan) => {
-              const IconComponent = plan.icon
-              const isCurrentPlan = currentTier === plan.tier
-              const canUpgrade = currentTier === "free" && plan.tier !== "free"
-              const canUpgradeFromPremium = currentTier === "premium" && plan.tier === "pro"
+        {/* Pricing Cards */}
+        <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={6}>
+          {PRICING_PLANS.map((plan) => (
+            <GridItem key={plan.id}>
+              <Card
+                h="full"
+                position="relative"
+                borderWidth={plan.popular ? "2px" : "1px"}
+                borderColor={plan.popular ? "blue.500" : "gray.200"}
+                bg={currentTier === plan.id ? "blue.50" : "white"}
+              >
+                {plan.popular && (
+                  <Badge
+                    position="absolute"
+                    top="-10px"
+                    left="50%"
+                    transform="translateX(-50%)"
+                    colorScheme="blue"
+                    px={3}
+                    py={1}
+                    borderRadius="full"
+                  >
+                    Most Popular
+                  </Badge>
+                )}
 
-              return (
-                <Card
-                  key={plan.name}
-                  bg={cardBg}
-                  shadow={plan.popular ? "2xl" : "lg"}
-                  borderWidth={isCurrentPlan ? 3 : plan.popular ? 2 : 1}
-                  borderColor={isCurrentPlan ? "green.500" : plan.popular ? "blue.500" : "gray.200"}
-                  position="relative"
-                  _hover={{ shadow: "xl", transform: "translateY(-4px)" }}
-                  transition="all 0.3s"
-                >
-                  {plan.popular && !isCurrentPlan && (
-                    <Badge
-                      colorScheme="blue"
-                      position="absolute"
-                      top="-12px"
-                      left="50%"
-                      transform="translateX(-50%)"
-                      px={4}
-                      py={1}
-                      borderRadius="full"
-                      fontSize="sm"
-                    >
-                      Most Popular
-                    </Badge>
-                  )}
-
-                  {isCurrentPlan && (
-                    <Badge
-                      colorScheme="green"
-                      position="absolute"
-                      top="-12px"
-                      left="50%"
-                      transform="translateX(-50%)"
-                      px={4}
-                      py={1}
-                      borderRadius="full"
-                      fontSize="sm"
-                    >
-                      Current Plan
-                    </Badge>
-                  )}
-
-                  <CardHeader pb={4}>
-                    <VStack spacing={4}>
-                      <HStack>
-                        <IconComponent
-                          size={24}
-                          color={isCurrentPlan ? "#38A169" : plan.popular ? "#3182CE" : "#718096"}
-                        />
+                <CardBody p={6}>
+                  <VStack spacing={4} align="stretch">
+                    {/* Plan Header */}
+                    <Box textAlign="center">
+                      <HStack justify="center" mb={2}>
+                        <Icon as={plan.icon} boxSize={6} color={`${plan.color}.500`} />
                         <Heading size="lg">{plan.name}</Heading>
-                        {isCurrentPlan && <CheckCircle size={20} color="#38A169" />}
+                        {currentTier === plan.id && (
+                          <Badge colorScheme="green" ml={2}>
+                            Current
+                          </Badge>
+                        )}
                       </HStack>
-
-                      <VStack spacing={1}>
-                        <HStack align="baseline">
-                          <Text
-                            fontSize="4xl"
-                            fontWeight="bold"
-                            color={isCurrentPlan ? "green.500" : plan.popular ? "blue.500" : "gray.900"}
-                          >
-                            {plan.price}
-                          </Text>
-                          <Text color="gray.600">/{plan.period}</Text>
-                        </HStack>
-                        <Text color="gray.600" textAlign="center">
-                          {plan.description}
+                      <Text fontSize="3xl" fontWeight="bold" color={`${plan.color}.500`}>
+                        {plan.price}
+                        <Text as="span" fontSize="sm" color="gray.500" ml={1}>
+                          {plan.period}
                         </Text>
-                      </VStack>
-                    </VStack>
-                  </CardHeader>
+                      </Text>
+                      <Text fontSize="sm" color="gray.600" mt={2}>
+                        {plan.description}
+                      </Text>
+                    </Box>
 
-                  <CardBody pt={0}>
-                    <VStack spacing={6}>
-                      <List spacing={3} w="full">
+                    {/* Features */}
+                    <Box>
+                      <List spacing={2}>
                         {plan.features.map((feature, index) => (
-                          <ListItem key={index} display="flex" alignItems="center">
+                          <ListItem key={index} fontSize="sm">
                             <ListIcon as={Check} color="green.500" />
-                            <Text fontSize="sm">{feature}</Text>
+                            {feature}
+                          </ListItem>
+                        ))}
+                        {plan.unavailable?.map((feature, index) => (
+                          <ListItem key={`unavailable-${index}`} fontSize="sm" color="gray.400">
+                            <ListIcon as={X} color="gray.400" />
+                            {feature}
                           </ListItem>
                         ))}
                       </List>
+                    </Box>
 
-                      <Button
-                        colorScheme={isCurrentPlan ? "green" : plan.popular ? "blue" : "gray"}
-                        variant={isCurrentPlan ? "outline" : plan.buttonVariant}
-                        size="lg"
-                        w="full"
-                        rightIcon={!isCurrentPlan ? <ArrowRight size={16} /> : undefined}
-                        onClick={() => {
-                          if (!isCurrentPlan && (canUpgrade || canUpgradeFromPremium)) {
-                            router.push("/dashboard")
-                          }
-                        }}
-                        disabled={isCurrentPlan}
-                      >
-                        {isCurrentPlan ? "Current Plan" : plan.buttonText}
-                      </Button>
-
-                      {plan.name === "Premium" && !isCurrentPlan && (
-                        <Text fontSize="xs" color="gray.500" textAlign="center">
-                          14-day free trial • No credit card required
-                        </Text>
+                    {/* Action Button */}
+                    <Box pt={4}>
+                      {currentTier === plan.id ? (
+                        <Button w="full" colorScheme="green" variant="outline" isDisabled>
+                          Current Plan
+                        </Button>
+                      ) : (
+                        <Button
+                          w="full"
+                          colorScheme={plan.color}
+                          onClick={() => handleSubscribe(plan.id)}
+                          isLoading={processingPlan === plan.id}
+                          loadingText="Processing..."
+                        >
+                          {plan.id === "free" ? "Downgrade to Free" : `Upgrade to ${plan.name}`}
+                        </Button>
                       )}
-                    </VStack>
-                  </CardBody>
-                </Card>
-              )
-            })}
-          </Grid>
-
-          {/* Feature Comparison */}
-          <Box w="full">
-            <VStack spacing={8}>
-              <Heading size="xl" textAlign="center">
-                Compare Plans
-              </Heading>
-
-              <Card bg={cardBg} shadow="lg" w="full">
-                <CardBody>
-                  <Grid templateColumns={{ base: "2fr 1fr 1fr 1fr", md: "3fr 1fr 1fr 1fr" }} gap={4}>
-                    {/* Header */}
-                    <Text fontWeight="bold" fontSize="lg">
-                      Features
-                    </Text>
-                    <Text fontWeight="bold" textAlign="center">
-                      Free
-                    </Text>
-                    <Text fontWeight="bold" textAlign="center">
-                      Premium
-                    </Text>
-                    <Text fontWeight="bold" textAlign="center">
-                      Pro
-                    </Text>
-
-                    <Divider gridColumn="1 / -1" />
-
-                    {/* Basic Features */}
-                    <Text fontWeight="semibold" color="gray.700">
-                      Profile Creation
-                    </Text>
-                    <Text textAlign="center">✓</Text>
-                    <Text textAlign="center">✓</Text>
-                    <Text textAlign="center">✓</Text>
-
-                    <Text fontSize="sm" color="gray.600">
-                      Videos
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      Up to 3
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      Up to 10
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      Unlimited
-                    </Text>
-
-                    <Text fontSize="sm" color="gray.600">
-                      Photos
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      Up to 10
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      Up to 50
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      Unlimited
-                    </Text>
-
-                    <Text fontSize="sm" color="gray.600">
-                      Awards & Achievements
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-
-                    <Divider gridColumn="1 / -1" />
-
-                    {/* Premium Features */}
-                    <Text fontSize="sm" color="gray.600">
-                      Schedule Management
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-
-                    <Text fontSize="sm" color="gray.600">
-                      Coach Reviews
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-
-                    <Text fontSize="sm" color="gray.600">
-                      Custom Branding
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-
-                    <Text fontSize="sm" color="gray.600">
-                      Analytics
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-
-                    <Divider gridColumn="1 / -1" />
-
-                    {/* Pro Features */}
-                    <Text fontSize="sm" color="gray.600">
-                      Business Cards
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-
-                    <Text fontSize="sm" color="gray.600">
-                      Verified Coach Reviews
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-
-                    <Text fontSize="sm" color="gray.600">
-                      Multiple Sports
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-
-                    <Text fontSize="sm" color="gray.600">
-                      Custom Domain
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      -
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      ✓
-                    </Text>
-
-                    <Divider gridColumn="1 / -1" />
-
-                    {/* Support */}
-                    <Text fontSize="sm" color="gray.600">
-                      Support
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      Community
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      Priority
-                    </Text>
-                    <Text textAlign="center" fontSize="sm">
-                      Dedicated
-                    </Text>
-                  </Grid>
+                    </Box>
+                  </VStack>
                 </CardBody>
               </Card>
-            </VStack>
-          </Box>
+            </GridItem>
+          ))}
+        </Grid>
 
-          {/* FAQ Section */}
-          <Box w="full" maxW="4xl">
-            <VStack spacing={8}>
-              <Heading size="xl" textAlign="center">
-                Frequently Asked Questions
-              </Heading>
-
-              <Accordion allowMultiple w="full">
-                {faqs.map((faq, index) => (
-                  <AccordionItem key={index} border="1px" borderColor="gray.200" borderRadius="md" mb={4}>
-                    <AccordionButton py={4} _hover={{ bg: "gray.50" }}>
-                      <Box flex="1" textAlign="left">
-                        <Text fontWeight="semibold">{faq.question}</Text>
-                      </Box>
-                      <AccordionIcon />
-                    </AccordionButton>
-                    <AccordionPanel pb={4}>
-                      <Text color="gray.600">{faq.answer}</Text>
-                    </AccordionPanel>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </VStack>
-          </Box>
-
-          {/* CTA Section */}
-          <Box w="full" textAlign="center">
-            <VStack spacing={6}>
-              <Heading size="xl">Ready to Get Recruited?</Heading>
-              <Text fontSize="lg" color="gray.600" maxW="2xl">
-                Join thousands of student-athletes who have already created their professional recruitment profiles.
-                Start building your future today.
-              </Text>
-              <HStack spacing={4}>
-                {currentTier === "free" && (
-                  <Button
-                    colorScheme="blue"
-                    size="lg"
-                    rightIcon={<ArrowRight size={16} />}
-                    onClick={() => router.push("/dashboard")}
-                  >
-                    Start Premium Trial
-                  </Button>
-                )}
-                {currentTier === "premium" && (
-                  <Button
-                    colorScheme="purple"
-                    size="lg"
-                    rightIcon={<ArrowRight size={16} />}
-                    onClick={() => router.push("/dashboard")}
-                  >
-                    Upgrade to Pro
-                  </Button>
-                )}
-                <Button variant="outline" size="lg" onClick={() => router.push("/")}>
-                  Learn More
-                </Button>
-              </HStack>
-            </VStack>
-          </Box>
-        </VStack>
-      </Container>
-    </Box>
+        {/* FAQ Section */}
+        <Box>
+          <Heading size="lg" mb={6} textAlign="center">
+            Frequently Asked Questions
+          </Heading>
+          <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={6}>
+            <GridItem>
+              <Card>
+                <CardBody>
+                  <Heading size="sm" mb={2}>
+                    Can I change plans anytime?
+                  </Heading>
+                  <Text fontSize="sm" color="gray.600">
+                    Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately for
+                    upgrades, or at the end of your billing cycle for downgrades.
+                  </Text>
+                </CardBody>
+              </Card>
+            </GridItem>
+            <GridItem>
+              <Card>
+                <CardBody>
+                  <Heading size="sm" mb={2}>
+                    What happens to my content if I downgrade?
+                  </Heading>
+                  <Text fontSize="sm" color="gray.600">
+                    Your content remains safe, but some features may become unavailable. You can always upgrade again to
+                    regain full access.
+                  </Text>
+                </CardBody>
+              </Card>
+            </GridItem>
+            <GridItem>
+              <Card>
+                <CardBody>
+                  <Heading size="sm" mb={2}>
+                    Is there a free trial?
+                  </Heading>
+                  <Text fontSize="sm" color="gray.600">
+                    The Free plan gives you access to core features forever. You can upgrade anytime to unlock premium
+                    features.
+                  </Text>
+                </CardBody>
+              </Card>
+            </GridItem>
+            <GridItem>
+              <Card>
+                <CardBody>
+                  <Heading size="sm" mb={2}>
+                    How do I cancel my subscription?
+                  </Heading>
+                  <Text fontSize="sm" color="gray.600">
+                    You can cancel anytime through the billing portal. Your subscription remains active until the end of
+                    your billing period.
+                  </Text>
+                </CardBody>
+              </Card>
+            </GridItem>
+          </Grid>
+        </Box>
+      </VStack>
+    </Container>
   )
 }

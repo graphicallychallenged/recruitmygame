@@ -33,7 +33,9 @@ import {
 import { User, Palette, Eye, Save } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import type { AthleteProfile } from "@/types/database"
+import { hasFeature, getTierDisplayName, getTierColor } from "@/utils/tierFeatures"
 
 const SPORTS_OPTIONS = [
   "Football",
@@ -206,7 +208,7 @@ export default function ProfilePage() {
       const updateData = {
         athlete_name: formData.athlete_name,
         sport: formData.sport,
-        sports: formData.sports.length > 0 ? formData.sports : null,
+        sports: hasMultipleSports ? (formData.sports.length > 0 ? formData.sports : null) : null,
         grade: formData.grade || null,
         graduation_year: formData.graduation_year ? Number.parseInt(formData.graduation_year) : null,
         school: formData.school || null,
@@ -218,9 +220,9 @@ export default function ProfilePage() {
         sat_score: formData.sat_score ? Number.parseInt(formData.sat_score) : null,
         act_score: formData.act_score ? Number.parseInt(formData.act_score) : null,
         positions_played: formData.positions_played.length > 0 ? formData.positions_played : null,
-        primary_color: formData.primary_color,
-        secondary_color: formData.secondary_color,
-        theme_mode: formData.theme_mode,
+        primary_color: hasCustomTheming ? formData.primary_color : athlete.primary_color,
+        secondary_color: hasCustomTheming ? formData.secondary_color : athlete.secondary_color,
+        theme_mode: hasCustomTheming ? formData.theme_mode : athlete.theme_mode,
         email: formData.email || null,
         phone: formData.phone || null,
         show_email: formData.show_email,
@@ -294,6 +296,9 @@ export default function ProfilePage() {
     )
   }
 
+  const currentTier = (athlete.subscription_tier || "free") as "free" | "premium" | "pro"
+  const hasCustomTheming = hasFeature(currentTier, "custom_theming")
+  const hasMultipleSports = hasFeature(currentTier, "multiple_sports")
   const availablePositions = POSITION_OPTIONS[formData.sport] || []
 
   return (
@@ -304,6 +309,9 @@ export default function ProfilePage() {
             <HStack spacing={2}>
               <Icon as={User} color="blue.500" />
               <Text>Profile Settings</Text>
+              <Badge colorScheme={getTierColor(currentTier)} variant="subtle">
+                {getTierDisplayName(currentTier)}
+              </Badge>
             </HStack>
           </Heading>
           <Text color="gray.600">Manage your athlete profile information and preferences</Text>
@@ -404,7 +412,7 @@ export default function ProfilePage() {
           </CardBody>
         </Card>
 
-        {/* Physical Stats */}
+        {/* Physical & Academic Stats */}
         <Card>
           <CardBody>
             <Heading size="md" mb={4}>
@@ -482,27 +490,49 @@ export default function ProfilePage() {
               Sports & Positions
             </Heading>
 
-            {/* Additional Sports */}
+            {/* Additional Sports - Only for Pro */}
             <FormControl mb={6}>
-              <FormLabel>Additional Sports (Optional)</FormLabel>
+              <FormLabel>
+                Additional Sports (Optional)
+                {!hasMultipleSports && (
+                  <Badge ml={2} colorScheme="purple" variant="outline">
+                    Pro
+                  </Badge>
+                )}
+              </FormLabel>
               <Text fontSize="sm" color="gray.600" mb={3}>
                 Select any additional sports you play besides your primary sport
               </Text>
-              <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }} gap={2}>
-                {SPORTS_OPTIONS.filter((sport) => sport !== formData.sport).map((sport) => (
-                  <GridItem key={sport}>
-                    <Button
-                      size="sm"
-                      variant={formData.sports.includes(sport) ? "solid" : "outline"}
-                      colorScheme={formData.sports.includes(sport) ? "blue" : "gray"}
-                      onClick={() => handleSportToggle(sport)}
-                      w="full"
-                    >
-                      {sport}
-                    </Button>
-                  </GridItem>
-                ))}
-              </Grid>
+              {hasMultipleSports ? (
+                <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }} gap={2}>
+                  {SPORTS_OPTIONS.filter((sport) => sport !== formData.sport).map((sport) => (
+                    <GridItem key={sport}>
+                      <Button
+                        size="sm"
+                        variant={formData.sports.includes(sport) ? "solid" : "outline"}
+                        colorScheme={formData.sports.includes(sport) ? "blue" : "gray"}
+                        onClick={() => handleSportToggle(sport)}
+                        w="full"
+                      >
+                        {sport}
+                      </Button>
+                    </GridItem>
+                  ))}
+                </Grid>
+              ) : (
+                <Alert status="info">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle>Pro Feature</AlertTitle>
+                    <AlertDescription>
+                      Upgrade to Pro to add multiple sports to your profile.{" "}
+                      <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                        Upgrade Now
+                      </Button>
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+              )}
             </FormControl>
 
             <Divider mb={6} />
@@ -585,66 +615,89 @@ export default function ProfilePage() {
           </CardBody>
         </Card>
 
-        {/* Theme & Appearance */}
+        {/* Theme & Appearance - Premium+ Feature */}
         <Card>
           <CardBody>
             <Heading size="md" mb={4}>
               <HStack spacing={2}>
                 <Icon as={Palette} color="purple.500" />
                 <Text>Theme & Appearance</Text>
+                {!hasCustomTheming && (
+                  <Badge colorScheme="blue" variant="outline">
+                    Premium+
+                  </Badge>
+                )}
               </HStack>
             </Heading>
-            <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4}>
-              <GridItem>
-                <FormControl>
-                  <FormLabel>Theme Mode</FormLabel>
-                  <Select
-                    value={formData.theme_mode}
-                    onChange={(e) => setFormData({ ...formData, theme_mode: e.target.value })}
-                  >
-                    <option value="light">Light Theme</option>
-                    <option value="dark">Dark Theme</option>
-                  </Select>
-                </FormControl>
-              </GridItem>
-              <GridItem>
-                <FormControl>
-                  <FormLabel>Primary Color</FormLabel>
-                  <Input
-                    type="color"
-                    value={formData.primary_color}
-                    onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
-                    h="40px"
-                  />
-                </FormControl>
-              </GridItem>
-              <GridItem>
-                <FormControl>
-                  <FormLabel>Secondary Color</FormLabel>
-                  <Input
-                    type="color"
-                    value={formData.secondary_color}
-                    onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
-                    h="40px"
-                  />
-                </FormControl>
-              </GridItem>
-            </Grid>
 
-            {/* Color Preview */}
-            <Box mt={4} p={4} borderRadius="md" border="1px solid" borderColor="gray.200">
-              <Text fontSize="sm" fontWeight="medium" mb={2}>
-                Color Preview:
-              </Text>
-              <HStack spacing={4}>
-                <Badge bg={formData.primary_color} color="white" px={3} py={1}>
-                  Primary Color
-                </Badge>
-                <Badge bg={formData.secondary_color} color="white" px={3} py={1}>
-                  Secondary Color
-                </Badge>
-              </HStack>
-            </Box>
+            {hasCustomTheming ? (
+              <>
+                <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4}>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Theme Mode</FormLabel>
+                      <Select
+                        value={formData.theme_mode}
+                        onChange={(e) => setFormData({ ...formData, theme_mode: e.target.value })}
+                      >
+                        <option value="light">Light Theme</option>
+                        <option value="dark">Dark Theme</option>
+                      </Select>
+                    </FormControl>
+                  </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Primary Color</FormLabel>
+                      <Input
+                        type="color"
+                        value={formData.primary_color}
+                        onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
+                        h="40px"
+                      />
+                    </FormControl>
+                  </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Secondary Color</FormLabel>
+                      <Input
+                        type="color"
+                        value={formData.secondary_color}
+                        onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
+                        h="40px"
+                      />
+                    </FormControl>
+                  </GridItem>
+                </Grid>
+
+                {/* Color Preview */}
+                <Box mt={4} p={4} borderRadius="md" border="1px solid" borderColor="gray.200">
+                  <Text fontSize="sm" fontWeight="medium" mb={2}>
+                    Color Preview:
+                  </Text>
+                  <HStack spacing={4}>
+                    <Badge bg={formData.primary_color} color="white" px={3} py={1}>
+                      Primary Color
+                    </Badge>
+                    <Badge bg={formData.secondary_color} color="white" px={3} py={1}>
+                      Secondary Color
+                    </Badge>
+                  </HStack>
+                </Box>
+              </>
+            ) : (
+              <Alert status="info">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle>Premium Feature</AlertTitle>
+                  <AlertDescription>
+                    Customize your profile colors and theme with Premium or Pro plans.{" "}
+                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                      Upgrade Now
+                    </Button>
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            )}
           </CardBody>
         </Card>
 
@@ -675,7 +728,7 @@ export default function ProfilePage() {
               <Text fontSize="sm" color="blue.600" mb={3}>
                 Your profile is available at:
                 <Text as="span" fontWeight="medium" ml={1}>
-                  {window.location.origin}/{athlete.username}
+                  {typeof window !== "undefined" ? window.location.origin : ""}/{athlete.username}
                 </Text>
               </Text>
               <Button

@@ -26,6 +26,9 @@ export type Database = {
           primary_color: string | null
           secondary_color: string | null
           subscription_tier: string
+          subscription_status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           is_profile_public: boolean | null
           content_order: string[] | null
           email: string | null
@@ -58,6 +61,9 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           subscription_tier?: string
+          subscription_status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           is_profile_public?: boolean | null
           content_order?: string[] | null
           email?: string | null
@@ -90,6 +96,9 @@ export type Database = {
           primary_color?: string | null
           secondary_color?: string | null
           subscription_tier?: string
+          subscription_status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           is_profile_public?: boolean | null
           content_order?: string[] | null
           email?: string | null
@@ -468,6 +477,9 @@ export type AthleteProfile = {
   primary_color: string | null
   secondary_color: string | null
   subscription_tier: string
+  subscription_status: string | null
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
   is_profile_public: boolean | null
   content_order: string[] | null
   email: string | null

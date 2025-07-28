@@ -34,7 +34,7 @@ import {
   CreditCard,
   Shield,
   Target,
-  HelpCircle
+  HelpCircle,
 } from "lucide-react"
 import Link from "next/link"
 import { type SubscriptionTier, hasFeature, getTierColor, getTierDisplayName } from "@/utils/tierFeatures"
@@ -61,11 +61,11 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: "/dashboard", icon: Home, label: "Overview" },
   { href: "/dashboard/profile", icon: User, label: "Profile" },
-  { href: "/dashboard/videos", icon: Video, label: "Videos" },
   { href: "/dashboard/photos", icon: ImageIcon, label: "Photos" },
-  { href: "/dashboard/awards", icon: Award, label: "Awards" },
-  { href: "/dashboard/schedule", icon: Calendar, label: "Schedule", requiredTier: "premium", feature: "schedule" },
+  { href: "/dashboard/videos", icon: Video, label: "Videos", requiredTier: "premium", feature: "videos" },
+  { href: "/dashboard/awards", icon: Award, label: "Awards", requiredTier: "premium", feature: "awards" },
   { href: "/dashboard/reviews", icon: MessageSquare, label: "Reviews", requiredTier: "premium", feature: "reviews" },
+  { href: "/dashboard/schedule", icon: Calendar, label: "Schedule", requiredTier: "pro", feature: "schedule" },
   {
     href: "/dashboard/business-cards",
     icon: CreditCard,
@@ -166,6 +166,12 @@ export default function DashboardLayout({
 
   const isFeatureAccessible = (item: NavItem) => {
     if (!item.feature || !athlete) return true
+
+    // Special handling for videos - accessible for premium and pro
+    if (item.feature === "videos") {
+      return athlete.subscription_tier === "premium" || athlete.subscription_tier === "pro"
+    }
+
     return hasFeature(athlete.subscription_tier, item.feature)
   }
 
@@ -183,10 +189,10 @@ export default function DashboardLayout({
   }
 
   // Group navigation items
-  const mainNavItems = navItems.slice(0, 5) // Overview, Profile, Videos, Photos, Awards
-  const premiumNavItems = navItems.slice(5, 7) // Schedule, Reviews
-  const proNavItems = navItems.slice(7, 10) // Business Cards, Verified Reviews, Multiple Sports
-  const settingsNavItems = navItems.slice(10) // Settings, Subscription
+  const mainNavItems = navItems.slice(0, 3) // Overview, Profile, Photos
+  const premiumNavItems = navItems.slice(3, 6) // Videos, Awards, Reviews
+  const proNavItems = navItems.slice(6, 10) // Schedule, Business Cards, Verified Reviews, Multiple Sports
+  const settingsNavItems = navItems.slice(10) // Settings, Subscription, Support
 
   return (
     <Flex h="100vh" bg={bgColor}>

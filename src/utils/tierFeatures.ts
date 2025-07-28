@@ -1,81 +1,95 @@
 export type SubscriptionTier = "free" | "premium" | "pro"
 
 export interface TierFeatures {
-  videos: number
   photos: number
+  videos: number
   awards: boolean
   schedule: boolean
   reviews: boolean
   business_cards: boolean
+  coach_reviews: boolean
+  analytics: boolean
+  custom_domain: boolean
+  priority_support: boolean
   verified_reviews: boolean
   multiple_sports: boolean
-  analytics: boolean
-  custom_branding: boolean
-  priority_support: boolean
+  custom_theming: boolean
 }
 
 export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
   free: {
-    videos: 3,
-    photos: 10,
-    awards: true,
+    photos: 5,
+    videos: 0,
+    awards: false,
     schedule: false,
     reviews: false,
     business_cards: false,
+    coach_reviews: false,
+    analytics: false,
+    custom_domain: false,
+    priority_support: false,
     verified_reviews: false,
     multiple_sports: false,
-    analytics: false,
-    custom_branding: false,
-    priority_support: false,
+    custom_theming: false,
   },
   premium: {
-    videos: 10,
-    photos: 50,
+    photos: 15,
+    videos: 5,
     awards: true,
-    schedule: true,
+    schedule: false,
     reviews: true,
     business_cards: false,
+    coach_reviews: true,
+    analytics: false,
+    custom_domain: false,
+    priority_support: false,
     verified_reviews: false,
     multiple_sports: false,
-    analytics: true,
-    custom_branding: true,
-    priority_support: false,
+    custom_theming: true,
   },
   pro: {
-    videos: 999, // Unlimited
-    photos: 999, // Unlimited
+    photos: 999, // unlimited
+    videos: 999, // unlimited
     awards: true,
     schedule: true,
     reviews: true,
     business_cards: true,
+    coach_reviews: true,
+    analytics: true,
+    custom_domain: true,
+    priority_support: true,
     verified_reviews: true,
     multiple_sports: true,
-    analytics: true,
-    custom_branding: true,
-    priority_support: true,
+    custom_theming: true,
   },
 }
 
 export function hasFeature(tier: SubscriptionTier, feature: keyof TierFeatures): boolean {
-  const value = TIER_FEATURES[tier][feature]
-  return typeof value === "boolean" ? value : true
+  return TIER_FEATURES[tier][feature] === true
 }
 
-export function getFeatureLimit(tier: SubscriptionTier, feature: "videos" | "photos"): number {
+export function getFeatureLimit(tier: SubscriptionTier, feature: "photos" | "videos"): number {
   return TIER_FEATURES[tier][feature] as number
 }
 
-export function getTierColor(tier: SubscriptionTier): string {
-  switch (tier) {
-    case "free":
-      return "gray"
-    case "premium":
-      return "blue"
-    case "pro":
-      return "purple"
-    default:
-      return "gray"
+export function getSubscriptionLimits(tier: SubscriptionTier): TierFeatures {
+  return TIER_FEATURES[tier]
+}
+
+export function canUploadMore(currentCount: number, tier: SubscriptionTier, type: "photos" | "videos"): boolean {
+  const limit = getFeatureLimit(tier, type)
+  if (limit >= 999) return true // unlimited
+  return currentCount < limit
+}
+
+export function getUpgradeMessage(tier: SubscriptionTier, type: string): string {
+  if (tier === "free") {
+    return `Upgrade to Premium to add more ${type} and unlock additional features.`
   }
+  if (tier === "premium") {
+    return `Upgrade to Pro to get unlimited ${type} and premium features.`
+  }
+  return `You've reached your ${type} limit.`
 }
 
 export function getTierDisplayName(tier: SubscriptionTier): string {
@@ -91,61 +105,29 @@ export function getTierDisplayName(tier: SubscriptionTier): string {
   }
 }
 
-export function getRequiredTier(feature: keyof TierFeatures): SubscriptionTier {
-  if (TIER_FEATURES.free[feature]) return "free"
-  if (TIER_FEATURES.premium[feature]) return "premium"
-  return "pro"
+export function getTierColor(tier: SubscriptionTier): string {
+  switch (tier) {
+    case "free":
+      return "gray"
+    case "premium":
+      return "blue"
+    case "pro":
+      return "purple"
+    default:
+      return "gray"
+  }
 }
 
-export function canAccessFeature(userTier: SubscriptionTier, feature: keyof TierFeatures): boolean {
-  return hasFeature(userTier, feature)
-}
-
-// Filter content based on subscription tier limits
-export function filterContentByTier<T extends any[]>(
-  content: T,
+export function filterContentByTier<T extends { is_public?: boolean }>(
+  content: T[],
   tier: SubscriptionTier,
-  contentType: "videos" | "photos" | "awards" | "schedule" | "reviews",
-): T {
-  if (!content || content.length === 0) return content
-
-  // For features that are boolean (awards, schedule, reviews), return all if feature is available
-  if (contentType === "awards" || contentType === "schedule" || contentType === "reviews") {
-    return hasFeature(tier, contentType) ? content : ([] as unknown as T)
+  isOwner = false,
+): T[] {
+  // If user is the owner, show all content
+  if (isOwner) {
+    return content
   }
 
-  // For videos and photos, apply limits
-  if (contentType === "videos" || contentType === "photos") {
-    const limit = getFeatureLimit(tier, contentType)
-    if (limit >= 999) return content // Unlimited
-    return content.slice(0, limit) as T
-  }
-
-  return content
-}
-
-// Check if user has reached their tier limit for a specific content type
-export function hasReachedLimit(
-  currentCount: number,
-  tier: SubscriptionTier,
-  contentType: "videos" | "photos",
-): boolean {
-  const limit = getFeatureLimit(tier, contentType)
-  return limit < 999 && currentCount >= limit
-}
-
-// Get remaining slots for a content type
-export function getRemainingSlots(
-  currentCount: number,
-  tier: SubscriptionTier,
-  contentType: "videos" | "photos",
-): number {
-  const limit = getFeatureLimit(tier, contentType)
-  if (limit >= 999) return 999 // Unlimited
-  return Math.max(0, limit - currentCount)
-}
-
-// Check if content should be visible on public profile based on tier
-export function isContentVisibleOnPublicProfile(contentType: keyof TierFeatures, tier: SubscriptionTier): boolean {
-  return hasFeature(tier, contentType)
+  // For public viewing, only show public content
+  return content.filter((item) => item.is_public !== false)
 }
