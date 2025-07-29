@@ -5,23 +5,24 @@ const CANVA_CLIENT_ID = process.env.CANVA_CLIENT_ID
 const CANVA_CLIENT_SECRET = process.env.CANVA_CLIENT_SECRET
 const CANVA_REDIRECT_URI = process.env.CANVA_REDIRECT_URI
 
+// Force dynamic rendering
+export const dynamic = "force-dynamic"
+
 export async function GET(request: NextRequest) {
   try {
     const code = request.nextUrl.searchParams.get("code")
     const state = request.nextUrl.searchParams.get("state")
     const error = request.nextUrl.searchParams.get("error")
 
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://recruityourgame.com"
+
     if (error) {
       console.error("OAuth error:", error)
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/business-cards?error=authorization_failed`,
-      )
+      return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=authorization_failed`)
     }
 
     if (!code || !state) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/business-cards?error=missing_parameters`,
-      )
+      return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=missing_parameters`)
     }
 
     const supabase = await createClient()
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { data: oauthState } = await supabase.from("canva_oauth_state").select("*").eq("user_id", state).single()
 
     if (!oauthState) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/business-cards?error=invalid_state`)
+      return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=invalid_state`)
     }
 
     // Exchange code for access token using PKCE
@@ -52,9 +53,7 @@ export async function GET(request: NextRequest) {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text()
       console.error("Token exchange failed:", errorData)
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/business-cards?error=token_exchange_failed`,
-      )
+      return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=token_exchange_failed`)
     }
 
     const tokenData = await tokenResponse.json()
@@ -73,9 +72,10 @@ export async function GET(request: NextRequest) {
     await supabase.from("canva_oauth_state").delete().eq("user_id", state)
 
     // Redirect back to business cards page with success
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/business-cards?success=connected`)
+    return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?success=connected`)
   } catch (error) {
     console.error("Error in Canva callback:", error)
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/business-cards?error=connection_failed`)
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://recruityourgame.com"
+    return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=connection_failed`)
   }
 }
