@@ -210,7 +210,7 @@ export function ReviewsDisplay({
                         leftIcon={<MessageCircle size={14} />}
                         onClick={() => handleContactReviewer(review)}
                       >
-                        Contact About Player
+                        Contact Coach About This Player
                       </Button>
                     )}
                   </VStack>

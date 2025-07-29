@@ -22,6 +22,8 @@ export type Database = {
           sat_score: number | null
           act_score: number | null
           positions_played: string[] | null
+          dominant_foot: string | null
+          dominant_hand: string | null
           profile_picture_url: string | null
           primary_color: string | null
           secondary_color: string | null
@@ -38,6 +40,18 @@ export type Database = {
           theme_mode: string | null
           created_at: string
           updated_at: string
+          hero_image_url: string | null
+          instagram: string | null
+          twitter: string | null
+          tiktok: string | null
+          facebook: string | null
+          youtube: string | null
+          linkedin: string | null
+          website: string | null
+          maxpreps_url: string | null
+          ncsa_url: string | null
+          other_recruiting_profiles: Json | null
+          profile_visibility: "public" | "private"
         }
         Insert: {
           id?: string
@@ -57,6 +71,8 @@ export type Database = {
           sat_score?: number | null
           act_score?: number | null
           positions_played?: string[] | null
+          dominant_foot?: string | null
+          dominant_hand?: string | null
           profile_picture_url?: string | null
           primary_color?: string | null
           secondary_color?: string | null
@@ -73,6 +89,18 @@ export type Database = {
           theme_mode?: string | null
           created_at?: string
           updated_at?: string
+          hero_image_url?: string | null
+          instagram?: string
+          twitter?: string
+          tiktok?: string
+          facebook?: string
+          youtube?: string
+          linkedin?: string
+          website?: string
+          maxpreps_url?: string
+          ncsa_url?: string
+          other_recruiting_profiles?: Json
+          profile_visibility?: "public" | "private"
         }
         Update: {
           id?: string
@@ -92,6 +120,8 @@ export type Database = {
           sat_score?: number | null
           act_score?: number | null
           positions_played?: string[] | null
+          dominant_foot?: string | null
+          dominant_hand?: string | null
           profile_picture_url?: string | null
           primary_color?: string | null
           secondary_color?: string | null
@@ -108,6 +138,18 @@ export type Database = {
           theme_mode?: string | null
           created_at?: string
           updated_at?: string
+          hero_image_url?: string | null
+          instagram?: string
+          twitter?: string
+          tiktok?: string
+          facebook?: string
+          youtube?: string
+          linkedin?: string
+          website?: string
+          maxpreps_url?: string
+          ncsa_url?: string
+          other_recruiting_profiles?: Json
+          profile_visibility?: "public" | "private"
         }
         Relationships: []
       }
@@ -115,37 +157,28 @@ export type Database = {
         Row: {
           id: string
           athlete_id: string
-          title: string
-          organization: string | null
-          award_date: string
+          award_name: string
           award_type: string
-          level: string | null
+          date_received: string
           description: string | null
-          is_public: boolean
           created_at: string
         }
         Insert: {
           id?: string
           athlete_id: string
-          title: string
-          organization?: string | null
-          award_date: string
+          award_name: string
           award_type: string
-          level?: string | null
+          date_received: string
           description?: string | null
-          is_public?: boolean
           created_at?: string
         }
         Update: {
           id?: string
           athlete_id?: string
-          title?: string
-          organization?: string | null
-          award_date?: string
+          award_name?: string
           award_type?: string
-          level?: string | null
+          date_received?: string
           description?: string | null
-          is_public?: boolean
           created_at?: string
         }
         Relationships: [
@@ -164,7 +197,7 @@ export type Database = {
           athlete_id: string
           photo_url: string
           caption: string | null
-          is_public: boolean
+          is_featured: boolean
           created_at: string
         }
         Insert: {
@@ -172,7 +205,7 @@ export type Database = {
           athlete_id: string
           photo_url: string
           caption?: string | null
-          is_public?: boolean
+          is_featured?: boolean
           created_at?: string
         }
         Update: {
@@ -180,12 +213,103 @@ export type Database = {
           athlete_id?: string
           photo_url?: string
           caption?: string | null
-          is_public?: boolean
+          is_featured?: boolean
           created_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "athlete_photos_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_videos: {
+        Row: {
+          id: string
+          athlete_id: string
+          video_url: string
+          video_type: "youtube" | "vimeo" | "upload"
+          title: string
+          description: string | null
+          thumbnail_url: string | null
+          is_featured: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          athlete_id: string
+          video_url: string
+          video_type: "youtube" | "vimeo" | "upload"
+          title: string
+          description?: string | null
+          thumbnail_url?: string | null
+          is_featured?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          athlete_id?: string
+          video_url?: string
+          video_type?: "youtube" | "vimeo" | "upload"
+          title?: string
+          description?: string | null
+          thumbnail_url?: string | null
+          is_featured?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_videos_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_schedule: {
+        Row: {
+          id: string
+          athlete_id: string
+          event_title: string
+          event_type: "game" | "practice" | "tournament" | "showcase"
+          event_date: string
+          event_time: string | null
+          location: string | null
+          opponent: string | null
+          result: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          athlete_id: string
+          event_title: string
+          event_type: "game" | "practice" | "tournament" | "showcase"
+          event_date: string
+          event_time?: string | null
+          location?: string | null
+          opponent?: string | null
+          result?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          athlete_id?: string
+          event_title?: string
+          event_type?: "game" | "practice" | "tournament" | "showcase"
+          event_date?: string
+          event_time?: string | null
+          location?: string | null
+          opponent?: string | null
+          result?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_schedule_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
             referencedRelation: "athletes"
@@ -199,15 +323,12 @@ export type Database = {
           athlete_id: string
           reviewer_name: string
           reviewer_title: string
-          reviewer_organization: string
-          reviewer_email: string | null
-          reviewer_phone: string | null
-          reviewer_image_url: string | null
+          reviewer_organization: string | null
           review_text: string
-          review_type: string
           rating: number
-          relationship_duration: string | null
-          can_contact_reviewer: boolean
+          reviewer_contact: string | null
+          reviewer_image_url: string | null
+          location: string | null
           created_at: string
           updated_at: string
         }
@@ -216,15 +337,12 @@ export type Database = {
           athlete_id: string
           reviewer_name: string
           reviewer_title: string
-          reviewer_organization: string
-          reviewer_email?: string | null
-          reviewer_phone?: string | null
-          reviewer_image_url?: string | null
+          reviewer_organization?: string | null
           review_text: string
-          review_type: string
           rating: number
-          relationship_duration?: string | null
-          can_contact_reviewer?: boolean
+          reviewer_contact?: string | null
+          reviewer_image_url?: string | null
+          location?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -233,15 +351,12 @@ export type Database = {
           athlete_id?: string
           reviewer_name?: string
           reviewer_title?: string
-          reviewer_organization?: string
-          reviewer_email?: string | null
-          reviewer_phone?: string | null
-          reviewer_image_url?: string | null
+          reviewer_organization?: string | null
           review_text?: string
-          review_type?: string
           rating?: number
-          relationship_duration?: string | null
-          can_contact_reviewer?: boolean
+          reviewer_contact?: string | null
+          reviewer_image_url?: string | null
+          location?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -255,96 +370,52 @@ export type Database = {
           },
         ]
       }
-      athlete_schedule: {
+      athlete_teams: {
         Row: {
           id: string
           athlete_id: string
-          event_name: string
-          event_date: string
-          event_time: string | null
-          location: string | null
-          event_type: string
-          description: string | null
-          is_public: boolean
+          team_name: string
+          position: string | null
+          jersey_number: number | null
+          season: string | null
+          league: string | null
+          stats: Json | null
+          is_current: boolean | null
+          is_public: boolean | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           athlete_id: string
-          event_name: string
-          event_date: string
-          event_time?: string | null
-          location?: string | null
-          event_type: string
-          description?: string | null
-          is_public?: boolean
+          team_name: string
+          position?: string | null
+          jersey_number?: number | null
+          season?: string | null
+          league?: string | null
+          stats?: Json | null
+          is_current?: boolean | null
+          is_public?: boolean | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           athlete_id?: string
-          event_name?: string
-          event_date?: string
-          event_time?: string | null
-          location?: string | null
-          event_type?: string
-          description?: string | null
-          is_public?: boolean
+          team_name?: string
+          position?: string | null
+          jersey_number?: number | null
+          season?: string | null
+          league?: string | null
+          stats?: Json | null
+          is_current?: boolean | null
+          is_public?: boolean | null
           created_at?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "athlete_schedule_athlete_id_fkey"
-            columns: ["athlete_id"]
-            isOneToOne: false
-            referencedRelation: "athletes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      athlete_videos: {
-        Row: {
-          id: string
-          athlete_id: string
-          title: string
-          description: string | null
-          video_url: string
-          video_type: string
-          thumbnail_url: string | null
-          is_public: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          athlete_id: string
-          title: string
-          description?: string | null
-          video_url: string
-          video_type: string
-          thumbnail_url?: string | null
-          is_public?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          athlete_id?: string
-          title?: string
-          description?: string | null
-          video_url?: string
-          video_type?: string
-          thumbnail_url?: string | null
-          is_public?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "athlete_videos_athlete_id_fkey"
+            foreignKeyName: "athlete_teams_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
             referencedRelation: "athletes"
@@ -438,6 +509,110 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          id: string
+          user_id: string
+          subject: string
+          message: string
+          status: "open" | "in_progress" | "resolved" | "closed"
+          priority: "low" | "medium" | "high"
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          subject: string
+          message: string
+          status?: "open" | "in_progress" | "resolved" | "closed"
+          priority?: "low" | "medium" | "high"
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          subject?: string
+          message?: string
+          status?: "open" | "in_progress" | "resolved" | "closed"
+          priority?: "low" | "medium" | "high"
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          id: string
+          user_id: string
+          email_notifications: boolean
+          marketing_emails: boolean
+          profile_visibility: "public" | "private"
+          theme_preference: "light" | "dark" | "system"
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          email_notifications?: boolean
+          marketing_emails?: boolean
+          profile_visibility?: "public" | "private"
+          theme_preference?: "light" | "dark" | "system"
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          email_notifications?: boolean
+          marketing_emails?: boolean
+          profile_visibility?: "public" | "private"
+          theme_preference?: "light" | "dark" | "system"
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      business_cards: {
+        Row: {
+          id: string
+          athlete_id: string
+          template_id: string
+          design_data: any
+          generated_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          athlete_id: string
+          template_id: string
+          design_data: any
+          generated_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          athlete_id?: string
+          template_id?: string
+          design_data?: any
+          generated_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_cards_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -455,126 +630,176 @@ export type Database = {
 }
 
 // Derived types for easier use
-export type AthleteProfile = {
+export interface AthleteProfile {
   id: string
   user_id: string
   athlete_name: string
   username: string
   sport: string
-  sports: string[] | null
-  grade: string | null
-  graduation_year: number | null
-  school: string | null
-  location: string | null
-  bio: string | null
-  height: string | null
-  weight: string | null
-  gpa: number | null
-  sat_score: number | null
-  act_score: number | null
-  positions_played: string[] | null
-  profile_picture_url: string | null
-  primary_color: string | null
-  secondary_color: string | null
-  subscription_tier: string
-  subscription_status: string | null
-  stripe_customer_id: string | null
-  stripe_subscription_id: string | null
-  is_profile_public: boolean | null
-  content_order: string[] | null
-  email: string | null
-  phone: string | null
-  show_email: boolean | null
-  show_phone: boolean | null
-  theme_mode: string | null
+  sports?: string[] | null
+  grade?: string | null
+  graduation_year?: number | null
+  school?: string | null
+  location?: string | null
+  bio?: string | null
+  height?: string | null
+  weight?: string | null
+  gpa?: number | null
+  sat_score?: number | null
+  act_score?: number | null
+  positions_played?: string[] | null
+  dominant_foot?: string | null
+  dominant_hand?: string | null
+  profile_picture_url?: string | null
+  hero_image_url?: string | null
+  primary_color?: string | null
+  secondary_color?: string | null
+  subscription_tier?: string | null
+  subscription_status?: string | null
+  stripe_customer_id?: string | null
+  stripe_subscription_id?: string | null
+  is_profile_public?: boolean | null
+  content_order?: string[] | null
+  email?: string | null
+  phone?: string | null
+  show_email?: boolean | null
+  show_phone?: boolean | null
+  theme_mode?: string | null
   created_at: string
   updated_at: string
+  instagram?: string | null
+  twitter?: string | null
+  tiktok?: string | null
+  facebook?: string | null
+  youtube?: string | null
+  linkedin?: string | null
+  website?: string | null
+  maxpreps_url?: string | null
+  ncsa_url?: string | null
+  other_recruiting_profiles?: RecruitingProfile[] | null
+  profile_visibility?: ProfileVisibility | null
 }
 
-export type AthletePhoto = {
+export interface RecruitingProfile {
+  name: string
+  url: string
+}
+
+export interface ProfileVisibility {
+  show_stats: boolean
+  show_contact: boolean
+  show_social: boolean
+}
+
+export interface AthletePhoto {
   id: string
   athlete_id: string
   photo_url: string
-  caption: string | null
+  caption?: string | null
   is_public: boolean
   created_at: string
 }
 
-export type AthleteVideo = {
+export interface AthleteVideo {
   id: string
   athlete_id: string
   title: string
-  description: string | null
+  description?: string | null
   video_url: string
-  video_type: string
-  thumbnail_url: string | null
+  video_type: "youtube" | "vimeo" | "upload"
+  thumbnail_url?: string | null
   is_public: boolean
   created_at: string
   updated_at: string
 }
 
-export type AthleteAward = {
+export interface AthleteAward {
   id: string
   athlete_id: string
   title: string
-  organization: string | null
+  organization?: string | null
   award_date: string
-  award_type: string
-  level: string | null
-  description: string | null
+  award_type?: string | null
+  level?: string | null
+  description?: string | null
   is_public: boolean
   created_at: string
 }
 
-export type AthleteSchedule = {
+export interface AthleteSchedule {
   id: string
   athlete_id: string
   event_name: string
   event_date: string
-  event_time: string | null
-  location: string | null
-  event_type: string
-  description: string | null
+  event_time?: string | null
+  location?: string | null
+  event_type?: string | null
+  description?: string | null
   is_public: boolean
   created_at: string
   updated_at: string
 }
 
-export type AthleteReview = {
+export interface AthleteReview {
   id: string
   athlete_id: string
   reviewer_name: string
-  reviewer_title: string
-  reviewer_organization: string
-  reviewer_email: string | null
-  reviewer_phone: string | null
-  reviewer_image_url: string | null
+  reviewer_title?: string | null
+  reviewer_organization?: string | null
+  reviewer_email?: string | null
+  reviewer_phone?: string | null
+  reviewer_image_url?: string | null
   review_text: string
-  review_type: string
-  rating: number
-  relationship_duration: string | null
-  can_contact_reviewer: boolean
+  review_type?: string | null
+  rating?: number | null
+  relationship_duration?: string | null
+  can_contact_reviewer?: boolean | null
   created_at: string
   updated_at: string
 }
 
-export type ContactSubmission = {
+export interface AthleteTeam {
+  id: string
+  athlete_id: string
+  team_name: string
+  position?: string | null
+  jersey_number?: number | null
+  season?: string | null
+  league?: string | null
+  stats?: Record<string, any> | null
+  is_current?: boolean | null
+  is_public?: boolean | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ContactSubmission {
   id: string
   athlete_id: string
   name: string
   email: string
-  organization: string | null
+  organization?: string | null
   message: string
   created_at: string
 }
 
-export type ReviewerContactMessage = {
+export interface SupportTicket {
   id: string
-  review_id: string
-  athlete_id: string
-  sender_name: string
-  sender_email: string
-  sender_organization: string | null
+  user_id: string
+  subject: string
   message: string
+  status: "open" | "in_progress" | "resolved" | "closed"
+  priority: "low" | "medium" | "high" | "urgent"
   created_at: string
+  updated_at: string
+}
+
+export interface BusinessCard {
+  id: string
+  athlete_id: string
+  template_id: string
+  design_data: any
+  generated_url?: string | null
+  created_at: string
+  updated_at: string
 }

@@ -98,8 +98,8 @@ export function VideoPlaylist({
     <Card bg={cardBgColor} borderColor={borderColor}>
       <CardBody p={0}>
         <Flex direction={{ base: "column", lg: "row" }} h={{ base: "auto", lg: "500px" }}>
-          {/* Main Video Player - Left Side */}
-          <Box flex="2" minH={{ base: "300px", lg: "500px" }}>
+          {/* Main Video Player - Top on mobile, Left on desktop */}
+          <Box flex="2" minH={{ base: "250px", md: "300px", lg: "500px" }}>
             {selectedVideo && (
               <Box h="full" position="relative">
                 <VideoPlayer
@@ -108,13 +108,21 @@ export function VideoPlaylist({
                   thumbnailUrl={selectedVideo.thumbnail_url}
                 />
                 {/* Video Info Overlay */}
-                <Box position="absolute" bottom={0} left={0} right={0} bg="blackAlpha.800" p={4} color="white">
+                <Box
+                  position="absolute"
+                  bottom={0}
+                  left={0}
+                  right={0}
+                  bg="blackAlpha.800"
+                  p={{ base: 3, md: 4 }}
+                  color="white"
+                >
                   <VStack align="start" spacing={1}>
-                    <Text fontSize="lg" fontWeight="bold" noOfLines={1}>
+                    <Text fontSize={{ base: "md", md: "lg" }} fontWeight="bold" noOfLines={1}>
                       {selectedVideo.title}
                     </Text>
                     {selectedVideo.description && (
-                      <Text fontSize="sm" opacity={0.9} noOfLines={2}>
+                      <Text fontSize={{ base: "xs", md: "sm" }} opacity={0.9} noOfLines={2}>
                         {selectedVideo.description}
                       </Text>
                     )}
@@ -132,7 +140,7 @@ export function VideoPlaylist({
             )}
           </Box>
 
-          {/* Video Playlist - Right Side */}
+          {/* Video Playlist - Bottom on mobile, Right on desktop */}
           <Box
             flex="1"
             borderLeft={{ base: "none", lg: `1px solid` }}
@@ -141,13 +149,13 @@ export function VideoPlaylist({
             bg={isDarkTheme ? "gray.900" : "gray.50"}
           >
             <VStack spacing={0} align="stretch" h="full">
-              <Box p={4} borderBottom={`1px solid`} borderColor={borderColor}>
-                <Text fontSize="md" fontWeight="semibold" color={textColor}>
+              <Box p={{ base: 3, md: 4 }} borderBottom={`1px solid`} borderColor={borderColor}>
+                <Text fontSize={{ base: "sm", md: "md" }} fontWeight="semibold" color={textColor}>
                   Playlist ({videos.length} videos)
                 </Text>
               </Box>
 
-              <Box flex="1" overflowY="auto" maxH={{ base: "300px", lg: "450px" }}>
+              <Box flex="1" overflowY="auto" maxH={{ base: "250px", md: "300px", lg: "450px" }}>
                 <VStack spacing={0} align="stretch">
                   {videos.map((video, index) => (
                     <Box
@@ -159,12 +167,12 @@ export function VideoPlaylist({
                       transition="all 0.2s"
                       borderBottom={`1px solid`}
                       borderColor={borderColor}
-                      p={3}
+                      p={{ base: 2, md: 3 }}
                     >
-                      <HStack spacing={3} align="start">
-                        {/* Video Thumbnail */}
+                      <HStack spacing={{ base: 2, md: 3 }} align="start">
+                        {/* Video Thumbnail - Smaller on mobile */}
                         <Box position="relative" flexShrink={0}>
-                          <AspectRatio ratio={16 / 9} w="120px">
+                          <AspectRatio ratio={16 / 9} w={{ base: "80px", md: "120px" }}>
                             <Image
                               src={getVideoThumbnail(video) || "/placeholder.svg"}
                               alt={video.title}
@@ -180,7 +188,7 @@ export function VideoPlaylist({
                                   justifyContent="center"
                                   borderRadius="md"
                                 >
-                                  <Icon as={Play} color={mutedTextColor} size={20} />
+                                  <Icon as={Play} color={mutedTextColor} size={16} />
                                 </Box>
                               }
                             />
@@ -202,7 +210,7 @@ export function VideoPlaylist({
                               _groupHover={{ opacity: 1 }}
                               transition="opacity 0.2s"
                             >
-                              <Icon as={Play} color="white" size={16} />
+                              <Icon as={Play} color="white" size={12} />
                             </Flex>
                           )}
 
@@ -218,8 +226,8 @@ export function VideoPlaylist({
                             px={1}
                           >
                             <HStack spacing={1}>
-                              <Icon as={Clock} size={8} />
-                              <Text>{getVideoDuration(video)}</Text>
+                              <Icon as={Clock} size={6} />
+                              <Text fontSize="xs">{getVideoDuration(video)}</Text>
                             </HStack>
                           </Badge>
 
@@ -232,7 +240,7 @@ export function VideoPlaylist({
                               bg={primaryColor}
                               color="white"
                               borderRadius="sm"
-                              px={2}
+                              px={{ base: 1, md: 2 }}
                               py={1}
                               fontSize="xs"
                               fontWeight="bold"
@@ -242,10 +250,10 @@ export function VideoPlaylist({
                           )}
                         </Box>
 
-                        {/* Video Info */}
+                        {/* Video Info - Responsive text sizes */}
                         <VStack align="start" spacing={1} flex={1} minW={0}>
                           <Text
-                            fontSize="sm"
+                            fontSize={{ base: "xs", md: "sm" }}
                             fontWeight={selectedVideo?.id === video.id ? "bold" : "medium"}
                             noOfLines={2}
                             color={selectedVideo?.id === video.id ? primaryColor : textColor}
@@ -255,7 +263,13 @@ export function VideoPlaylist({
                           </Text>
 
                           {video.description && (
-                            <Text fontSize="xs" color={mutedTextColor} noOfLines={2} lineHeight="tight">
+                            <Text
+                              fontSize="xs"
+                              color={mutedTextColor}
+                              noOfLines={{ base: 1, md: 2 }}
+                              lineHeight="tight"
+                              display={{ base: "none", md: "block" }}
+                            >
                               {video.description}
                             </Text>
                           )}
@@ -265,6 +279,7 @@ export function VideoPlaylist({
                               size="xs"
                               colorScheme={selectedVideo?.id === video.id ? "blue" : "gray"}
                               variant={selectedVideo?.id === video.id ? "solid" : "subtle"}
+                              fontSize="xs"
                             >
                               {video.video_type || "highlight"}
                             </Badge>
@@ -274,13 +289,13 @@ export function VideoPlaylist({
                           </HStack>
                         </VStack>
 
-                        {/* Playlist number */}
+                        {/* Playlist number - Smaller on mobile */}
                         <Box
                           bg={selectedVideo?.id === video.id ? primaryColor : isDarkTheme ? "gray.600" : "gray.300"}
                           color={selectedVideo?.id === video.id ? "white" : mutedTextColor}
                           borderRadius="full"
-                          w={6}
-                          h={6}
+                          w={{ base: 5, md: 6 }}
+                          h={{ base: 5, md: 6 }}
                           display="flex"
                           alignItems="center"
                           justifyContent="center"

@@ -1,19 +1,18 @@
 export type SubscriptionTier = "free" | "premium" | "pro"
 
 export interface TierFeatures {
-  photos: number
-  videos: number
-  awards: boolean
-  schedule: boolean
-  reviews: boolean
-  business_cards: boolean
-  coach_reviews: boolean
-  analytics: boolean
-  custom_domain: boolean
-  priority_support: boolean
-  verified_reviews: boolean
-  multiple_sports: boolean
-  custom_theming: boolean
+  photos: number // max photos
+  videos: number // max videos
+  awards: boolean // can add awards
+  schedule: boolean // can add schedule
+  reviews: boolean // can receive reviews
+  teams: boolean // can add teams
+  custom_theming: boolean // custom colors and themes
+  analytics: boolean // advanced analytics
+  business_cards: boolean // business card generation
+  multiple_sports: boolean // can add multiple sports
+  custom_hero: boolean // custom hero image
+  priority_support: boolean // priority customer support
 }
 
 export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
@@ -23,29 +22,27 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
     awards: false,
     schedule: false,
     reviews: false,
-    business_cards: false,
-    coach_reviews: false,
-    analytics: false,
-    custom_domain: false,
-    priority_support: false,
-    verified_reviews: false,
-    multiple_sports: false,
+    teams: true, // Available for all tiers
     custom_theming: false,
+    analytics: false,
+    business_cards: false,
+    multiple_sports: false,
+    custom_hero: false,
+    priority_support: false,
   },
   premium: {
-    photos: 15,
+    photos: 20,
     videos: 5,
     awards: true,
-    schedule: false,
+    schedule: true,
     reviews: true,
-    business_cards: false,
-    coach_reviews: true,
-    analytics: false,
-    custom_domain: false,
-    priority_support: false,
-    verified_reviews: false,
-    multiple_sports: false,
+    teams: true, // Available for all tiers
     custom_theming: true,
+    analytics: false,
+    business_cards: false,
+    multiple_sports: false,
+    custom_hero: false,
+    priority_support: false,
   },
   pro: {
     photos: 999, // unlimited
@@ -53,43 +50,23 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
     awards: true,
     schedule: true,
     reviews: true,
-    business_cards: true,
-    coach_reviews: true,
-    analytics: true,
-    custom_domain: true,
-    priority_support: true,
-    verified_reviews: true,
-    multiple_sports: true,
+    teams: true, // Available for all tiers
     custom_theming: true,
+    analytics: true,
+    business_cards: true,
+    multiple_sports: true,
+    custom_hero: true,
+    priority_support: true,
   },
 }
 
-export function hasFeature(tier: SubscriptionTier, feature: keyof TierFeatures): boolean {
-  return TIER_FEATURES[tier][feature] === true
-}
-
-export function getFeatureLimit(tier: SubscriptionTier, feature: "photos" | "videos"): number {
-  return TIER_FEATURES[tier][feature] as number
-}
-
 export function getSubscriptionLimits(tier: SubscriptionTier): TierFeatures {
-  return TIER_FEATURES[tier]
+  return TIER_FEATURES[tier] || TIER_FEATURES.free
 }
 
-export function canUploadMore(currentCount: number, tier: SubscriptionTier, type: "photos" | "videos"): boolean {
-  const limit = getFeatureLimit(tier, type)
-  if (limit >= 999) return true // unlimited
-  return currentCount < limit
-}
-
-export function getUpgradeMessage(tier: SubscriptionTier, type: string): string {
-  if (tier === "free") {
-    return `Upgrade to Premium to add more ${type} and unlock additional features.`
-  }
-  if (tier === "premium") {
-    return `Upgrade to Pro to get unlimited ${type} and premium features.`
-  }
-  return `You've reached your ${type} limit.`
+export function hasFeature(tier: SubscriptionTier, feature: keyof TierFeatures): boolean {
+  const features = getSubscriptionLimits(tier)
+  return Boolean(features[feature])
 }
 
 export function getTierDisplayName(tier: SubscriptionTier): string {
@@ -118,16 +95,7 @@ export function getTierColor(tier: SubscriptionTier): string {
   }
 }
 
-export function filterContentByTier<T extends { is_public?: boolean }>(
-  content: T[],
-  tier: SubscriptionTier,
-  isOwner = false,
-): T[] {
-  // If user is the owner, show all content
-  if (isOwner) {
-    return content
-  }
-
-  // For public viewing, only show public content
-  return content.filter((item) => item.is_public !== false)
+export function canUpgradeFrom(currentTier: SubscriptionTier, targetTier: SubscriptionTier): boolean {
+  const tierOrder = { free: 0, premium: 1, pro: 2 }
+  return tierOrder[targetTier] > tierOrder[currentTier]
 }

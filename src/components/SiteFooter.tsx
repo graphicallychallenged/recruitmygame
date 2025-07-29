@@ -19,7 +19,7 @@ export function SiteFooter() {
           <VStack align="start" spacing={6}>
             <Link href="/">
               <Image
-                src="/logo-horizontal.png"
+                src="/logo-h.png"
                 alt="RecruitMyGame"
                 height="70px"
                 cursor="pointer"
@@ -132,7 +132,7 @@ export function SiteFooter() {
 
         <Box borderTop="1px" borderColor="gray.700" mt={12} pt={8} textAlign="center">
           <Text color="gray.400" fontSize="lg">
-            © 2025 RecruitMyGame. All rights reserved. Built for student-athletes who want to showcase their complete
+            © 2025 Recruit My Game, Inc. All rights reserved. Built for student-athletes who want to showcase their complete
             story.
           </Text>
         </Box>

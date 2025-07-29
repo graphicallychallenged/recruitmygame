@@ -78,14 +78,14 @@ export function AwardsSection({
                       )}
                     </VStack>
                   </HStack>
-                  <VStack align="end" spacing={1}>
+                  <HStack align="end" spacing={1}>
                     <Badge fontSize="xs" bg={secondaryColor} color="white">
                       {new Date(award.award_date).getFullYear()}
                     </Badge>
                     <Badge fontSize="xs" variant="outline" borderColor={secondaryColor} color={secondaryColor}>
                       {award.award_type.charAt(0).toUpperCase() + award.award_type.slice(1)}
                     </Badge>
-                  </VStack>
+                  </HStack>
                 </HStack>
                 <Divider mt={3} borderColor={borderColor} />
               </Box>

@@ -42,6 +42,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { SiteHeader } from "@/components/SiteHeader"
 import { SiteFooter } from "@/components/SiteFooter"
+import { SubscriptionPlans } from "@/components/SubscriptionPlans"
 
 const float = keyframes`
   0%, 100% { transform: translateY(0px) }
@@ -563,188 +564,15 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* Pricing Section */}
+     {/* Pricing Section */}
       <Container maxW="7xl" py={24}>
         <VStack spacing={16}>
           <VStack spacing={6} textAlign="center">
             <Badge colorScheme="cyan" px={4} py={2} borderRadius="full" fontSize="md">
               💰 Simple Pricing
             </Badge>
-            <Heading size="2xl" fontWeight="black">
-              Choose Your Plan
-            </Heading>
-            <Text fontSize="xl" color="gray.600">
-              Start free and upgrade as your recruitment journey progresses
-            </Text>
           </VStack>
-
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8} maxW="6xl">
-            {/* Free Plan */}
-            <Card borderRadius="2xl" shadow="lg" border="1px" borderColor="gray.200">
-              <CardBody p={8} textAlign="center">
-                <VStack spacing={6}>
-                  <Box p={4} bg="gray.50" borderRadius="xl">
-                    <Icon as={Star} size={32} color="gray.600" />
-                  </Box>
-                  <Heading size="xl">Free</Heading>
-                  <Text fontSize="4xl" fontWeight="black">
-                    $0
-                    <Text as="span" fontSize="xl" color="gray.500" fontWeight="normal">
-                      /month
-                    </Text>
-                  </Text>
-                  <List spacing={3} fontSize="md" textAlign="left">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />3 videos
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      10 photos
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Basic profile
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Public profile URL
-                    </ListItem>
-                  </List>
-                  <Link href="/subscription" style={{ width: "100%" }}>
-                    <Button w="full" size="lg" variant="outline">
-                      Get Started Free
-                    </Button>
-                  </Link>
-                </VStack>
-              </CardBody>
-            </Card>
-
-            {/* Premium Plan */}
-            <Card
-              borderRadius="2xl"
-              shadow="2xl"
-              border="3px"
-              borderColor="teal.500"
-              position="relative"
-              transform="scale(1.05)"
-            >
-              <Badge
-                bg="teal.500"
-                color="white"
-                position="absolute"
-                top="-12px"
-                left="50%"
-                transform="translateX(-50%)"
-                px={6}
-                py={2}
-                borderRadius="full"
-                fontSize="md"
-                fontWeight="bold"
-              >
-                Most Popular
-              </Badge>
-              <CardBody p={8} textAlign="center">
-                <VStack spacing={6}>
-                  <Box p={4} bg="teal.50" borderRadius="xl">
-                    <Icon as={Zap} size={32} color="teal.500" />
-                  </Box>
-                  <Heading size="xl">Premium</Heading>
-                  <Text fontSize="4xl" fontWeight="black">
-                    $9.99
-                    <Text as="span" fontSize="xl" color="gray.500" fontWeight="normal">
-                      /month
-                    </Text>
-                  </Text>
-                  <List spacing={3} fontSize="md" textAlign="left">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      15 videos
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      50 photos
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Schedule management
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Coach reviews
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Custom branding
-                    </ListItem>
-                  </List>
-                  <Link href="/subscription" style={{ width: "100%" }}>
-                    <Button
-                      w="full"
-                      size="lg"
-                      bg="teal.500"
-                      color="white"
-                      _hover={{ bg: "teal.600" }}
-                      rightIcon={<ArrowRight size={16} />}
-                    >
-                      Choose Premium
-                    </Button>
-                  </Link>
-                </VStack>
-              </CardBody>
-            </Card>
-
-            {/* Pro Plan */}
-            <Card borderRadius="2xl" shadow="lg" border="2px" borderColor="cyan.500">
-              <CardBody p={8} textAlign="center">
-                <VStack spacing={6}>
-                  <Box p={4} bg="cyan.50" borderRadius="xl">
-                    <Icon as={Crown} size={32} color="cyan.500" />
-                  </Box>
-                  <Heading size="xl">Pro</Heading>
-                  <Text fontSize="4xl" fontWeight="black">
-                    $19.99
-                    <Text as="span" fontSize="xl" color="gray.500" fontWeight="normal">
-                      /month
-                    </Text>
-                  </Text>
-                  <List spacing={3} fontSize="md" textAlign="left">
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Unlimited content
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Business cards & QR codes
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Verified reviews
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Multiple sports
-                    </ListItem>
-                    <ListItem display="flex" alignItems="center">
-                      <ListIcon as={CheckCircle} color="lime.500" />
-                      Priority support
-                    </ListItem>
-                  </List>
-                  <Link href="/subscription" style={{ width: "100%" }}>
-                    <Button
-                      w="full"
-                      size="lg"
-                      bg="cyan.500"
-                      color="white"
-                      _hover={{ bg: "cyan.600" }}
-                      rightIcon={<ArrowRight size={16} />}
-                    >
-                      Choose Pro
-                    </Button>
-                  </Link>
-                </VStack>
-              </CardBody>
-            </Card>
-          </SimpleGrid>
+          <SubscriptionPlans variant="landing" />
         </VStack>
       </Container>
 

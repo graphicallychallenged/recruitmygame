@@ -36,6 +36,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import type { AthleteProfile } from "@/types/database"
 import { hasFeature, getTierDisplayName, getTierColor } from "@/utils/tierFeatures"
+import { HeroImageUpload } from "@/components/HeroImageUpload"
 
 const SPORTS_OPTIONS = [
   "Football",
@@ -117,6 +118,8 @@ const POSITION_OPTIONS: Record<string, string[]> = {
   Other: ["Position 1", "Position 2", "Position 3"],
 }
 
+const DOMINANCE_OPTIONS = ["Left", "Right", "Both"]
+
 export default function ProfilePage() {
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -136,6 +139,8 @@ export default function ProfilePage() {
     sat_score: "",
     act_score: "",
     positions_played: [] as string[],
+    dominant_foot: "",
+    dominant_hand: "",
     primary_color: "#1a202c",
     secondary_color: "#2d3748",
     theme_mode: "light",
@@ -143,6 +148,19 @@ export default function ProfilePage() {
     phone: "",
     show_email: false,
     show_phone: false,
+    // All social media fields
+    instagram: "",
+    facebook: "",
+    tiktok: "",
+    twitter: "",
+    youtube: "",
+    linkedin: "",
+    website: "",
+    // Recruiting profile fields
+    maxpreps_url: "",
+    ncsa_url: "",
+    other_recruiting_profiles: [] as { name: string; url: string }[],
+    hero_image_url: "",
   })
 
   const toast = useToast()
@@ -185,6 +203,8 @@ export default function ProfilePage() {
         sat_score: athleteData.sat_score?.toString() || "",
         act_score: athleteData.act_score?.toString() || "",
         positions_played: athleteData.positions_played || [],
+        dominant_foot: athleteData.dominant_foot || "",
+        dominant_hand: athleteData.dominant_hand || "",
         primary_color: athleteData.primary_color || "#1a202c",
         secondary_color: athleteData.secondary_color || "#2d3748",
         theme_mode: athleteData.theme_mode || "light",
@@ -192,6 +212,18 @@ export default function ProfilePage() {
         phone: athleteData.phone || "",
         show_email: athleteData.show_email || false,
         show_phone: athleteData.show_phone || false,
+        // All social media fields
+        instagram: athleteData.instagram || "",
+        facebook: athleteData.facebook || "",
+        tiktok: athleteData.tiktok || "",
+        twitter: athleteData.twitter || "",
+        youtube: athleteData.youtube || "",
+        linkedin: athleteData.linkedin || "",
+        website: athleteData.website || "",
+        maxpreps_url: athleteData.maxpreps_url || "",
+        ncsa_url: athleteData.ncsa_url || "",
+        other_recruiting_profiles: (athleteData.other_recruiting_profiles as { name: string; url: string }[]) || [],
+        hero_image_url: athleteData.hero_image_url || "",
       })
     } catch (error) {
       console.error("Error:", error)
@@ -220,6 +252,8 @@ export default function ProfilePage() {
         sat_score: formData.sat_score ? Number.parseInt(formData.sat_score) : null,
         act_score: formData.act_score ? Number.parseInt(formData.act_score) : null,
         positions_played: formData.positions_played.length > 0 ? formData.positions_played : null,
+        dominant_foot: formData.dominant_foot || null,
+        dominant_hand: formData.dominant_hand || null,
         primary_color: hasCustomTheming ? formData.primary_color : athlete.primary_color,
         secondary_color: hasCustomTheming ? formData.secondary_color : athlete.secondary_color,
         theme_mode: hasCustomTheming ? formData.theme_mode : athlete.theme_mode,
@@ -227,7 +261,20 @@ export default function ProfilePage() {
         phone: formData.phone || null,
         show_email: formData.show_email,
         show_phone: formData.show_phone,
+        // All social media fields
+        instagram: formData.instagram || null,
+        facebook: formData.facebook || null,
+        tiktok: formData.tiktok || null,
+        twitter: formData.twitter || null,
+        youtube: formData.youtube || null,
+        linkedin: formData.linkedin || null,
+        website: formData.website || null,
+        maxpreps_url: formData.maxpreps_url || null,
+        ncsa_url: formData.ncsa_url || null,
+        other_recruiting_profiles:
+          formData.other_recruiting_profiles.length > 0 ? formData.other_recruiting_profiles : null,
         updated_at: new Date().toISOString(),
+        hero_image_url: formData.hero_image_url || null,
       }
 
       const { error } = await supabase.from("athletes").update(updateData).eq("id", athlete.id)
@@ -274,6 +321,36 @@ export default function ProfilePage() {
     }))
   }
 
+  const addRecruitingProfile = () => {
+    setFormData((prev) => ({
+      ...prev,
+      other_recruiting_profiles: [...prev.other_recruiting_profiles, { name: "", url: "" }],
+    }))
+  }
+
+  const updateRecruitingProfile = (index: number, field: "name" | "url", value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      other_recruiting_profiles: prev.other_recruiting_profiles.map((profile, i) =>
+        i === index ? { ...profile, [field]: value } : profile,
+      ),
+    }))
+  }
+
+  const removeRecruitingProfile = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      other_recruiting_profiles: prev.other_recruiting_profiles.filter((_, i) => i !== index),
+    }))
+  }
+
+  const handleHeroImageUpload = (url: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      hero_image_url: url,
+    }))
+  }
+
   if (loading) {
     return (
       <Container maxW="4xl" py={8}>
@@ -299,6 +376,7 @@ export default function ProfilePage() {
   const currentTier = (athlete.subscription_tier || "free") as "free" | "premium" | "pro"
   const hasCustomTheming = hasFeature(currentTier, "custom_theming")
   const hasMultipleSports = hasFeature(currentTier, "multiple_sports")
+  const hasAnalytics = hasFeature(currentTier, "analytics")
   const availablePositions = POSITION_OPTIONS[formData.sport] || []
 
   return (
@@ -479,6 +557,38 @@ export default function ProfilePage() {
                   />
                 </FormControl>
               </GridItem>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>Dominant Foot</FormLabel>
+                  <Select
+                    value={formData.dominant_foot}
+                    onChange={(e) => setFormData({ ...formData, dominant_foot: e.target.value })}
+                    placeholder="Select dominant foot"
+                  >
+                    {DOMINANCE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+              </GridItem>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>Dominant Hand</FormLabel>
+                  <Select
+                    value={formData.dominant_hand}
+                    onChange={(e) => setFormData({ ...formData, dominant_hand: e.target.value })}
+                    placeholder="Select dominant hand"
+                  >
+                    {DOMINANCE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+              </GridItem>
             </Grid>
           </CardBody>
         </Card>
@@ -615,6 +725,160 @@ export default function ProfilePage() {
           </CardBody>
         </Card>
 
+        {/* Social Media & Links */}
+        <Card>
+          <CardBody>
+            <Heading size="md" mb={4}>
+              Social Media & Links
+            </Heading>
+            <Text fontSize="sm" color="gray.600" mb={4}>
+              Add your social media profiles and personal website to help coaches and recruiters connect with you
+            </Text>
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>Instagram</FormLabel>
+                  <Input
+                    value={formData.instagram}
+                    onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                    placeholder="@username or full URL"
+                  />
+                </FormControl>
+              </GridItem>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>Facebook</FormLabel>
+                  <Input
+                    value={formData.facebook}
+                    onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                    placeholder="Profile URL or username"
+                  />
+                </FormControl>
+              </GridItem>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>TikTok</FormLabel>
+                  <Input
+                    value={formData.tiktok}
+                    onChange={(e) => setFormData({ ...formData, tiktok: e.target.value })}
+                    placeholder="@username or full URL"
+                  />
+                </FormControl>
+              </GridItem>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>Twitter</FormLabel>
+                  <Input
+                    value={formData.twitter}
+                    onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
+                    placeholder="@username or full URL"
+                  />
+                </FormControl>
+              </GridItem>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>YouTube</FormLabel>
+                  <Input
+                    value={formData.youtube}
+                    onChange={(e) => setFormData({ ...formData, youtube: e.target.value })}
+                    placeholder="Channel URL"
+                  />
+                </FormControl>
+              </GridItem>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>LinkedIn</FormLabel>
+                  <Input
+                    value={formData.linkedin}
+                    onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                    placeholder="Profile URL"
+                  />
+                </FormControl>
+              </GridItem>
+              <GridItem colSpan={{ base: 1, md: 2 }}>
+                <FormControl>
+                  <FormLabel>Personal Website</FormLabel>
+                  <Input
+                    value={formData.website}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    placeholder="https://yourwebsite.com"
+                  />
+                </FormControl>
+              </GridItem>
+            </Grid>
+          </CardBody>
+        </Card>
+
+        {/* Recruiting Profiles */}
+        <Card>
+          <CardBody>
+            <Heading size="md" mb={4}>
+              Recruiting Profiles
+            </Heading>
+            <Text fontSize="sm" color="gray.600" mb={4}>
+              Add links to your recruiting profiles to help coaches find more information about you
+            </Text>
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4} mb={4}>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>MaxPreps Profile</FormLabel>
+                  <Input
+                    value={formData.maxpreps_url}
+                    onChange={(e) => setFormData({ ...formData, maxpreps_url: e.target.value })}
+                    placeholder="https://www.maxpreps.com/..."
+                  />
+                </FormControl>
+              </GridItem>
+              <GridItem>
+                <FormControl>
+                  <FormLabel>NCSA Profile</FormLabel>
+                  <Input
+                    value={formData.ncsa_url}
+                    onChange={(e) => setFormData({ ...formData, ncsa_url: e.target.value })}
+                    placeholder="https://www.ncsasports.org/..."
+                  />
+                </FormControl>
+              </GridItem>
+            </Grid>
+
+            {/* Other Recruiting Profiles */}
+            <Box>
+              <HStack justify="space-between" mb={3}>
+                <Text fontWeight="medium">Other Recruiting Profiles</Text>
+                <Button size="sm" colorScheme="blue" variant="outline" onClick={addRecruitingProfile}>
+                  Add Profile
+                </Button>
+              </HStack>
+              <VStack spacing={3}>
+                {formData.other_recruiting_profiles.map((profile, index) => (
+                  <HStack key={index} w="full" spacing={2}>
+                    <Input
+                      placeholder="Profile name (e.g., BeRecruited, 247Sports)"
+                      value={profile.name}
+                      onChange={(e) => updateRecruitingProfile(index, "name", e.target.value)}
+                      flex={1}
+                    />
+                    <Input
+                      placeholder="Profile URL"
+                      value={profile.url}
+                      onChange={(e) => updateRecruitingProfile(index, "url", e.target.value)}
+                      flex={2}
+                    />
+                    <Button size="sm" colorScheme="red" variant="ghost" onClick={() => removeRecruitingProfile(index)}>
+                      Remove
+                    </Button>
+                  </HStack>
+                ))}
+                {formData.other_recruiting_profiles.length === 0 && (
+                  <Text fontSize="sm" color="gray.500" textAlign="center" py={4}>
+                    No additional recruiting profiles added yet
+                  </Text>
+                )}
+              </VStack>
+            </Box>
+          </CardBody>
+        </Card>
+
         {/* Theme & Appearance - Premium+ Feature */}
         <Card>
           <CardBody>
@@ -701,6 +965,74 @@ export default function ProfilePage() {
           </CardBody>
         </Card>
 
+        {/* Hero Image - Pro Feature */}
+        <Card>
+          <CardBody>
+            <Heading size="md" mb={4}>
+              <HStack spacing={2}>
+                <Icon as={Eye} color="purple.500" />
+                <Text>Custom Hero Image</Text>
+                {!hasFeature(currentTier, "custom_hero") && (
+                  <Badge colorScheme="purple" variant="outline">
+                    Pro
+                  </Badge>
+                )}
+              </HStack>
+            </Heading>
+
+            {hasFeature(currentTier, "custom_hero") ? (
+              <HeroImageUpload
+                currentHeroUrl={formData.hero_image_url}
+                athleteId={athlete.id}
+                onUploadComplete={handleHeroImageUpload}
+              />
+            ) : (
+              <Alert status="info">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle>Pro Feature</AlertTitle>
+                  <AlertDescription>
+                    Upload a custom hero image for your profile with Pro plan.{" "}
+                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                      Upgrade to Pro
+                    </Button>
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* Advanced Analytics - Pro Feature */}
+        <Card>
+          <CardBody>
+            <Heading size="md" mb={4}>
+              Advanced Analytics
+              {!hasAnalytics && (
+                <Badge colorScheme="purple" variant="outline">
+                  Pro
+                </Badge>
+              )}
+            </Heading>
+            {hasAnalytics ? (
+              <Text>Advanced analytics will be displayed here.</Text>
+            ) : (
+              <Alert status="info">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle>Pro Feature</AlertTitle>
+                  <AlertDescription>
+                    Get detailed analytics about your profile performance with Pro plan.{" "}
+                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                      Upgrade to Pro
+                    </Button>
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            )}
+          </CardBody>
+        </Card>
+
         {/* Save Button */}
         <Flex justify="end">
           <Button
@@ -728,12 +1060,12 @@ export default function ProfilePage() {
               <Text fontSize="sm" color="blue.600" mb={3}>
                 Your profile is available at:
                 <Text as="span" fontWeight="medium" ml={1}>
-                  {typeof window !== "undefined" ? window.location.origin : ""}/{athlete.username}
+                http://{athlete.username}.{typeof window !== "undefined" ? window.location.origin : ""}
                 </Text>
               </Text>
               <Button
                 as="a"
-                href={`/${athlete.username}`}
+                href={`http://${athlete.username}.recruitmygame.com`}
                 target="_blank"
                 size="sm"
                 colorScheme="blue"

@@ -3,6 +3,7 @@
 import { Box, VStack, HStack, Text, Heading, Avatar, Button, Icon } from "@chakra-ui/react"
 import { Star, MessageCircle } from "lucide-react"
 import type { AthleteReview } from "@/types/database"
+import { useState } from "react"
 
 interface ReviewsSectionProps {
   reviews: AthleteReview[]
@@ -29,6 +30,14 @@ export function ReviewsSection({
   isDarkTheme,
   onContactReviewer,
 }: ReviewsSectionProps) {
+  const [selectedReview, setSelectedReview] = useState<AthleteReview | null>(null)
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
+
+  const handleContactReviewer = (review: AthleteReview) => {
+    setSelectedReview(review)
+    setIsContactModalOpen(true)
+  }
+
   const displayedReviews = reviews.slice(0, maxDisplay)
 
   const renderStars = (rating: number) => {
@@ -84,16 +93,16 @@ export function ReviewsSection({
                 </HStack>
                 <VStack align="end" spacing={2}>
                   <HStack spacing={1}>{renderStars(review.rating)}</HStack>
-                  {review.can_contact_reviewer && onContactReviewer && (
+                  {review.can_contact_reviewer && (
                     <Button
                       size="sm"
-                      leftIcon={<MessageCircle size={14} />}
-                      bg={secondaryColor}
+                      bg={primaryColor}
                       color="white"
-                      _hover={{ opacity: 0.8 }}
-                      onClick={() => onContactReviewer(review)}
+                      _hover={{ bg: secondaryColor }}
+                      leftIcon={<MessageCircle size={14} />}
+                      onClick={() => handleContactReviewer(review)}
                     >
-                      Contact About Player
+                      Contact Coach About This Player
                     </Button>
                   )}
                 </VStack>

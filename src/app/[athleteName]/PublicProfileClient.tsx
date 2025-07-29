@@ -27,6 +27,8 @@ import { AthleteStats } from "@/components/profile/AthleteStats"
 import { PhotoGallerySection } from "@/components/profile/PhotoGallerySection"
 import { AwardsSection } from "@/components/profile/AwardsSection"
 import { ContactModal } from "@/components/profile/ContactModal"
+import { SocialMediaSection } from "@/components/profile/SocialMediaSection"
+import { TeamsSection } from "@/components/profile/TeamsSection"
 import type {
   AthleteProfile,
   AthletePhoto,
@@ -34,9 +36,11 @@ import type {
   AthleteAward,
   AthleteSchedule,
   AthleteReview,
+  AthleteTeam,
 } from "@/types/database"
 import { ReviewsSection } from "@/components/profile/ReviewsSection"
 import { ScheduleSection } from "@/components/profile/ScheduleSection"
+import { getSubscriptionLimits, type SubscriptionTier } from "@/utils/tierFeatures"
 
 interface PublicProfileClientProps {
   athlete: AthleteProfile
@@ -68,6 +72,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
   const [awards, setAwards] = useState<AthleteAward[]>([])
   const [schedule, setSchedule] = useState<AthleteSchedule[]>([])
   const [reviews, setReviews] = useState<AthleteReview[]>([])
+  const [teams, setTeams] = useState<AthleteTeam[]>([])
   const [loading, setLoading] = useState(true)
   const [showAllPhotos, setShowAllPhotos] = useState(false)
   const [contactForm, setContactForm] = useState({
@@ -132,10 +137,15 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           sat_score: athleteData.sat_score,
           act_score: athleteData.act_score,
           positions_played: athleteData.positions_played,
+          dominant_foot: athleteData.dominant_foot,
+          dominant_hand: athleteData.dominant_hand,
           profile_picture_url: athleteData.profile_picture_url,
           primary_color: athleteData.primary_color,
           secondary_color: athleteData.secondary_color,
           subscription_tier: athleteData.subscription_tier,
+          subscription_status: athleteData.subscription_status,
+          stripe_customer_id: athleteData.stripe_customer_id,
+          stripe_subscription_id: athleteData.stripe_subscription_id,
           is_profile_public: athleteData.is_profile_public,
           content_order: athleteData.content_order,
           email: athleteData.email,
@@ -145,51 +155,111 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           theme_mode: athleteData.theme_mode || "light",
           created_at: athleteData.created_at,
           updated_at: athleteData.updated_at,
+          hero_image_url: athleteData.hero_image_url,
+          instagram: athleteData.instagram,
+          twitter: athleteData.twitter,
+          tiktok: athleteData.tiktok,
+          facebook: athleteData.facebook,
+          youtube: athleteData.youtube,
+          linkedin: athleteData.linkedin,
+          website: athleteData.website,
+          maxpreps_url: athleteData.maxpreps_url,
+          ncsa_url: athleteData.ncsa_url,
+          other_recruiting_profiles: athleteData.other_recruiting_profiles,
+          profile_visibility: athleteData.profile_visibility,
         }
 
         setAthlete(transformedAthlete)
 
-        // Fetch schedule data with detailed logging
+        // Get tier features for subscription enforcement - ensure proper typing
+        const subscriptionTier = (athleteData.subscription_tier || "free") as SubscriptionTier
+        const tierFeatures = getSubscriptionLimits(subscriptionTier)
+
+        // Fetch schedule data with tier enforcement
         console.log("Fetching schedule for athlete_id:", athleteData.id)
-        const { data: scheduleData, error: scheduleError } = await supabase
-          .from("athlete_schedule")
-          .select("*")
-          .eq("athlete_id", athleteData.id)
-          .order("event_date", { ascending: true })
+        let scheduleData: any[] = []
+        if (tierFeatures.schedule) {
+          const { data: scheduleResult, error: scheduleError } = await supabase
+            .from("athlete_schedule")
+            .select("*")
+            .eq("athlete_id", athleteData.id)
+            .eq("is_public", true)
+            .order("event_date", { ascending: true })
 
-        console.log("Schedule query result:", { data: scheduleData, error: scheduleError })
+          console.log("Schedule query result:", { data: scheduleResult, error: scheduleError })
+          scheduleData = scheduleResult || []
+        }
 
-        // Fetch all other related data in parallel
-        const [photosResult, videosResult, awardsResult, reviewsResult] = await Promise.all([
+        // Fetch all other related data in parallel with tier enforcement
+        const [photosResult, videosResult, awardsResult, reviewsResult, teamsResult] = await Promise.all([
+          // Photos - enforce tier limits
           supabase
             .from("athlete_photos")
             .select("*")
             .eq("athlete_id", athleteData.id)
             .eq("is_public", true)
-            .order("created_at", { ascending: false }),
+            .order("created_at", { ascending: false })
+            .limit(tierFeatures.photos > 0 ? tierFeatures.photos : 1000),
 
+          // Videos - only if tier allows
+          tierFeatures.videos > 0
+            ? supabase
+                .from("athlete_videos")
+                .select("*")
+                .eq("athlete_id", athleteData.id)
+                .eq("is_public", true)
+                .order("created_at", { ascending: false })
+                .limit(tierFeatures.videos > 0 && tierFeatures.videos !== 999 ? tierFeatures.videos : 1000)
+            : Promise.resolve({ data: [] }),
+
+          // Awards - only if tier allows
+          tierFeatures.awards
+            ? supabase
+                .from("athlete_awards")
+                .select("*")
+                .eq("athlete_id", athleteData.id)
+                .eq("is_public", true)
+                .order("award_date", { ascending: false })
+            : Promise.resolve({ data: [] }),
+
+          // Reviews - only if tier allows
+          tierFeatures.reviews
+            ? supabase
+                .from("athlete_reviews")
+                .select("*")
+                .eq("athlete_id", athleteData.id)
+                .order("created_at", { ascending: false })
+            : Promise.resolve({ data: [] }),
+
+          // Teams - available for all tiers
           supabase
-            .from("athlete_videos")
+            .from("athlete_teams")
             .select("*")
             .eq("athlete_id", athleteData.id)
             .eq("is_public", true)
-            .order("created_at", { ascending: false }),
-
-          supabase
-            .from("athlete_awards")
-            .select("*")
-            .eq("athlete_id", athleteData.id)
-            .eq("is_public", true)
-            .order("award_date", { ascending: false }),
-
-          supabase
-            .from("athlete_reviews")
-            .select("*")
-            .eq("athlete_id", athleteData.id)
+            .order("is_current", { ascending: false })
             .order("created_at", { ascending: false }),
         ])
 
-        // Transform data with all required fields
+        // Process schedule data - use event_name and map to AthleteSchedule type
+        const processedSchedule: AthleteSchedule[] =
+          scheduleData?.map((event) => ({
+            id: event.id,
+            athlete_id: event.athlete_id,
+            event_name: event.event_name,
+            event_date: event.event_date,
+            event_time: event.event_time,
+            location: event.location,
+            event_type: event.event_type,
+            description: event.description,
+            is_public: event.is_public ?? true,
+            created_at: event.created_at,
+            updated_at: event.updated_at,
+          })) || []
+
+        console.log("Processed schedule data:", processedSchedule)
+        setSchedule(processedSchedule)
+
         setPhotos(
           photosResult.data?.map((photo) => ({
             id: photo.id,
@@ -231,30 +301,6 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           })) || [],
         )
 
-        // Process schedule data - use event_name and map to AthleteSchedule type
-        const processedSchedule: AthleteSchedule[] =
-          scheduleData?.map((event) => ({
-            id: event.id,
-            athlete_id: event.athlete_id,
-            event_name: event.event_name,
-            event_date: event.event_date,
-            event_time: event.event_time,
-            location: event.location,
-            event_type: event.event_type,
-            description: event.description,
-            is_public: event.is_public ?? true,
-            created_at: event.created_at,
-            updated_at: event.updated_at,
-          })) || []
-
-        console.log("Processed schedule data:", processedSchedule)
-
-        // Filter for public events only
-        const publicSchedule = processedSchedule.filter((event) => event.is_public)
-        console.log("Public schedule events:", publicSchedule)
-
-        setSchedule(publicSchedule)
-
         setReviews(
           reviewsResult.data?.map((review) => ({
             id: review.id,
@@ -272,6 +318,22 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             can_contact_reviewer: review.can_contact_reviewer,
             created_at: review.created_at,
             updated_at: review.updated_at,
+          })) || [],
+        )
+        setTeams(
+          teamsResult.data?.map((team) => ({
+            id: team.id,
+            athlete_id: team.athlete_id,
+            team_name: team.team_name,
+            position: team.position,
+            jersey_number: team.jersey_number,
+            season: team.season,
+            league: team.league,
+            stats: team.stats,
+            is_current: team.is_current,
+            is_public: team.is_public,
+            created_at: team.created_at,
+            updated_at: team.updated_at,
           })) || [],
         )
       } catch (error) {
@@ -344,7 +406,23 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
     )
   }
 
+  // Get tier features for conditional rendering - ensure proper typing
+  const subscriptionTier = (athlete.subscription_tier || "free") as SubscriptionTier
+  const tierFeatures = getSubscriptionLimits(subscriptionTier)
+
   console.log("Rendering with schedule:", schedule)
+
+  const hasSocialMedia =
+    athlete.instagram ||
+    athlete.twitter ||
+    athlete.tiktok ||
+    athlete.facebook ||
+    athlete.youtube ||
+    athlete.linkedin ||
+    athlete.website ||
+    athlete.maxpreps_url ||
+    athlete.ncsa_url ||
+    athlete.other_recruiting_profiles
 
   return (
     <Box bg={bgColor} minH="100vh">
@@ -359,8 +437,8 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
 
       <Container maxW="6xl" py={8}>
         <VStack spacing={8} align="stretch">
-          {/* Videos Section */}
-          {videos.length > 0 && (
+          {/* Videos Section - only show if tier allows */}
+          {tierFeatures.videos > 0 && videos.length > 0 && (
             <Box>
               <Heading size="lg" mb={4} color={textColor}>
                 <HStack spacing={2}>
@@ -388,50 +466,81 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             cardBgColor={cardBgColor}
           />
 
-          {/* Awards and Photos Side by Side */}
-          <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8}>
-            <GridItem>
-              <AwardsSection
-                awards={awards}
-                primaryColor={primaryColor}
-                secondaryColor={secondaryColor}
-                textColor={textColor}
-                mutedTextColor={mutedTextColor}
-                cardBgColor={cardBgColor}
-                borderColor={borderColor}
-                isDarkTheme={isDarkTheme}
-              />
-            </GridItem>
-            <GridItem>
-              <PhotoGallerySection
-                photos={photos}
-                showAllPhotos={showAllPhotos}
-                onToggleShowAll={() => setShowAllPhotos(!showAllPhotos)}
-                onPhotoClick={handlePhotoClick}
-                primaryColor={primaryColor}
-                textColor={textColor}
-                cardBgColor={cardBgColor}
-                borderColor={borderColor}
-              />
-            </GridItem>
-          </Grid>
+          {/* Awards and Photos Side by Side - but full width photos for free accounts */}
+          {tierFeatures.awards && awards.length > 0 ? (
+            <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8}>
+              <GridItem>
+                <AwardsSection
+                  awards={awards}
+                  primaryColor={primaryColor}
+                  secondaryColor={secondaryColor}
+                  textColor={textColor}
+                  mutedTextColor={mutedTextColor}
+                  cardBgColor={cardBgColor}
+                  borderColor={borderColor}
+                  isDarkTheme={isDarkTheme}
+                />
+              </GridItem>
+              <GridItem>
+                <PhotoGallerySection
+                  photos={photos}
+                  showAllPhotos={showAllPhotos}
+                  onToggleShowAll={() => setShowAllPhotos(!showAllPhotos)}
+                  onPhotoClick={handlePhotoClick}
+                  primaryColor={primaryColor}
+                  textColor={textColor}
+                  cardBgColor={cardBgColor}
+                  borderColor={borderColor}
+                />
+              </GridItem>
+            </Grid>
+          ) : (
+            // Full width photos for free accounts (no awards section)
+            <PhotoGallerySection
+              photos={photos}
+              showAllPhotos={showAllPhotos}
+              onToggleShowAll={() => setShowAllPhotos(!showAllPhotos)}
+              onPhotoClick={handlePhotoClick}
+              primaryColor={primaryColor}
+              textColor={textColor}
+              cardBgColor={cardBgColor}
+              borderColor={borderColor}
+            />
+          )}
+          {/* Teams Section */}
+          {teams.length > 0 && (
+            <Card bg={cardBgColor} borderColor={borderColor}>
+              <CardBody>
+                <TeamsSection
+                  teams={teams}
+                  primaryColor={primaryColor}
+                  textColor={textColor}
+                  mutedTextColor={mutedTextColor}
+                  cardBgColor={cardBgColor}
+                  borderColor={borderColor}
+                  isDarkTheme={isDarkTheme}
+                />
+              </CardBody>
+            </Card>
+          )}
+          {/* Schedule Section - only show if tier allows */}
+          {tierFeatures.schedule && schedule.length > 0 && (
+            <Card bg={cardBgColor} borderColor={borderColor}>
+              <CardBody>
+                <ScheduleSection
+                  schedule={schedule}
+                  primaryColor={primaryColor}
+                  textColor={textColor}
+                  mutedTextColor={mutedTextColor}
+                  cardBgColor={cardBgColor}
+                  borderColor={borderColor}
+                />
+              </CardBody>
+            </Card>
+          )}
 
-          {/* Schedule Section - Always show, even if empty */}
-          <Card bg={cardBgColor} borderColor={borderColor}>
-            <CardBody>
-              <ScheduleSection
-                schedule={schedule}
-                primaryColor={primaryColor}
-                textColor={textColor}
-                mutedTextColor={mutedTextColor}
-                cardBgColor={cardBgColor}
-                borderColor={borderColor}
-              />
-            </CardBody>
-          </Card>
-
-          {/* Reviews Section */}
-          {reviews.length > 0 && (
+          {/* Reviews Section - only show if tier allows */}
+          {tierFeatures.reviews && reviews.length > 0 && (
             <Card bg={cardBgColor} borderColor={borderColor}>
               <CardBody>
                 <ReviewsSection
@@ -460,6 +569,20 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
                 </Text>
               </CardBody>
             </Card>
+          )}
+
+          {/* Social Media Section */}
+          {hasSocialMedia && (
+            <SocialMediaSection
+              athlete={athlete}
+              primaryColor={primaryColor}
+              secondaryColor={secondaryColor}
+              textColor={textColor}
+              mutedTextColor={mutedTextColor}
+              cardBgColor={cardBgColor}
+              borderColor={borderColor}
+              isDarkTheme={isDarkTheme}
+            />
           )}
         </VStack>
       </Container>

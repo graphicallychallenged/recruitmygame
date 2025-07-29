@@ -23,7 +23,7 @@ import {
   Avatar,
   Progress,
 } from "@chakra-ui/react"
-import { Trophy, Calendar, ImageIcon, Video, Star, User, TrendingUp, Lock, Zap, Eye } from "lucide-react"
+import { Trophy, Calendar, ImageIcon, Video, Star, User, TrendingUp, Lock, Zap, Eye, Users } from "lucide-react"
 import Link from "next/link"
 import { ReviewsSummary } from "@/components/ReviewsSummary"
 import { getSubscriptionLimits, type SubscriptionTier } from "@/utils/subscription"
@@ -35,6 +35,7 @@ interface DashboardStats {
   totalVideos: number
   totalEvents: number
   totalReviews: number
+  totalTeams: number
   averageRating: number
   upcomingEvents: number
 }
@@ -70,6 +71,7 @@ export default function DashboardPage() {
     totalVideos: 0,
     totalEvents: 0,
     totalReviews: 0,
+    totalTeams: 0,
     averageRating: 0,
     upcomingEvents: 0,
   })
@@ -94,33 +96,51 @@ export default function DashboardPage() {
         setAthlete(athleteData)
 
         // Fetch all stats in parallel using correct table names
-        const [awardsResult, photosResult, videosResult, scheduleResult, reviewsResult, upcomingEventsResult] =
-          await Promise.all([
-            supabase.from("athlete_awards").select("id").eq("athlete_id", athleteData.id),
-            supabase.from("athlete_photos").select("id").eq("athlete_id", athleteData.id),
-            supabase.from("athlete_videos").select("id").eq("athlete_id", athleteData.id),
-            // Only fetch schedule if user has pro
-            hasFeature(athleteData.subscription_tier, "schedule")
-              ? supabase.from("athlete_schedule").select("id").eq("athlete_id", athleteData.id)
-              : Promise.resolve({ data: [] }),
-            // Only fetch reviews if user has premium or pro
-            hasFeature(athleteData.subscription_tier, "reviews")
-              ? supabase
-                  .from("athlete_reviews")
-                  .select("*")
-                  .eq("athlete_id", athleteData.id)
-                  .order("created_at", { ascending: false })
-              : Promise.resolve({ data: [] }),
-            // Only fetch upcoming events if user has pro
-            hasFeature(athleteData.subscription_tier, "schedule")
-              ? supabase
-                  .from("athlete_schedule")
-                  .select("id")
-                  .eq("athlete_id", athleteData.id)
-                  .gte("event_date", new Date().toISOString().split("T")[0])
-                  .lte("event_date", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0])
-              : Promise.resolve({ data: [] }),
-          ])
+        const [
+          awardsResult,
+          photosResult,
+          videosResult,
+          scheduleResult,
+          reviewsResult,
+          teamsResult,
+          upcomingEventsResult,
+        ] = await Promise.all([
+          // Only fetch awards if user has premium or pro
+          hasFeature(athleteData.subscription_tier, "awards")
+            ? supabase.from("athlete_awards").select("id").eq("athlete_id", athleteData.id)
+            : Promise.resolve({ data: [] }),
+          supabase.from("athlete_photos").select("id").eq("athlete_id", athleteData.id),
+          // Only fetch videos if user has premium or pro
+          athleteData.subscription_tier !== "free"
+            ? supabase.from("athlete_videos").select("id").eq("athlete_id", athleteData.id)
+            : Promise.resolve({ data: [] }),
+          // Only fetch schedule if user has pro
+          hasFeature(athleteData.subscription_tier, "schedule")
+            ? supabase.from("athlete_schedule").select("id").eq("athlete_id", athleteData.id)
+            : Promise.resolve({ data: [] }),
+          // Only fetch reviews if user has premium or pro
+          hasFeature(athleteData.subscription_tier, "reviews")
+            ? supabase
+                .from("athlete_reviews")
+                .select("*")
+                .eq("athlete_id", athleteData.id)
+                .order("created_at", { ascending: false })
+            : Promise.resolve({ data: [] }),
+          // Fetch teams (available for all tiers)
+          supabase
+            .from("athlete_teams")
+            .select("id")
+            .eq("athlete_id", athleteData.id),
+          // Only fetch upcoming events if user has pro
+          hasFeature(athleteData.subscription_tier, "schedule")
+            ? supabase
+                .from("athlete_schedule")
+                .select("id")
+                .eq("athlete_id", athleteData.id)
+                .gte("event_date", new Date().toISOString().split("T")[0])
+                .lte("event_date", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0])
+            : Promise.resolve({ data: [] }),
+        ])
 
         // Calculate average rating
         const reviewData = reviewsResult.data || []
@@ -133,6 +153,7 @@ export default function DashboardPage() {
           totalVideos: videosResult.data?.length || 0,
           totalEvents: scheduleResult.data?.length || 0,
           totalReviews: reviewData.length,
+          totalTeams: teamsResult.data?.length || 0,
           averageRating: Math.round(averageRating * 10) / 10,
           upcomingEvents: upcomingEventsResult.data?.length || 0,
         })
@@ -177,21 +198,9 @@ export default function DashboardPage() {
   }
 
   const limits = getSubscriptionLimits(athlete.subscription_tier)
-  const totalContent = stats.totalVideos + stats.totalPhotos + stats.totalAwards
+  const totalContent = stats.totalVideos + stats.totalPhotos + stats.totalAwards + stats.totalTeams
 
   const profileSections = [
-    {
-      title: "Game Film Showcase",
-      description: "Upload and organize your best game footage",
-      icon: Video,
-      usage: stats.totalVideos,
-      limit: limits.videos,
-      color: "orange",
-      features: ["HD video streaming", "Custom thumbnails", "Easy sharing"],
-      href: "/dashboard/videos",
-      available: true,
-      requiredTier: "free" as SubscriptionTier,
-    },
     {
       title: "Photo Gallery",
       description: "Create a visual story of your athletic journey",
@@ -205,28 +214,40 @@ export default function DashboardPage() {
       requiredTier: "free" as SubscriptionTier,
     },
     {
+      title: "Teams",
+      description: "Showcase your team history and achievements",
+      icon: Users,
+      usage: stats.totalTeams,
+      limit: 999, // No limit on teams
+      color: "green",
+      features: ["Team history", "Position tracking", "Statistics display"],
+      href: "/dashboard/teams",
+      available: true,
+      requiredTier: "free" as SubscriptionTier,
+    },
+    {
+      title: "Game Film Showcase",
+      description: "Upload and organize your best game footage",
+      icon: Video,
+      usage: stats.totalVideos,
+      limit: limits.videos,
+      color: "orange",
+      features: ["HD video streaming", "Custom thumbnails", "Easy sharing"],
+      href: "/dashboard/videos",
+      available: athlete.subscription_tier !== "free",
+      requiredTier: "premium" as SubscriptionTier,
+    },
+    {
       title: "Awards & Achievements",
-      description: "Showcase your athletic accomplishments",
+      description: "Showcase your athletic and academic accomplishments",
       icon: Trophy,
       usage: stats.totalAwards,
       limit: 999, // No limit on awards
       color: "yellow",
       features: ["Award certificates", "Achievement timeline", "Statistics tracking"],
       href: "/dashboard/awards",
-      available: true,
-      requiredTier: "free" as SubscriptionTier,
-    },
-    {
-      title: "Schedule & Events",
-      description: "Track games, practices, and important dates",
-      icon: Calendar,
-      usage: stats.totalEvents,
-      limit: 999, // No limit on schedule events
-      color: "green",
-      features: ["Event management", "Calendar integration", "Upcoming reminders"],
-      href: "/dashboard/schedule",
-      available: hasFeature(athlete.subscription_tier, "schedule"),
-      requiredTier: "pro" as SubscriptionTier,
+      available: hasFeature(athlete.subscription_tier, "awards"),
+      requiredTier: "premium" as SubscriptionTier,
     },
     {
       title: "Coach Reviews",
@@ -239,6 +260,18 @@ export default function DashboardPage() {
       href: "/dashboard/reviews",
       available: hasFeature(athlete.subscription_tier, "reviews"),
       requiredTier: "premium" as SubscriptionTier,
+    },
+    {
+      title: "Schedule & Events",
+      description: "Showcase upcoming games, volunteer work, or camps",
+      icon: Calendar,
+      usage: stats.totalEvents,
+      limit: 999, // No limit on schedule events
+      color: "red",
+      features: ["Event management", "Calendar integration", "Upcoming reminders"],
+      href: "/dashboard/schedule",
+      available: hasFeature(athlete.subscription_tier, "schedule"),
+      requiredTier: "pro" as SubscriptionTier,
     },
   ]
 
@@ -254,8 +287,8 @@ export default function DashboardPage() {
       title: "Verified Reviews",
       description: "Send secure review requests to coaches",
       icon: Star,
-      available: hasFeature(athlete.subscription_tier, "verified_reviews"),
-      requiredTier: "pro" as SubscriptionTier,
+      available: hasFeature(athlete.subscription_tier, "reviews"),
+      requiredTier: "premium" as SubscriptionTier,
     },
     {
       title: "Multiple Sports",
@@ -269,7 +302,7 @@ export default function DashboardPage() {
       description: "Detailed insights and performance tracking",
       icon: TrendingUp,
       available: hasFeature(athlete.subscription_tier, "analytics"),
-      requiredTier: "premium" as SubscriptionTier,
+      requiredTier: "pro" as SubscriptionTier,
     },
   ]
 
@@ -285,13 +318,9 @@ export default function DashboardPage() {
                 <Heading size="xl">Welcome back, {athlete.first_name || athlete.athlete_name.split(" ")[0]}!</Heading>
                 <Badge
                   colorScheme={getTierColor(athlete.subscription_tier)}
-                  variant="solid"
-                  px={3}
-                  py={1}
-                  borderRadius="full"
+                  variant="subtle"
                   textTransform="uppercase"
                   fontSize="xs"
-                  fontWeight="bold"
                 >
                   {getTierDisplayName(athlete.subscription_tier)}
                 </Badge>
@@ -327,7 +356,7 @@ export default function DashboardPage() {
         </Box>
 
         {/* Key Metrics */}
-        <SimpleGrid columns={{ base: 2, md: 5 }} spacing={6}>
+        <SimpleGrid columns={{ base: 2, md: 6 }} spacing={6}>
           <Card>
             <CardBody textAlign="center">
               <VStack spacing={2}>
@@ -356,7 +385,24 @@ export default function DashboardPage() {
                   <StatLabel fontSize="sm">Total Content</StatLabel>
                 </Stat>
                 <Text fontSize="xs" color="gray.500">
-                  Videos, photos & awards
+                  Videos, photos, awards & teams
+                </Text>
+              </VStack>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody textAlign="center">
+              <VStack spacing={2}>
+                <Box color="green.500">
+                  <Users size={32} />
+                </Box>
+                <Stat>
+                  <StatNumber fontSize="2xl">{stats.totalTeams}</StatNumber>
+                  <StatLabel fontSize="sm">Teams</StatLabel>
+                </Stat>
+                <Text fontSize="xs" color="gray.500">
+                  Current & past teams
                 </Text>
               </VStack>
             </CardBody>

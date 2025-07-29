@@ -86,7 +86,7 @@ export function AthleteStats({
   const enhancedStats = [
     {
       label: "Primary Sport",
-      value: athlete.sport || "N/A",
+      value: athlete.sport,
       icon: Target,
       type: "badge",
       accentColor: primaryColor,
@@ -94,7 +94,7 @@ export function AthleteStats({
     },
     {
       label: "Academic Year",
-      value: athlete.grade || "N/A",
+      value: athlete.grade,
       icon: GraduationCap,
       type: "text",
       accentColor: secondaryColor,
@@ -102,7 +102,7 @@ export function AthleteStats({
     },
     {
       label: "Graduation",
-      value: athlete.graduation_year?.toString() || "N/A",
+      value: athlete.graduation_year?.toString(),
       icon: Calendar,
       type: "text",
       accentColor: primaryColor,
@@ -110,7 +110,7 @@ export function AthleteStats({
     },
     {
       label: "Height",
-      value: athlete.height || "N/A",
+      value: athlete.height,
       icon: TrendingUp,
       type: "text",
       accentColor: secondaryColor,
@@ -118,7 +118,7 @@ export function AthleteStats({
     },
     {
       label: "Weight",
-      value: athlete.weight || "N/A",
+      value: athlete.weight,
       icon: Zap,
       type: "text",
       accentColor: primaryColor,
@@ -126,7 +126,7 @@ export function AthleteStats({
     },
     {
       label: "GPA",
-      value: athlete.gpa ? athlete.gpa.toFixed(2) : "N/A",
+      value: athlete.gpa ? athlete.gpa.toFixed(2) : null,
       icon: Star,
       type: "progress",
       accentColor: secondaryColor,
@@ -135,7 +135,7 @@ export function AthleteStats({
     },
     {
       label: "SAT Score",
-      value: athlete.sat_score?.toString() || "N/A",
+      value: athlete.sat_score?.toString(),
       icon: Trophy,
       type: "circular",
       accentColor: primaryColor,
@@ -144,17 +144,16 @@ export function AthleteStats({
     },
     {
       label: "ACT Score",
-      value: athlete.act_score?.toString() || "N/A",
+      value: athlete.act_score?.toString(),
       icon: Award,
       type: "circular",
       accentColor: secondaryColor,
       percentage: getACTPercentage(athlete.act_score),
       description: "Standardized test score (36 max)",
     },
-  ]
+  ].filter((stat) => stat.value)
 
   const renderStatCard = (stat: any, index: number) => {
-    const isNA = stat.value === "N/A"
     const rgb = hexToRgb(stat.accentColor)
     const accentColorRgba = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)` : "rgba(0, 0, 0, 0.1)"
     const accentColorLight = rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)` : "rgba(0, 0, 0, 0.2)"
@@ -207,7 +206,7 @@ export function AthleteStats({
 
             {/* Value display */}
             <Box>
-              {stat.type === "badge" && !isNA && (
+              {stat.type === "badge" && (
                 <Badge
                   fontSize="lg"
                   px={4}
@@ -222,7 +221,7 @@ export function AthleteStats({
               )}
 
               {stat.type === "text" && (
-                <Text fontSize="2xl" fontWeight="bold" color={isNA ? mutedTextColor : textColor}>
+                <Text fontSize="2xl" fontWeight="bold" color={textColor}>
                   {stat.value}
                 </Text>
               )}
@@ -230,88 +229,81 @@ export function AthleteStats({
               {stat.type === "progress" && (
                 <VStack spacing={3} align="stretch">
                   <HStack justify="space-between">
-                    <Text fontSize="2xl" fontWeight="bold" color={isNA ? mutedTextColor : textColor}>
+                    <Text fontSize="2xl" fontWeight="bold" color={textColor}>
                       {stat.value}
                     </Text>
-                    {!isNA && (
-                      <Text fontSize="sm" color={mutedTextColor}>
-                        {Math.round(stat.percentage)}%
-                      </Text>
-                    )}
+                    <Text fontSize="sm" color={mutedTextColor}>
+                      {Math.round(stat.percentage)}%
+                    </Text>
                   </HStack>
-                  {!isNA && (
-                    <Box position="relative">
-                      <Box h="8px" borderRadius="full" bg={isDarkTheme ? "gray.700" : "gray.100"} overflow="hidden">
-                        <Box
-                          h="full"
-                          bg={stat.accentColor}
-                          borderRadius="full"
-                          transition="width 1s ease-out"
-                          style={{
-                            width: `${stat.percentage}%`,
-                            animation: `${slideIn} 1s ease-out`,
-                            animationDelay: `${index * 0.2 + 0.5}s`,
-                            animationFillMode: "both",
-                          }}
-                        />
-                      </Box>
+                  <Box position="relative">
+                    <Box h="8px" borderRadius="full" bg={isDarkTheme ? "gray.700" : "gray.100"} overflow="hidden">
+                      <Box
+                        h="full"
+                        bg={stat.accentColor}
+                        borderRadius="full"
+                        transition="width 1s ease-out"
+                        style={{
+                          width: `${stat.percentage}%`,
+                          animation: `${slideIn} 1s ease-out`,
+                          animationDelay: `${index * 0.2 + 0.5}s`,
+                          animationFillMode: "both",
+                        }}
+                      />
                     </Box>
-                  )}
+                  </Box>
                 </VStack>
               )}
 
               {stat.type === "circular" && (
                 <HStack spacing={4} align="center">
-                  <Text fontSize="2xl" fontWeight="bold" color={isNA ? mutedTextColor : textColor}>
+                  <Text fontSize="2xl" fontWeight="bold" color={textColor}>
                     {stat.value}
                   </Text>
-                  {!isNA && (
-                    <Box position="relative">
+                  <Box position="relative">
+                    <Box
+                      w="60px"
+                      h="60px"
+                      borderRadius="full"
+                      border="6px solid"
+                      borderColor={isDarkTheme ? "gray.700" : "gray.100"}
+                      position="relative"
+                    >
                       <Box
+                        position="absolute"
+                        top="-6px"
+                        left="-6px"
                         w="60px"
                         h="60px"
                         borderRadius="full"
-                        border="6px solid"
-                        borderColor={isDarkTheme ? "gray.700" : "gray.100"}
-                        position="relative"
-                      >
-                        <Box
-                          position="absolute"
-                          top="-6px"
-                          left="-6px"
-                          w="60px"
-                          h="60px"
-                          borderRadius="full"
-                          border="6px solid transparent"
-                          borderTopColor={stat.accentColor}
-                          transform={`rotate(${(stat.percentage / 100) * 360}deg)`}
-                          transition="transform 1s ease-out"
-                          style={{
-                            animation: `${pulse} 2s ease-in-out infinite`,
-                            animationDelay: `${index * 0.3}s`,
-                          }}
-                        />
-                        <Flex position="absolute" inset={0} align="center" justify="center">
-                          <Text fontSize="xs" fontWeight="bold" color={textColor}>
-                            {Math.round(stat.percentage)}%
-                          </Text>
-                        </Flex>
-                      </Box>
+                        border="6px solid transparent"
+                        borderTopColor={stat.accentColor}
+                        transform={`rotate(${(stat.percentage / 100) * 360}deg)`}
+                        transition="transform 1s ease-out"
+                        style={{
+                          animation: `${pulse} 2s ease-in-out infinite`,
+                          animationDelay: `${index * 0.3}s`,
+                        }}
+                      />
+                      <Flex position="absolute" inset={0} align="center" justify="center">
+                        <Text fontSize="xs" fontWeight="bold" color={textColor}>
+                          {Math.round(stat.percentage)}%
+                        </Text>
+                      </Flex>
                     </Box>
-                  )}
+                  </Box>
                 </HStack>
-              )}
-
-              {isNA && stat.type !== "text" && (
-                <Text fontSize="2xl" fontWeight="bold" color={mutedTextColor}>
-                  N/A
-                </Text>
               )}
             </Box>
           </VStack>
         </Box>
       </Tooltip>
     )
+  }
+
+  // Don't render the section if no stats have data
+  if (enhancedStats.length === 0) {
+    return null
   }
 
   return (

@@ -35,6 +35,7 @@ import {
   Shield,
   Target,
   HelpCircle,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
 import { type SubscriptionTier, hasFeature, getTierColor, getTierDisplayName } from "@/utils/tierFeatures"
@@ -62,6 +63,7 @@ const navItems: NavItem[] = [
   { href: "/dashboard", icon: Home, label: "Overview" },
   { href: "/dashboard/profile", icon: User, label: "Profile" },
   { href: "/dashboard/photos", icon: ImageIcon, label: "Photos" },
+  { href: "/dashboard/teams", icon: Users, label: "Teams" },
   { href: "/dashboard/videos", icon: Video, label: "Videos", requiredTier: "premium", feature: "videos" },
   { href: "/dashboard/awards", icon: Award, label: "Awards", requiredTier: "premium", feature: "awards" },
   { href: "/dashboard/reviews", icon: MessageSquare, label: "Reviews", requiredTier: "premium", feature: "reviews" },
@@ -78,7 +80,7 @@ const navItems: NavItem[] = [
     icon: Shield,
     label: "Verified Reviews",
     requiredTier: "pro",
-    feature: "verified_reviews",
+    feature: "reviews",
   },
   {
     href: "/dashboard/sports",
@@ -189,36 +191,21 @@ export default function DashboardLayout({
   }
 
   // Group navigation items
-  const mainNavItems = navItems.slice(0, 3) // Overview, Profile, Photos
-  const premiumNavItems = navItems.slice(3, 6) // Videos, Awards, Reviews
-  const proNavItems = navItems.slice(6, 10) // Schedule, Business Cards, Verified Reviews, Multiple Sports
-  const settingsNavItems = navItems.slice(10) // Settings, Subscription, Support
+  const mainNavItems = navItems.slice(0, 4) // Overview, Profile, Photos, Teams
+  const premiumNavItems = navItems.slice(4, 7) // Videos, Awards, Reviews
+  const proNavItems = navItems.slice(7, 11) // Schedule, Business Cards, Verified Reviews, Multiple Sports
+  const settingsNavItems = navItems.slice(11) // Settings, Subscription, Support
 
   return (
     <Flex h="100vh" bg={bgColor}>
       {/* Sidebar */}
-      <Box w="320px" bg={bgColor} borderRight="1px" borderColor={borderColor} p={6} overflowY="auto">
+      <Box w="320px" bg={bgColor} borderRight="1px" borderColor={borderColor} p={2} overflowY="auto">
         {/* Header */}
-        <VStack spacing={6} align="stretch">
+        <VStack spacing={0} align="stretch">
           {/* Logo */}
-          <Link href="/">
+          <Link href="/dashboard">
             <HStack spacing={3} cursor="pointer">
-              <Box
-                w={8}
-                h={8}
-                bg="blue.500"
-                borderRadius="md"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Text color="white" fontWeight="bold" fontSize="sm">
-                  RMG
-                </Text>
-              </Box>
-              <Text fontWeight="bold" fontSize="lg">
-                Recruit My Game
-              </Text>
+              <img src="/logo-h.png" width="300px" />
             </HStack>
           </Link>
 
@@ -269,10 +256,8 @@ export default function DashboardLayout({
           {/* Navigation */}
           <VStack spacing={4} align="stretch">
             {/* Main Navigation */}
-            <VStack spacing={1} align="stretch">
-              <Text fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase" mb={2}>
-                Main
-              </Text>
+            <VStack spacing={3} align="stretch">
+              <Text fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase" mb={2}></Text>
               {mainNavItems.map((item) => {
                 const isActive = pathname === item.href
                 const isAccessible = isFeatureAccessible(item)
