@@ -7,10 +7,9 @@ const CANVA_REDIRECT_URI = process.env.CANVA_REDIRECT_URI
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const code = searchParams.get("code")
-    const state = searchParams.get("state")
-    const error = searchParams.get("error")
+    const code = request.nextUrl.searchParams.get("code")
+    const state = request.nextUrl.searchParams.get("state")
+    const error = request.nextUrl.searchParams.get("error")
 
     if (error) {
       console.error("OAuth error:", error)
