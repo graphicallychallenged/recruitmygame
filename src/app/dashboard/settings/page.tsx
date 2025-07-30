@@ -36,9 +36,12 @@ import {
   SimpleGrid,
   IconButton,
 } from "@chakra-ui/react"
-import { Lock, Bell, Download, Trash2, Eye, EyeOff, Shield, Crown, Settings } from "lucide-react"
+import { Lock, Bell, Download, Trash2, Eye, EyeOff, Shield, Crown, Settings, Database } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { useUserSettings } from "@/hooks/useUserSettings"
+import { ConsentManager } from "@/components/compliance/ConsentManager"
+import { DataExportManager } from "@/components/compliance/DataExportManager"
+import { AccountDeletionManager } from "@/components/compliance/AccountDeletionManager"
 
 interface UserProfile {
   id: string
@@ -268,6 +271,7 @@ export default function SettingsPage() {
     { id: "privacy", label: "Privacy", icon: Shield },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Lock },
+    { id: "data", label: "Privacy & Data", icon: Database },
     { id: "subscription", label: "Subscription", icon: Crown },
   ]
 
@@ -643,6 +647,15 @@ export default function SettingsPage() {
               </VStack>
             </CardBody>
           </Card>
+        )}
+
+        {/* Privacy & Data Settings */}
+        {activeTab === "data" && (
+          <VStack spacing={6} align="stretch">
+            <ConsentManager />
+            <DataExportManager />
+            <AccountDeletionManager />
+          </VStack>
         )}
       </VStack>
 

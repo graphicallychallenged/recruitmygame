@@ -124,6 +124,20 @@ export function getCanvaAPI(): CanvaAPI {
   })
 }
 
+// Get Canva access token for a user
+export async function getCanvaAccessToken(userId: string): Promise<string | null> {
+  const { createClient } = await import("@/utils/supabase/server")
+  const supabase = createClient()
+
+  const { data, error } = await (await supabase).from("canva_tokens").select("access_token").eq("user_id", userId).single()
+
+  if (error || !data) {
+    return null
+  }
+
+  return data.access_token
+}
+
 // Generate a cryptographically secure random string for OAuth PKCE
 export function generateCodeVerifier(): string {
   const array = new Uint8Array(32)

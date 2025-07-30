@@ -13,27 +13,51 @@ import {
   Badge,
   Box,
   Image,
+  Switch,
   useToast,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
   useDisclosure,
-  Divider,
+  Grid,
+  GridItem,
+  Alert,
+  AlertIcon,
+  Spinner,
 } from "@chakra-ui/react"
-import { CreditCard, Download, QrCode } from "lucide-react"
+import { CreditCard, Download, QrCode, Mail, Phone, Eye, EyeOff, RefreshCw, ExternalLink } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
-import { useSearchParams } from "next/navigation"
-import { CanvaConnectionStatus } from "./business-cards/CanvaConnectionStatus"
-import { CardOptionsForm } from "./business-cards/CardOptionsForm"
-import { TemplateSelector } from "./business-cards/TemplateSelector"
-import type { CardDesign, CardOptions, AthleteCardData, SubscriptionTier } from "@/types/canva"
+import { useSearchParams, useRouter } from "next/navigation"
+
+type SubscriptionTier = "free" | "premium" | "pro"
 
 interface BusinessCardGeneratorProps {
-  athlete: AthleteCardData
+  athlete: {
+    athlete_name: string
+    sport: string
+    school?: string
+    location?: string
+    username: string
+    profile_picture_url?: string
+    primary_color?: string
+    secondary_color?: string
+    email?: string
+    phone?: string
+  }
   subscription_tier: SubscriptionTier
+}
+
+interface CardDesign {
+  id: string
+  name: string
+  preview_url: string
+  description: string
+  canva_template_id: string
+  created_at?: string
+}
+
+interface CardOptions {
+  includeEmail: boolean
+  includePhone: boolean
+  includeQR: boolean
+  includePhoto: boolean
 }
 
 export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCardGeneratorProps) {
@@ -46,6 +70,7 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
   const [isConnected, setIsConnected] = useState(false)
   const [templates, setTemplates] = useState<CardDesign[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [hasShownConnectedToast, setHasShownConnectedToast] = useState(false)
   const [cardOptions, setCardOptions] = useState<CardOptions>({
     includeEmail: true,
     includePhone: true,
@@ -56,6 +81,7 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
   const toast = useToast()
   const supabase = createClient()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const canUseFeature = subscription_tier === "pro"
 
   useEffect(() => {
@@ -63,9 +89,10 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
     const success = searchParams.get("success")
     const error = searchParams.get("error")
 
-    if (success === "connected") {
+    if (success === "connected" && !hasShownConnectedToast) {
       setIsConnected(true)
       loadTemplates()
+      setHasShownConnectedToast(true)
       toast({
         title: "Connected to Canva!",
         description: "You can now generate professional business cards.",
@@ -73,7 +100,10 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
         duration: 5000,
         isClosable: true,
       })
-    } else if (error) {
+      // Clear the URL parameters
+      router.replace("/dashboard/business-cards")
+    } else if (error && !hasShownConnectedToast) {
+      setHasShownConnectedToast(true)
       toast({
         title: "Connection failed",
         description: "Failed to connect to Canva. Please try again.",
@@ -81,11 +111,13 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
         duration: 5000,
         isClosable: true,
       })
+      // Clear the URL parameters
+      router.replace("/dashboard/business-cards")
     }
 
     // Check if user is already connected
     checkCanvaConnection()
-  }, [searchParams])
+  }, [searchParams, hasShownConnectedToast])
 
   const checkCanvaConnection = async () => {
     try {
@@ -142,6 +174,7 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
         setTemplates([])
         setGeneratedCard(null)
         setSelectedDesign("")
+        setHasShownConnectedToast(false)
         toast({
           title: "Disconnected from Canva",
           description: "You can now connect with a different Canva account.",
@@ -249,7 +282,6 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
 
       if (result.success) {
         setGeneratedCard(result.preview_url || result.download_url)
-        onClose()
         toast({
           title: "Business card generated!",
           description: "Your professional business card is ready for download.",
@@ -342,27 +374,189 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
         <CardBody>
           <VStack spacing={4}>
             {!isConnected ? (
-              <CanvaConnectionStatus
-                isConnected={false}
-                onConnect={connectToCanva}
-                onDisconnect={disconnectFromCanva}
-                connecting={connecting}
-                disconnecting={disconnecting}
-              />
+              <>
+                <Alert status="info">
+                  <AlertIcon />
+                  <Box>
+                    <Text fontWeight="medium">Connect to Canva</Text>
+                    <Text fontSize="sm">
+                      You'll need to authorize with Canva to generate professional business cards.
+                    </Text>
+                  </Box>
+                </Alert>
+
+                <Text fontSize="sm" color="gray.600" textAlign="center">
+                  Generate professional business cards featuring your athletic profile, complete with QR codes that link
+                  directly to your RecruitMyGame profile.
+                </Text>
+
+                <Button
+                  leftIcon={<ExternalLink size={16} />}
+                  colorScheme="purple"
+                  onClick={connectToCanva}
+                  isLoading={connecting}
+                  loadingText="Connecting..."
+                  w="full"
+                >
+                  Connect to Canva
+                </Button>
+              </>
             ) : (
               <>
-                <CanvaConnectionStatus
-                  isConnected={true}
-                  onConnect={connectToCanva}
-                  onDisconnect={disconnectFromCanva}
-                  connecting={connecting}
-                  disconnecting={disconnecting}
-                />
+                <HStack justify="space-between" w="full">
+                  <Text fontSize="sm" color="gray.600">
+                    Generate professional business cards featuring your athletic profile, complete with QR codes that
+                    link directly to your RecruitMyGame profile.
+                  </Text>
+                  <Button
+                    size="md"
+                    padding={5}
+                    variant="outline"
+                    colorScheme="red"
+                    onClick={disconnectFromCanva}
+                    isLoading={disconnecting}
+                    loadingText="Disconnecting..."
+                  >
+                    Disconnect
+                  </Button>
+                </HStack>
 
                 <HStack spacing={2} fontSize="sm" color="gray.500" w="full" justify="center">
                   <QrCode size={16} />
                   <Text>Includes QR code to your profile</Text>
                 </HStack>
+
+                {/* Card Options */}
+                <Box w="full" p={4} bg="gray.50" borderRadius="md">
+                  <Text fontWeight="medium" mb={3} fontSize="sm">
+                    Card Information
+                  </Text>
+                  <VStack spacing={3} align="stretch">
+                    <HStack justify="space-between">
+                      <HStack spacing={2}>
+                        <Mail size={16} />
+                        <Text fontSize="sm">Include Email</Text>
+                        {!athlete.email && (
+                          <Badge size="sm" colorScheme="orange">
+                            Not Set
+                          </Badge>
+                        )}
+                      </HStack>
+                      <Switch
+                        isChecked={cardOptions.includeEmail}
+                        onChange={(e) => setCardOptions({ ...cardOptions, includeEmail: e.target.checked })}
+                        isDisabled={!athlete.email}
+                      />
+                    </HStack>
+
+                    <HStack justify="space-between">
+                      <HStack spacing={2}>
+                        <Phone size={16} />
+                        <Text fontSize="sm">Include Phone</Text>
+                        {!athlete.phone && (
+                          <Badge size="sm" colorScheme="orange">
+                            Not Set
+                          </Badge>
+                        )}
+                      </HStack>
+                      <Switch
+                        isChecked={cardOptions.includePhone}
+                        onChange={(e) => setCardOptions({ ...cardOptions, includePhone: e.target.checked })}
+                        isDisabled={!athlete.phone}
+                      />
+                    </HStack>
+
+                    <HStack justify="space-between">
+                      <HStack spacing={2}>
+                        <QrCode size={16} />
+                        <Text fontSize="sm">Include QR Code</Text>
+                      </HStack>
+                      <Switch
+                        isChecked={cardOptions.includeQR}
+                        onChange={(e) => setCardOptions({ ...cardOptions, includeQR: e.target.checked })}
+                      />
+                    </HStack>
+
+                    <HStack justify="space-between">
+                      <HStack spacing={2}>
+                        {cardOptions.includePhoto ? <Eye size={16} /> : <EyeOff size={16} />}
+                        <Text fontSize="sm">Include Profile Photo</Text>
+                        {!athlete.profile_picture_url && (
+                          <Badge size="sm" colorScheme="orange">
+                            Not Set
+                          </Badge>
+                        )}
+                      </HStack>
+                      <Switch
+                        isChecked={cardOptions.includePhoto}
+                        onChange={(e) => setCardOptions({ ...cardOptions, includePhoto: e.target.checked })}
+                        isDisabled={!athlete.profile_picture_url}
+                      />
+                    </HStack>
+                  </VStack>
+                </Box>
+
+                {/* Template Selection */}
+                <Box w="full">
+                  <HStack justify="space-between" mb={3}>
+                    <Text fontWeight="medium">Card Templates</Text>
+                    <Button size="sm" variant="ghost" leftIcon={<RefreshCw size={14} />} onClick={loadTemplates}>
+                      Refresh
+                    </Button>
+                  </HStack>
+
+                  {loadingTemplates ? (
+                    <VStack spacing={3} py={8}>
+                      <Spinner size="lg" color="purple.500" />
+                      <Text fontSize="sm" color="gray.600">
+                        Loading your Canva templates...
+                      </Text>
+                    </VStack>
+                  ) : templates.length === 0 ? (
+                    <Alert status="info">
+                      <AlertIcon />
+                      <Box>
+                        <Text fontWeight="medium">No templates found</Text>
+                        <Text fontSize="sm">
+                          Create business card templates in Canva first, then refresh to see them here.
+                        </Text>
+                      </Box>
+                    </Alert>
+                  ) : (
+                    <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                      {templates.map((template) => (
+                        <GridItem key={template.id}>
+                          <Box
+                            borderRadius="md"
+                            overflow="hidden"
+                            border="2px solid"
+                            borderColor={selectedDesign === template.canva_template_id ? "purple.500" : "gray.200"}
+                            cursor="pointer"
+                            onClick={() => setSelectedDesign(template.canva_template_id)}
+                            transition="all 0.2s"
+                            _hover={{ borderColor: "purple.300" }}
+                          >
+                            <Image
+                              src={template.preview_url || "/placeholder.svg?height=120&width=200&text=Business+Card"}
+                              alt={template.name}
+                              w="full"
+                              h="120px"
+                              objectFit="cover"
+                            />
+                            <Box p={3}>
+                              <Text fontWeight="medium" fontSize="sm">
+                                {template.name}
+                              </Text>
+                              <Text fontSize="xs" color="gray.600">
+                                {template.description}
+                              </Text>
+                            </Box>
+                          </Box>
+                        </GridItem>
+                      ))}
+                    </Grid>
+                  )}
+                </Box>
 
                 {generatedCard ? (
                   <VStack spacing={3} w="full">
@@ -373,13 +567,21 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
                       <Button leftIcon={<Download size={16} />} colorScheme="green" onClick={downloadCard} flex={1}>
                         Download Card
                       </Button>
-                      <Button variant="outline" onClick={onOpen} flex={1}>
+                      <Button variant="outline" onClick={() => setGeneratedCard(null)} flex={1}>
                         Generate New
                       </Button>
                     </HStack>
                   </VStack>
                 ) : (
-                  <Button leftIcon={<CreditCard size={16} />} colorScheme="purple" onClick={onOpen} w="full">
+                  <Button
+                    leftIcon={<CreditCard size={16} />}
+                    colorScheme="purple"
+                    onClick={generateBusinessCard}
+                    w="full"
+                    isLoading={generating}
+                    loadingText="Generating..."
+                    isDisabled={!selectedDesign}
+                  >
                     Generate Business Card
                   </Button>
                 )}
@@ -388,72 +590,6 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
           </VStack>
         </CardBody>
       </Card>
-
-      {/* Business Card Generator Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
-            <HStack>
-              <CreditCard size={20} />
-              <Text>Generate Business Card</Text>
-            </HStack>
-          </ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <VStack spacing={6}>
-              <Text fontSize="sm" color="gray.600" textAlign="center">
-                Choose a design template and customize what information appears on your professional business card.
-              </Text>
-
-              <CardOptionsForm options={cardOptions} onChange={setCardOptions} athlete={athlete} />
-
-              <Divider />
-
-              <TemplateSelector
-                templates={templates}
-                selectedTemplate={selectedDesign}
-                onSelectTemplate={setSelectedDesign}
-                onRefresh={loadTemplates}
-                loading={loadingTemplates}
-              />
-
-              <Box p={4} bg="purple.50" borderRadius="md" w="full">
-                <Text fontSize="sm" color="purple.700" fontWeight="medium" mb={2}>
-                  📱 Your card will include:
-                </Text>
-                <VStack align="start" spacing={1} fontSize="xs" color="purple.600">
-                  <Text>• Your name and sport</Text>
-                  <Text>• School/organization (if provided)</Text>
-                  {cardOptions.includeEmail && athlete.email && <Text>• Email address</Text>}
-                  {cardOptions.includePhone && athlete.phone && <Text>• Phone number</Text>}
-                  {cardOptions.includeQR && <Text>• QR code linking to your profile</Text>}
-                  {cardOptions.includePhoto && athlete.profile_picture_url && <Text>• Profile photo</Text>}
-                  <Text>• Professional design layout</Text>
-                  <Text>• High-resolution download (300 DPI)</Text>
-                </VStack>
-              </Box>
-
-              <Button
-                colorScheme="purple"
-                onClick={generateBusinessCard}
-                w="full"
-                isLoading={generating}
-                loadingText="Generating..."
-                leftIcon={<CreditCard size={16} />}
-                isDisabled={!selectedDesign}
-              >
-                Generate Business Card
-              </Button>
-
-              <Text fontSize="xs" color="gray.500" textAlign="center">
-                Your business card will be generated using your selected Canva template and delivered as a high-quality
-                PNG file ready for printing or digital sharing.
-              </Text>
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
     </>
   )
 }

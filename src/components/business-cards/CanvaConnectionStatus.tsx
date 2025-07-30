@@ -1,5 +1,5 @@
 "use client"
-import { HStack, Button, Alert, AlertIcon, Box, Text } from "@chakra-ui/react"
+import { VStack, Button, Alert, AlertIcon, Box, Text } from "@chakra-ui/react"
 import { ExternalLink, LogOut } from "lucide-react"
 
 interface CanvaConnectionStatusProps {
@@ -48,7 +48,7 @@ export function CanvaConnectionStatus({
   }
 
   return (
-    <HStack justify="space-between" w="full">
+    <VStack justify="space-between" w="full">
       <Text fontSize="sm" color="gray.600">
         Generate professional business cards featuring your athletic profile, complete with QR codes that link directly
         to your RecruitMyGame profile.
@@ -64,6 +64,6 @@ export function CanvaConnectionStatus({
       >
         Disconnect
       </Button>
-    </HStack>
+    </VStack>
   )
 }
