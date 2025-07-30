@@ -1,11 +1,11 @@
 "use client"
 
 import type React from "react"
-import { HStack } from "@chakra-ui/react"
 import { useEffect, useState } from "react"
 import {
   Box,
   Container,
+  HStack,
   VStack,
   Grid,
   GridItem,
@@ -222,12 +222,13 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
                 .order("award_date", { ascending: false })
             : Promise.resolve({ data: [] }),
 
-          // Reviews - only if tier allows
+          // Reviews - only if tier allows, now including verification status
           tierFeatures.reviews
             ? supabase
                 .from("athlete_reviews")
-                .select("*")
+                .select("*, is_verified, verified_at")
                 .eq("athlete_id", athleteData.id)
+                .order("is_verified", { ascending: false })
                 .order("created_at", { ascending: false })
             : Promise.resolve({ data: [] }),
 

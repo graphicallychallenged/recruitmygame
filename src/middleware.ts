@@ -13,6 +13,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Skip middleware for ALL API routes including reviews
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.next()
+  }
+
   console.log("Middleware - Request URL:", request.url)
   console.log("Middleware - Pathname:", request.nextUrl.pathname)
   console.log("Middleware - Host:", request.headers.get("host"))
@@ -111,7 +116,6 @@ export async function middleware(request: NextRequest) {
   // Skip processing for specific routes
   if (
     request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/api") ||
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/auth") ||
     request.nextUrl.pathname === "/"
