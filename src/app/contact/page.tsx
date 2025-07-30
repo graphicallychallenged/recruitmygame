@@ -70,14 +70,14 @@ export default function ContactUs() {
     {
       icon: Phone,
       title: "Phone Support",
-      value: "(555) 123-4567",
+      value: "(770) 337-3229",
       description: "Monday - Friday, 9 AM - 6 PM EST",
     },
     {
       icon: MapPin,
       title: "Headquarters",
-      value: "123 Sports Ave, Athletic City, AC 12345",
-      description: "Visit us for partnership opportunities",
+      value: "Grayson, GA",
+      description: "Meet with us for partnership opportunities",
     },
     {
       icon: Clock,

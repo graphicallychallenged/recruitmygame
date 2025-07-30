@@ -201,7 +201,7 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <Box w="320px" bg={bgColor} borderRight="1px" borderColor={borderColor} p={2} overflowY="auto">
         {/* Header */}
-        <VStack spacing={0} align="stretch">
+        <VStack spacing={8} align="stretch">
           {/* Logo */}
           <Link href="/dashboard">
             <HStack spacing={3} cursor="pointer">

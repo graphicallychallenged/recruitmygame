@@ -1,81 +1,73 @@
-import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { exchangeCodeForTokens } from "@/utils/canva"
 
-const CANVA_CLIENT_ID = process.env.CANVA_CLIENT_ID
-const CANVA_CLIENT_SECRET = process.env.CANVA_CLIENT_SECRET
-const CANVA_REDIRECT_URI = process.env.CANVA_REDIRECT_URI
-
-// Force dynamic rendering
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
-    const code = request.nextUrl.searchParams.get("code")
-    const state = request.nextUrl.searchParams.get("state")
-    const error = request.nextUrl.searchParams.get("error")
+    const searchParams = request.nextUrl.searchParams
+    const code = searchParams.get("code")
+    const state = searchParams.get("state")
+    const error = searchParams.get("error")
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://recruityourgame.com"
+    console.log("Callback received - state:", state)
 
     if (error) {
-      console.error("OAuth error:", error)
-      return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=authorization_failed`)
+      console.error("OAuth error:", error, searchParams.get("error_description"))
+      return NextResponse.redirect(new URL("/dashboard/business-cards?error=oauth_failed", request.url))
     }
 
     if (!code || !state) {
-      return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=missing_parameters`)
+      console.log("Missing code or state - code:", !!code, "state:", !!state)
+      return NextResponse.redirect(new URL("/dashboard/business-cards?error=missing_params", request.url))
     }
 
+    // Create a Supabase client
     const supabase = await createClient()
 
-    // Get the stored PKCE verifier using the state (user_id)
-    const { data: oauthState } = await supabase.from("canva_oauth_state").select("*").eq("user_id", state).single()
+    console.log("Looking for state:", state)
 
-    if (!oauthState) {
-      return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=invalid_state`)
-    }
-
-    // Exchange code for access token using PKCE
-    const tokenResponse = await fetch("https://api.canva.com/rest/v1/oauth/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        client_id: CANVA_CLIENT_ID!,
-        client_secret: CANVA_CLIENT_SECRET!,
-        code: code,
-        redirect_uri: CANVA_REDIRECT_URI!,
-        code_verifier: oauthState.code_verifier,
-      }),
+    // Use RPC function to get OAuth state (bypasses RLS and gets most recent)
+    const { data: rpcResult, error: rpcError } = await supabase.rpc("get_oauth_state", {
+      user_id_param: state,
     })
 
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text()
-      console.error("Token exchange failed:", errorData)
-      return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=token_exchange_failed`)
+    console.log("RPC result:", rpcResult)
+    console.log("RPC error:", rpcError)
+
+    if (rpcError || !rpcResult || rpcResult.length === 0) {
+      console.error("Error retrieving OAuth state via RPC:", rpcError)
+      return NextResponse.redirect(new URL("/dashboard/business-cards?error=state_not_found", request.url))
     }
 
-    const tokenData = await tokenResponse.json()
+    const codeVerifier = rpcResult[0].code_verifier
 
-    // Store the token in your database
-    await supabase.from("canva_tokens").upsert({
-      user_id: state,
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
-      token_type: tokenData.token_type,
-      scope: tokenData.scope,
+    // Exchange code for tokens
+    const tokens = await exchangeCodeForTokens(code, codeVerifier)
+
+    // Store tokens using RPC function (bypasses RLS)
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
+    const { error: tokenError } = await supabase.rpc("store_canva_tokens", {
+      user_id_param: state,
+      access_token_param: tokens.access_token,
+      refresh_token_param: tokens.refresh_token,
+      expires_at_param: expiresAt.toISOString(),
+      token_type_param: tokens.token_type,
+      scope_param: tokens.scope,
     })
+
+    if (tokenError) {
+      console.error("Error storing tokens:", tokenError)
+      return NextResponse.redirect(new URL("/dashboard/business-cards?error=token_storage_failed", request.url))
+    }
 
     // Clean up OAuth state
-    await supabase.from("canva_oauth_state").delete().eq("user_id", state)
+    await supabase.from("canva_oauth_states").delete().eq("user_id", state)
 
-    // Redirect back to business cards page with success
-    return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?success=connected`)
+    return NextResponse.redirect(new URL("/dashboard/business-cards?success=connected", request.url))
   } catch (error) {
     console.error("Error in Canva callback:", error)
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://recruityourgame.com"
-    return NextResponse.redirect(`${baseUrl}/dashboard/business-cards?error=connection_failed`)
+    return NextResponse.redirect(new URL("/dashboard/business-cards?error=callback_failed", request.url))
   }
 }

@@ -411,7 +411,7 @@ export default function HomePage() {
                     </ListItem>
                     <ListItem display="flex" alignItems="center">
                       <ListIcon as={CheckCircle} color="lime.500" />
-                      Print-ready format
+                      Pro account receives 250 cards
                     </ListItem>
                   </List>
                 </VStack>

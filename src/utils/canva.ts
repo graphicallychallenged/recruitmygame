@@ -46,11 +46,16 @@ export class CanvaAPI {
       })
 
       if (!response.ok) {
-        throw new Error(`Canva API error: ${response.statusText}`)
+        const errorText = await response.text()
+        console.error("Canva API error response:", errorText)
+        throw new Error(`Canva API error: ${response.status} ${response.statusText}`)
       }
 
       const data = await response.json()
-      return data.items || []
+      console.log("Canva API response:", data)
+
+      // Handle both possible response formats
+      return data.items || data.designs || []
     } catch (error) {
       console.error("Error fetching Canva designs:", error)
       throw error
@@ -117,4 +122,78 @@ export function getCanvaAPI(): CanvaAPI {
     redirectUri: process.env.CANVA_REDIRECT_URI!,
     apiBase: "https://api.canva.com/rest/v1",
   })
+}
+
+// Generate a cryptographically secure random string for OAuth PKCE
+export function generateCodeVerifier(): string {
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("")
+}
+
+// Generate code challenge from code verifier for OAuth PKCE
+export async function generateCodeChallenge(codeVerifier: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(codeVerifier)
+  const digest = await crypto.subtle.digest("SHA-256", data)
+  const base64String = btoa(String.fromCharCode(...new Uint8Array(digest)))
+  return base64String.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
+}
+
+// Exchange authorization code for access tokens
+export async function exchangeCodeForTokens(code: string, codeVerifier: string) {
+  const tokenUrl = "https://api.canva.com/rest/v1/oauth/token"
+
+  // Determine redirect URI based on environment
+  const redirectUri =
+    process.env.NODE_ENV === "production"
+      ? "https://recruitmygame.com/api/canva/callback"
+      : "http://127.0.0.1:3000/api/canva/callback"
+
+  const response = await fetch(tokenUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: process.env.CANVA_CLIENT_ID!,
+      client_secret: process.env.CANVA_CLIENT_SECRET!,
+      redirect_uri: redirectUri,
+      code,
+      code_verifier: codeVerifier,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Token exchange failed: ${response.statusText} - ${errorText}`)
+  }
+
+  return response.json()
+}
+
+// Refresh access token using refresh token
+export async function refreshAccessToken(refreshToken: string) {
+  const tokenUrl = "https://api.canva.com/rest/v1/oauth/token"
+
+  const response = await fetch(tokenUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: process.env.CANVA_CLIENT_ID!,
+      client_secret: process.env.CANVA_CLIENT_SECRET!,
+      refresh_token: refreshToken,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Token refresh failed: ${response.statusText} - ${errorText}`)
+  }
+
+  return response.json()
 }
