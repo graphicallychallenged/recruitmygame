@@ -319,6 +319,8 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             can_contact_reviewer: review.can_contact_reviewer,
             created_at: review.created_at,
             updated_at: review.updated_at,
+             is_verified: review.is_verified,
+            verified_at: review.verified_at,
           })) || [],
         )
         setTeams(

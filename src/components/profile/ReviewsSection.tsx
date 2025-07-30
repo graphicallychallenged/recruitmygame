@@ -138,9 +138,26 @@ export function ReviewsSection({
                   "{review.review_text}"
                 </Text>
                 {isVerified && (
-                  <Text fontSize="xs" color="green.500" fontWeight="medium">
-                    ✓ This review has been verified by email confirmation
-                  </Text>
+                  <VStack align="start" spacing={1} mt={2} p={2} bg="green.50" borderRadius="md" w="full">
+                    <Text fontSize="xs" color="green.600" fontWeight="medium">
+                      ✓ Verified Review Details:
+                    </Text>
+                    {(review as any).verified_at && (
+                      <Text fontSize="xs" color="green.600">
+                        Verified: {new Date((review as any).verified_at).toLocaleDateString()}
+                      </Text>
+                    )}
+                    {review.location && (
+                      <Text fontSize="xs" color="green.600">
+                        Location: {review.location}
+                      </Text>
+                    )}
+                    {review.relationship_duration && (
+                      <Text fontSize="xs" color="green.600">
+                        Coaching Duration: {review.relationship_duration}
+                      </Text>
+                    )}
+                  </VStack>
                 )}
               </VStack>
             </Box>

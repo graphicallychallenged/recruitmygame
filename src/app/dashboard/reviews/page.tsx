@@ -15,11 +15,6 @@ import {
   FormLabel,
   Input,
   Textarea,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
   useToast,
   Modal,
   ModalOverlay,
@@ -40,10 +35,11 @@ import {
   StatNumber,
   StatHelpText,
 } from "@chakra-ui/react"
-import { Plus, Star, MessageCircle, Trash2, Edit, Upload } from "lucide-react"
+import { Plus, Star, MessageCircle, Trash2, Edit, Upload, Shield } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { ReviewsDisplay } from "@/components/ReviewsDisplay"
+import { uploadMedia } from "@/utils/supabase/storage"
 
 interface Review {
   id: string
@@ -60,6 +56,8 @@ interface Review {
   can_contact_reviewer?: boolean
   review_type?: string
   relationship_duration?: string | null
+  is_verified?: boolean
+  verified_at?: string
 }
 
 interface ContactMessage {
@@ -116,10 +114,12 @@ export default function ReviewsPage() {
 
       if (!athlete) return
 
+      // Include is_verified and verified_at fields in the query
       const { data, error } = await supabase
         .from("athlete_reviews")
-        .select("*")
+        .select("*, is_verified, verified_at")
         .eq("athlete_id", athlete.id)
+        .order("is_verified", { ascending: false }) // Show verified reviews first
         .order("review_date", { ascending: false })
 
       if (error) throw error
@@ -187,14 +187,15 @@ export default function ReviewsPage() {
         reviewer_organization: formData.reviewer_organization,
         reviewer_email: formData.reviewer_email || null,
         reviewer_phone: formData.reviewer_phone || null,
-        rating: formData.rating,
+        // Remove the rating line entirely for manual reviews
         review_text: formData.review_text,
         review_date: formData.review_date,
-        location: formData.location || null,
+        location: null, // No location for manual reviews
         reviewer_image_url: formData.reviewer_image_url || null,
         can_contact_reviewer: formData.can_contact_reviewer,
-        review_type: formData.review_type,
+        review_type: "general", // Default type for manual reviews
         relationship_duration: formData.relationship_duration,
+        is_verified: false, // Manual reviews are not verified
       }
 
       if (editingReview) {
@@ -315,25 +316,14 @@ export default function ReviewsPage() {
       } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
 
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
-      const filePath = `reviewer-images/${fileName}`
+      // Use the existing uploadMedia utility which handles RLS properly
+      const result = await uploadMedia(file, user.id, "photo")
 
-      console.log("Uploading to path:", filePath)
-
-      const { error: uploadError } = await supabase.storage.from("athlete-photos").upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      })
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError)
-        throw uploadError
+      if (!result.success) {
+        throw new Error(result.error || "Upload failed")
       }
 
-      const { data } = supabase.storage.from("athlete-photos").getPublicUrl(filePath)
-
-      setFormData((prev) => ({ ...prev, reviewer_image_url: data.publicUrl }))
+      setFormData((prev) => ({ ...prev, reviewer_image_url: result.url || "" }))
 
       toast({
         title: "Image uploaded successfully!",
@@ -356,9 +346,13 @@ export default function ReviewsPage() {
   }
 
   const averageRating =
-    reviews.length > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
+    reviews.filter((r) => r.is_verified && r.rating).length > 0
+      ? reviews.filter((r) => r.is_verified && r.rating).reduce((sum, review) => sum + review.rating, 0) /
+        reviews.filter((r) => r.is_verified && r.rating).length
+      : 0
 
   const contactableReviews = reviews.filter((r) => r.can_contact_reviewer).length
+  const verifiedReviews = reviews.filter((r) => r.is_verified).length
 
   if (loading) {
     return (
@@ -394,6 +388,11 @@ export default function ReviewsPage() {
             <StatHelpText>Coach evaluations</StatHelpText>
           </Stat>
           <Stat>
+            <StatLabel>Verified Reviews</StatLabel>
+            <StatNumber>{verifiedReviews}</StatNumber>
+            <StatHelpText>Email verified</StatHelpText>
+          </Stat>
+          <Stat>
             <StatLabel>Average Rating</StatLabel>
             <StatNumber>{averageRating.toFixed(1)}</StatNumber>
             <StatHelpText>Out of 5 stars</StatHelpText>
@@ -402,11 +401,6 @@ export default function ReviewsPage() {
             <StatLabel>Contactable Reviews</StatLabel>
             <StatNumber>{contactableReviews}</StatNumber>
             <StatHelpText>Allow public contact</StatHelpText>
-          </Stat>
-          <Stat>
-            <StatLabel>Contact Messages</StatLabel>
-            <StatNumber>{contactMessages.length}</StatNumber>
-            <StatHelpText>From recruiters</StatHelpText>
           </Stat>
         </SimpleGrid>
 
@@ -462,6 +456,12 @@ export default function ReviewsPage() {
                           <HStack spacing={2} wrap="wrap">
                             <Text fontWeight="semibold">{review.reviewer_name}</Text>
                             <Badge colorScheme="blue">{review.reviewer_title}</Badge>
+                            {review.is_verified && (
+                              <Badge colorScheme="green" variant="solid" display="flex" alignItems="center" gap={1}>
+                                <Shield size={12} />
+                                Verified
+                              </Badge>
+                            )}
                             {review.can_contact_reviewer && (
                               <Badge colorScheme="green" display="flex" alignItems="center" gap={1}>
                                 <MessageCircle size={12} />
@@ -472,19 +472,64 @@ export default function ReviewsPage() {
                           <Text fontSize="sm" color="gray.600">
                             {review.reviewer_organization}
                           </Text>
-                          <HStack spacing={1}>
-                            {Array.from({ length: 5 }, (_, i) => (
-                              <Star
-                                key={i}
-                                size={16}
-                                fill={i < review.rating ? "#ffd700" : "none"}
-                                color={i < review.rating ? "#ffd700" : "#e2e8f0"}
-                              />
-                            ))}
-                          </HStack>
+                          {/* Only show stars for verified reviews */}
+                          {review.is_verified && review.rating && (
+                            <HStack spacing={1}>
+                              {Array.from({ length: 5 }, (_, i) => (
+                                <Star
+                                  key={i}
+                                  size={16}
+                                  fill={i < review.rating ? "#ffd700" : "none"}
+                                  color={i < review.rating ? "#ffd700" : "#e2e8f0"}
+                                />
+                              ))}
+                            </HStack>
+                          )}
                           <Text fontSize="sm" noOfLines={2}>
                             {review.review_text}
                           </Text>
+                          {review.is_verified && review.verified_at && (
+                            <Text fontSize="xs" color="green.600" fontWeight="medium">
+                              ✓ Verified on {new Date(review.verified_at).toLocaleDateString()}
+                            </Text>
+                          )}
+                          {review.is_verified && (
+                            <VStack align="start" spacing={1} mt={2} p={2} bg="green.50" borderRadius="md">
+                              <Text fontSize="xs" color="green.600" fontWeight="medium">
+                                ✓ Verified Review Details:
+                              </Text>
+                              {review.verified_at && (
+                                <Text fontSize="xs" color="green.600">
+                                  Verified: {new Date(review.verified_at).toLocaleDateString()}
+                                </Text>
+                              )}
+                              {review.location && (
+                                <Text fontSize="xs" color="green.600">
+                                  Location: {review.location}
+                                </Text>
+                              )}
+                              {review.relationship_duration && (
+                                <Text fontSize="xs" color="green.600">
+                                  Coaching Duration: {review.relationship_duration}
+                                </Text>
+                              )}
+                              {review.rating && (
+                                <HStack spacing={1}>
+                                  <Text fontSize="xs" color="green.600">
+                                    Rating:
+                                  </Text>
+                                  {Array.from({ length: 5 }, (_, i) => (
+                                    <Star
+                                      key={i}
+                                      size={12}
+                                      fill={i < review.rating ? "#22c35e" : "none"}
+                                      color={i < review.rating ? "#22c35e" : "#e2e8f0"}
+                                    />
+                                  ))}
+                                </HStack>
+                              )}
+                            </VStack>
+                          )}
                         </VStack>
                         <HStack spacing={2}>
                           <Button
@@ -492,6 +537,7 @@ export default function ReviewsPage() {
                             variant="ghost"
                             leftIcon={<Edit size={16} />}
                             onClick={() => handleEdit(review)}
+                            isDisabled={review.is_verified} // Don't allow editing verified reviews
                           >
                             Edit
                           </Button>
@@ -501,6 +547,7 @@ export default function ReviewsPage() {
                             colorScheme="red"
                             leftIcon={<Trash2 size={16} />}
                             onClick={() => handleDelete(review.id)}
+                            isDisabled={review.is_verified} // Don't allow deleting verified reviews
                           >
                             Delete
                           </Button>
@@ -646,39 +693,12 @@ export default function ReviewsPage() {
                   </HStack>
                 </FormControl>
 
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  <FormControl isRequired>
-                    <FormLabel>Rating</FormLabel>
-                    <NumberInput
-                      value={formData.rating}
-                      onChange={(_, value) => setFormData({ ...formData, rating: value || 5 })}
-                      min={1}
-                      max={5}
-                    >
-                      <NumberInputField />
-                      <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
-                      </NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-
-                  <FormControl isRequired>
-                    <FormLabel>Review Date</FormLabel>
-                    <Input
-                      type="date"
-                      value={formData.review_date}
-                      onChange={(e) => setFormData({ ...formData, review_date: e.target.value })}
-                    />
-                  </FormControl>
-                </SimpleGrid>
-
-                <FormControl>
-                  <FormLabel>Location (Optional)</FormLabel>
+                <FormControl isRequired>
+                  <FormLabel>Review Date</FormLabel>
                   <Input
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="Tournament, Camp, etc."
+                    type="date"
+                    value={formData.review_date}
+                    onChange={(e) => setFormData({ ...formData, review_date: e.target.value })}
                   />
                 </FormControl>
 

@@ -32,7 +32,7 @@ export async function sendReviewRequestEmail(data: ReviewRequestEmailData) {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Review Request from ${athleteName}</title>
+        <title>Athlete Review Request from ${athleteName}</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
           .header { background: linear-gradient(135deg, rgba(132, 204, 22, 0.9) 0%, rgba(20, 184, 166, 0.8) 50%, rgba(6, 182, 212, 0.9) 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
@@ -77,7 +77,19 @@ export async function sendReviewRequestEmail(data: ReviewRequestEmailData) {
             <strong>⏰ Important:</strong> This review link will expire in 7 days. Please complete your review before then.
           </div>
           
-          <p>Your review will be marked as "verified" and will help ${athleteName} in their recruiting journey. The review process takes just a few minutes.</p>
+           <p>The review form includes categories for:</p>
+            <ul>
+              <li>Athleticism & Skill</li>
+              <li>Character & Integrity</li>
+              <li>Work Ethic</li>
+              <li>Leadership</li>
+              <li>Coachability</li>
+              <li>Teamwork</li>
+            </ul>
+            
+            <p>Your review will be marked as "verified" and will carry more weight with college recruiters.</p>
+            
+            <p>Thank you for taking the time to help ${athleteName} in their recruiting journey!</p>
           
           <p>If you have any questions or did not expect this request, please contact us at support@recruitmygame.com</p>
         </div>
@@ -128,7 +140,7 @@ export async function sendReviewCancellationEmail(data: ReviewCancellationEmailD
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Review Request Cancelled - ${athleteName}</title>
+        <title>Athlete Review Request Cancelled - ${athleteName}</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
           .header { background: linear-gradient(135deg, #ff7675 0%, #fd79a8 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
@@ -180,7 +192,7 @@ export async function sendReviewCancellationEmail(data: ReviewCancellationEmailD
   `
 
   const textContent = `
-Review Request Cancelled - ${athleteName}
+Athlete Review Request Cancelled - ${athleteName}
 
 Hello ${reviewerName},
 

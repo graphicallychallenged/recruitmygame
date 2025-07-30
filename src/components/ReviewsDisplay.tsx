@@ -31,6 +31,7 @@ interface Review {
   reviewer_phone?: string
   reviewer_image_url?: string
   can_contact_reviewer?: boolean
+  is_verified?: boolean
 }
 
 interface ReviewsDisplayProps {
@@ -60,10 +61,15 @@ export function ReviewsDisplay({
     )
   }
 
-  const averageRating = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+  const verifiedReviews = reviews.filter((r) => r.is_verified && r.rating)
+  const averageRating =
+    verifiedReviews.length > 0
+      ? verifiedReviews.reduce((sum, review) => sum + review.rating, 0) / verifiedReviews.length
+      : 0
+
   const ratingCounts = [5, 4, 3, 2, 1].map((rating) => ({
     rating,
-    count: reviews.filter((review) => review.rating === rating).length,
+    count: verifiedReviews.filter((review) => review.rating === rating).length,
   }))
 
   const handleContactReviewer = (review: Review) => {
@@ -95,7 +101,9 @@ export function ReviewsDisplay({
                     <Text fontWeight="semibold" fontSize="sm">
                       {review.reviewer_name}
                     </Text>
-                    <HStack spacing={0}>{renderStars(review.rating, 12)}</HStack>
+                    {review.is_verified && review.rating && (
+                      <HStack spacing={0}>{renderStars(review.rating, 12)}</HStack>
+                    )}
                   </HStack>
                   <Text fontSize="xs" color="gray.600">
                     {review.reviewer_title} • {review.reviewer_organization}
@@ -120,11 +128,11 @@ export function ReviewsDisplay({
   return (
     <VStack spacing={6} align="stretch">
       {/* Review Statistics */}
-      {showStats && (
+      {showStats && verifiedReviews.length > 0 && (
         <Card>
           <CardBody>
             <Heading size="sm" mb={4} color={primaryColor}>
-              Review Summary
+              Verified Review Summary
             </Heading>
             <HStack spacing={8} wrap="wrap">
               <VStack spacing={1} textAlign="center">
@@ -133,7 +141,7 @@ export function ReviewsDisplay({
                 </Text>
                 <HStack spacing={0}>{renderStars(Math.round(averageRating), 20)}</HStack>
                 <Text fontSize="sm" color="gray.600">
-                  {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+                  {verifiedReviews.length} verified review{verifiedReviews.length !== 1 ? "s" : ""}
                 </Text>
               </VStack>
               <VStack spacing={2} flex={1} align="stretch">
@@ -148,7 +156,7 @@ export function ReviewsDisplay({
                         bg={primaryColor}
                         h="100%"
                         borderRadius="full"
-                        w={`${reviews.length > 0 ? (count / reviews.length) * 100 : 0}%`}
+                        w={`${verifiedReviews.length > 0 ? (count / verifiedReviews.length) * 100 : 0}%`}
                       />
                     </Box>
                     <Text fontSize="sm" minW="20px" color="gray.600">
@@ -201,7 +209,7 @@ export function ReviewsDisplay({
                     </HStack>
                   </VStack>
                   <VStack spacing={2} align="end">
-                    <HStack spacing={0}>{renderStars(review.rating)}</HStack>
+                    {review.is_verified && review.rating && <HStack spacing={0}>{renderStars(review.rating)}</HStack>}
                     {review.can_contact_reviewer && (
                       <Button
                         size="sm"
@@ -210,7 +218,7 @@ export function ReviewsDisplay({
                         leftIcon={<MessageCircle size={14} />}
                         onClick={() => handleContactReviewer(review)}
                       >
-                        Contact Coach About This Player
+                        Contact About Player
                       </Button>
                     )}
                   </VStack>
@@ -222,6 +230,37 @@ export function ReviewsDisplay({
                 <Text fontSize="md" lineHeight="tall">
                   {review.review_text}
                 </Text>
+                {/* Add this after the review text and before the closing VStack */}
+                {review.is_verified && (
+                  <VStack align="start" spacing={1} mt={2} p={2} bg="green.50" borderRadius="md" w="full">
+                    <Text fontSize="xs" color="green.600" fontWeight="medium">
+                      ✓ Verified Review Details:
+                    </Text>
+                    {review.location && (
+                      <Text fontSize="xs" color="green.600">
+                        Location: {review.location}
+                      </Text>
+                    )}
+                    <Text fontSize="xs" color="green.600">
+                      Verified: {new Date(review.review_date).toLocaleDateString()}
+                    </Text>
+                    {review.rating && (
+                      <HStack spacing={1}>
+                        <Text fontSize="xs" color="green.600">
+                          Rating:
+                        </Text>
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star
+                            key={i}
+                            size={12}
+                            fill={i < review.rating ? "#22c35e" : "none"}
+                            color={i < review.rating ? "#22c35e" : "#e2e8f0"}
+                          />
+                        ))}
+                      </HStack>
+                    )}
+                  </VStack>
+                )}
               </VStack>
             </CardBody>
           </Card>
