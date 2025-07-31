@@ -206,7 +206,7 @@ export function ScheduleSection({
 
   return (
     <Box>
-      <Heading size="md" mb={4} color={textColor}>
+      <Heading size="lg" mb={4} color={textColor}>
         <HStack spacing={2}>
           <Icon as={Calendar} color={primaryColor} />
           <Text>Schedule</Text>

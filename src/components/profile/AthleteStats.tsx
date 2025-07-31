@@ -2,7 +2,19 @@
 
 import { Box, VStack, HStack, Text, Heading, Badge, SimpleGrid, Icon, Tooltip, Flex } from "@chakra-ui/react"
 import { keyframes } from "@emotion/react"
-import { Target, GraduationCap, Calendar, TrendingUp, Zap, Star, Trophy, Award, Users } from "lucide-react"
+import {
+  Target,
+  GraduationCap,
+  Calendar,
+  TrendingUp,
+  Zap,
+  Star,
+  Trophy,
+  Award,
+  Users,
+  Hand,
+  Footprints,
+} from "lucide-react"
 import type { AthleteProfile } from "@/types/database"
 
 interface AthleteStatsProps {
@@ -150,6 +162,22 @@ export function AthleteStats({
       accentColor: secondaryColor,
       percentage: getACTPercentage(athlete.act_score),
       description: "Standardized test score (36 max)",
+    },
+    {
+      label: "Dominant Hand",
+      value: athlete.dominant_hand,
+      icon: Hand,
+      type: "text",
+      accentColor: primaryColor,
+      description: "Preferred hand for sports activities",
+    },
+    {
+      label: "Dominant Foot",
+      value: athlete.dominant_foot,
+      icon: Footprints,
+      type: "text",
+      accentColor: secondaryColor,
+      description: "Preferred foot for sports activities",
     },
   ].filter((stat) => stat.value)
 

@@ -1,11 +1,11 @@
 "use client"
 
 import type React from "react"
+import { HStack } from "@chakra-ui/react"
 import { useEffect, useState } from "react"
 import {
   Box,
   Container,
-  HStack,
   VStack,
   Grid,
   GridItem,
@@ -65,6 +65,25 @@ const SPORT_HERO_IMAGES: Record<string, string> = {
   Other: "/hero/generic.jpg",
 }
 
+// Female versions of sport images
+const SPORT_HERO_IMAGES_FEMALE: Record<string, string> = {
+  Football: "/hero/football-g.jpg",
+  Basketball: "/hero/basketball-g.jpg",
+  Baseball: "/hero/baseball-g.jpg",
+  Soccer: "/hero/soccer-g.jpg",
+  "Track & Field": "/hero/track-field-g.jpg",
+  Swimming: "/hero/swimming-g.jpg",
+  Tennis: "/hero/tennis-g.jpg",
+  Golf: "/hero/golf-g.jpg",
+  Volleyball: "/hero/volleyball-g.jpg",
+  Wrestling: "/hero/wrestling-g.jpg",
+  Softball: "/hero/softball-g.jpg",
+  "Cross Country": "/hero/cross-country-g.jpg",
+  Lacrosse: "/hero/lacrosse-g.jpg",
+  Hockey: "/hero/hockey-g.jpg",
+  Other: "/hero/generic-g.jpg",
+}
+
 export default function PublicProfileClient({ athlete: initialAthlete }: PublicProfileClientProps) {
   const [athlete, setAthlete] = useState<AthleteProfile>(initialAthlete)
   const [photos, setPhotos] = useState<AthletePhoto[]>([])
@@ -117,6 +136,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
         }
 
         console.log("Found athlete:", athleteData)
+        console.log("Sport positions data:", athleteData.sport_positions)
 
         // Transform athlete data
         const transformedAthlete: AthleteProfile = {
@@ -126,6 +146,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           username: athleteData.username,
           sport: athleteData.sport,
           sports: athleteData.sports,
+          sport_positions: athleteData.sport_positions,
           grade: athleteData.grade,
           graduation_year: athleteData.graduation_year,
           school: athleteData.school,
@@ -156,6 +177,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           created_at: athleteData.created_at,
           updated_at: athleteData.updated_at,
           hero_image_url: athleteData.hero_image_url,
+          default_hero_gender: athleteData.default_hero_gender,
           instagram: athleteData.instagram,
           twitter: athleteData.twitter,
           tiktok: athleteData.tiktok,
@@ -319,7 +341,8 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             can_contact_reviewer: review.can_contact_reviewer,
             created_at: review.created_at,
             updated_at: review.updated_at,
-             is_verified: review.is_verified,
+            // Include verification fields
+            is_verified: review.is_verified,
             verified_at: review.verified_at,
           })) || [],
         )
@@ -350,7 +373,16 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
   }, [initialAthlete.username])
 
   const getHeroImage = () => {
-    return SPORT_HERO_IMAGES[athlete.sport] || SPORT_HERO_IMAGES["Other"]
+    // If user has a custom hero image (Pro feature), use that first
+    if (athlete.hero_image_url) {
+      return athlete.hero_image_url
+    }
+
+    // Otherwise, use sport-based default images with gender consideration
+    const isFemale = athlete.default_hero_gender === "female"
+    const sportImages = isFemale ? SPORT_HERO_IMAGES_FEMALE : SPORT_HERO_IMAGES
+
+    return sportImages[athlete.sport] || sportImages["Other"]
   }
 
   const handleContactSubmit = async (e: React.FormEvent) => {

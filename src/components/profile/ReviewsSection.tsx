@@ -68,7 +68,7 @@ export function ReviewsSection({
 
   return (
     <Box>
-      <Heading size="md" mb={4} color={textColor}>
+      <Heading size="lg" mb={4} color={textColor}>
         <HStack spacing={2}>
           <Icon as={Star} color={primaryColor} />
           <Text>Coach Reviews</Text>

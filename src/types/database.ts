@@ -22,6 +22,7 @@ export type Database = {
           sat_score: number | null
           act_score: number | null
           positions_played: string[] | null
+          sport_positions: Json | null
           dominant_foot: string | null
           dominant_hand: string | null
           profile_picture_url: string | null
@@ -41,6 +42,7 @@ export type Database = {
           created_at: string
           updated_at: string
           hero_image_url: string | null
+          default_hero_gender: string | null
           instagram: string | null
           twitter: string | null
           tiktok: string | null
@@ -71,6 +73,7 @@ export type Database = {
           sat_score?: number | null
           act_score?: number | null
           positions_played?: string[] | null
+          sport_positions?: Json | null
           dominant_foot?: string | null
           dominant_hand?: string | null
           profile_picture_url?: string | null
@@ -90,6 +93,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
           hero_image_url?: string | null
+          default_hero_gender?: string | null
           instagram?: string
           twitter?: string
           tiktok?: string
@@ -120,6 +124,7 @@ export type Database = {
           sat_score?: number | null
           act_score?: number | null
           positions_played?: string[] | null
+          sport_positions?: Json | null
           dominant_foot?: string | null
           dominant_hand?: string | null
           profile_picture_url?: string | null
@@ -139,6 +144,7 @@ export type Database = {
           created_at?: string
           updated_at?: string
           hero_image_url?: string | null
+          default_hero_gender?: string | null
           instagram?: string
           twitter?: string
           tiktok?: string
@@ -648,10 +654,12 @@ export interface AthleteProfile {
   sat_score?: number | null
   act_score?: number | null
   positions_played?: string[] | null
+  sport_positions?: Record<string, string[]> | null
   dominant_foot?: string | null
   dominant_hand?: string | null
   profile_picture_url?: string | null
   hero_image_url?: string | null
+  default_hero_gender?: string | null
   primary_color?: string | null
   secondary_color?: string | null
   subscription_tier?: string | null

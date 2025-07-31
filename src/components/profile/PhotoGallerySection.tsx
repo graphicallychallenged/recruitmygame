@@ -46,7 +46,7 @@ export function PhotoGallerySection({
     <Card h="fit-content" bg={cardBgColor} borderColor={borderColor}>
       <CardBody>
         <Flex justify="space-between" align="center" mb={4}>
-          <Heading size="md" color={textColor}>
+          <Heading size="lg" color={textColor}>
             <HStack spacing={2}>
               <Icon as={Camera} color={primaryColor} />
               <Text>Photo Gallery</Text>

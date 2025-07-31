@@ -9,31 +9,27 @@ import {
   Heading,
   Badge,
   Button,
+  Avatar,
+  Icon,
   Wrap,
   WrapItem,
-  Avatar,
-  SimpleGrid,
   IconButton,
 } from "@chakra-ui/react"
-import {
-  MapPin,
-  Calendar,
-  GraduationCap,
-  Mail,
-  Phone,
-  Hand,
-  Footprints,
-  ChevronDown,
-  Instagram,
-  Facebook,
-  Music,
-  Twitter,
-  Youtube,
-  Linkedin,
-  Globe,
-} from "lucide-react"
-import type { AthleteProfile, RecruitingProfile } from "@/types/database"
+import { Mail, Phone, Star, ChevronDown } from "lucide-react"
+import type { AthleteProfile } from "@/types/database"
 import { keyframes } from "@emotion/react"
+
+const bounce = keyframes`
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0) translateX(-50%);
+  }
+  40% {
+    transform: translateY(-10px) translateX(-50%);
+  }
+  60% {
+    transform: translateY(-5px) translateX(-50%);
+  }
+`
 
 interface HeroSectionProps {
   athlete: AthleteProfile
@@ -43,20 +39,55 @@ interface HeroSectionProps {
   onContactClick: () => void
 }
 
-const bounce = keyframes`
-  0%, 20%, 50%, 80%, 100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-10px);
-  }
-  60% {
-    transform: translateY(-5px);
-  }
-`
-
 export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, onContactClick }: HeroSectionProps) {
-  const scrollToContent = () => {
+  // Get positions organized by sport
+  const getPositionsBySport = () => {
+    const sportPositions = athlete.sport_positions as Record<string, string[]> | null
+    const result: { sport: string; positions: string[]; isPrimary: boolean }[] = []
+
+    // Add primary sport positions
+    if (athlete.sport) {
+      const primaryPositions = sportPositions?.[athlete.sport] || athlete.positions_played || []
+      if (primaryPositions.length > 0) {
+        result.push({
+          sport: athlete.sport,
+          positions: primaryPositions,
+          isPrimary: true,
+        })
+      }
+    }
+
+    // Add additional sports positions
+    if (athlete.sports && athlete.sports.length > 0) {
+      athlete.sports.forEach((sport) => {
+        if (sport !== athlete.sport) {
+          const positions = sportPositions?.[sport] || []
+          if (positions.length > 0) {
+            result.push({
+              sport,
+              positions,
+              isPrimary: false,
+            })
+          }
+        }
+      })
+    }
+
+    return result
+  }
+
+  const positionsBySport = getPositionsBySport()
+
+  // Create tagline from school, location, graduation year
+  const createTagline = () => {
+    const parts = []
+    if (athlete.school) parts.push(athlete.school)
+    if (athlete.location) parts.push(athlete.location)
+    if (athlete.graduation_year) parts.push(`Class of ${athlete.graduation_year}`)
+    return parts.join(" • ")
+  }
+
+  const handleScrollDown = () => {
     const heroHeight = window.innerHeight
     window.scrollTo({
       top: heroHeight,
@@ -67,184 +98,191 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
   return (
     <Box
       position="relative"
-      h={{ base: "100vh", md: "500px" }}
-      bgImage={`url('${heroImage}')`}
+      minH={{ base: "100vh", md: "600px" }}
+      bgImage={`url(${heroImage})`}
       bgSize="cover"
       bgPosition="center"
       bgRepeat="no-repeat"
     >
       {/* Overlay */}
-      <Box position="absolute" inset={0} bg="blackAlpha.600" display="flex" alignItems="center" justifyContent="center">
-        <Container maxW="6xl" px={{ base: 4, md: 6 }}>
-          <VStack spacing={{ base: 4, md: 6 }} textAlign="center" color="white">
-            {athlete.profile_picture_url && (
-              <Avatar
-                size={{ base: "xl", md: "2xl" }}
-                src={athlete.profile_picture_url}
-                name={athlete.athlete_name}
-                border="4px solid white"
-              />
-            )}
-            <VStack spacing={{ base: 3, md: 2 }}>
-              <Heading size={{ base: "xl", md: "2xl" }} fontWeight="bold">
-                {athlete.athlete_name}
-              </Heading>
+      <Box position="absolute" top={0} left={0} right={0} bottom={0} bg="blackAlpha.600" />
 
-              {/* Sport and Additional Sports */}
-              <VStack spacing={2}>
-                <Badge
-                  variant="solid"
-                  fontSize={{ base: "sm", md: "md" }}
-                  px={3}
-                  py={1}
-                  bg={primaryColor}
-                  color="white"
-                >
-                  {athlete.sport}
-                </Badge>
-                {athlete.sports && athlete.sports.length > 0 && (
-                  <Wrap justify="center" spacing={2}>
-                    {athlete.sports.map((sport) => (
+      {/* Content */}
+      <Container maxW="7xl" position="relative" zIndex={1}>
+        <VStack spacing={{ base: 6, md: 8 }} py={{ base: 12, md: 16 }} align="center">
+          {/* Profile Picture */}
+          <Avatar
+            size="2xl"
+            src={athlete.profile_picture_url || undefined}
+            name={athlete.athlete_name}
+            border="4px solid"
+            borderColor="white"
+            shadow="xl"
+          />
+
+          {/* Name and Tagline */}
+          <VStack spacing={2}>
+            <Heading size="2xl" color="white" textAlign="center" textShadow="2px 2px 4px rgba(0,0,0,0.5)">
+              {athlete.athlete_name}
+            </Heading>
+            {createTagline() && (
+              <Text fontSize="md" color="white" opacity={0.9} textAlign="center">
+                {createTagline()}
+              </Text>
+            )}
+          </VStack>
+
+          {/* Sports and Positions - Horizontal Layout */}
+          <VStack spacing={4} w="full" maxW="4xl">
+            {/* Primary Sport */}
+            {athlete.sport && (
+              <Badge
+                variant="solid"
+                fontSize="lg"
+                px={6}
+                py={3}
+                bg={primaryColor}
+                color="white"
+                borderRadius="full"
+                fontWeight="bold"
+                textTransform="uppercase"
+              >
+                <HStack spacing={2}>
+                  <Icon as={Star} size={16} fill="currentColor" />
+                  <Text>{athlete.sport}</Text>
+                </HStack>
+              </Badge>
+            )}
+
+            {/* Additional Sports */}
+            {athlete.sports && athlete.sports.filter((sport) => sport !== athlete.sport).length > 0 && (
+              <VStack spacing={3}>
+                <Text fontSize="sm" color="white" fontWeight="medium" opacity={0.9}>
+                  Also plays:
+                </Text>
+                <Wrap justify="center" spacing={3}>
+                  {athlete.sports
+                    .filter((sport) => sport !== athlete.sport)
+                    .map((sport) => (
                       <WrapItem key={sport}>
-                        <Badge variant="solid" fontSize="xs" px={2} py={1} bg={secondaryColor} color="white">
+                        <Badge
+                          variant="solid"
+                          fontSize="sm"
+                          px={4}
+                          py={2}
+                          bg={secondaryColor}
+                          color="white"
+                          borderRadius="full"
+                          textTransform="uppercase"
+                        >
                           {sport}
                         </Badge>
                       </WrapItem>
                     ))}
-                  </Wrap>
-                )}
-              </VStack>
-
-              {/* Positions */}
-              {athlete.positions_played && athlete.positions_played.length > 0 && (
-                <Wrap justify="center" spacing={2}>
-                  {athlete.positions_played.map((position) => (
-                    <WrapItem key={position}>
-                      <Badge
-                        colorScheme="green"
-                        variant="outline"
-                        fontSize="xs"
-                        px={2}
-                        py={1}
-                        color="white"
-                        borderColor="white"
-                      >
-                        {position}
-                      </Badge>
-                    </WrapItem>
-                  ))}
                 </Wrap>
-              )}
-
-              {/* Athlete Information - Mobile Optimized */}
-              <VStack spacing={{ base: 2, md: 4 }} fontSize={{ base: "sm", md: "lg" }}>
-                {/* School */}
-                {athlete.school && (
-                  <HStack spacing={2}>
-                    <GraduationCap size={16} />
-                    <Text fontWeight="medium">{athlete.school}</Text>
-                  </HStack>
-                )}
-
-                {/* Location and Graduation Year */}
-                <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4} w="full">
-                  {athlete.location && (
-                    <HStack justify="center" spacing={2}>
-                      <MapPin size={16} />
-                      <Text>{athlete.location}</Text>
-                    </HStack>
-                  )}
-                  {athlete.graduation_year && (
-                    <HStack justify="center" spacing={2}>
-                      <Calendar size={16} />
-                      <Text>Class of {athlete.graduation_year}</Text>
-                    </HStack>
-                  )}
-                </SimpleGrid>
-
-                {/* Dominant Foot and Hand */}
-                {(athlete.dominant_foot || athlete.dominant_hand) && (
-                  <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4} w="full">
-                    {athlete.dominant_foot && (
-                      <HStack justify="center" spacing={2}>
-                        <Footprints size={16} />
-                        <Text>Dominant {athlete.dominant_foot} Foot</Text>
-                      </HStack>
-                    )}
-                    {athlete.dominant_hand && (
-                      <HStack justify="center" spacing={2}>
-                        <Hand size={16} />
-                        <Text>Dominant {athlete.dominant_hand} Hand</Text>
-                      </HStack>
-                    )}
-                  </SimpleGrid>
-                )}
               </VStack>
+            )}
 
-              {/* Contact Buttons - Mobile Optimized */}
-              <VStack spacing={3} w="full" maxW={{ base: "280px", md: "400px" }}>
-                <HStack spacing={2} w="full">
-                  {athlete.email && athlete.show_email && (
-                    <Button
-                      as="a"
-                      href={`mailto:${athlete.email}`}
-                      leftIcon={<Mail size={14} />}
-                      size={{ base: "sm", md: "md" }}
-                      variant="solid"
-                      bg={primaryColor}
-                      color="white"
-                      _hover={{ opacity: 0.8 }}
-                      flex={1}
-                      fontSize={{ base: "xs", md: "sm" }}
-                    >
-                      Email
-                    </Button>
-                  )}
-                  {athlete.phone && athlete.show_phone && (
-                    <Button
-                      as="a"
-                      href={`tel:${athlete.phone}`}
-                      leftIcon={<Phone size={14} />}
-                      size={{ base: "sm", md: "md" }}
-                      variant="solid"
-                      bg={secondaryColor}
-                      color="white"
-                      _hover={{ opacity: 0.8 }}
-                      flex={1}
-                      fontSize={{ base: "xs", md: "sm" }}
-                    >
-                      Call
-                    </Button>
-                  )}
+            {/* Positions by Sport */}
+            {positionsBySport.length > 0 && (
+              <VStack spacing={4}>
+                <Text fontSize="sm" color="white" fontWeight="medium" opacity={0.9}>
+                  Positions:
+                </Text>
+                <HStack spacing={3}>
+                  {positionsBySport.map((sportData) => (
+                    <VStack key={sportData.sport} spacing={2}>
+                      {positionsBySport.length > 1 && (
+                        <Text fontSize="xs" color="white" fontWeight="medium" opacity={0.8}>
+                          {sportData.sport}:
+                        </Text>
+                      )}
+                      <Wrap justify="center" spacing={2}>
+                        {sportData.positions.map((position) => (
+                          <WrapItem key={`${sportData.sport}-${position}`}>
+                            <Badge
+                              variant="outline"
+                              fontSize="xs"
+                              px={3}
+                              py={1}
+                              borderColor="white"
+                              color="white"
+                              borderRadius="full"
+                              borderWidth="2px"
+                              textTransform="uppercase"
+                            >
+                              {position}
+                            </Badge>
+                          </WrapItem>
+                        ))}
+                      </Wrap>
+                    </VStack>
+                  ))}
                 </HStack>
-
               </VStack>
-            </VStack>
+            )}
           </VStack>
-        </Container>
-      </Box>
 
-      {/* Scroll Down Arrow - Mobile Only */}
-      <Box
-        position="absolute"
-        bottom={6}
-        left="50%"
-        transform="translateX(-50%)"
-        display={{ base: "block", md: "none" }}
-      >
+          {/* Contact Buttons */}
+          <HStack spacing={4}>
+            {athlete.email && athlete.show_email && (
+              <Button
+                leftIcon={<Mail size={16} />}
+                variant="solid"
+                size="md"
+                bg={primaryColor}
+                color="white"
+                _hover={{ opacity: 0.8 }}
+                as="a"
+                href={`mailto:${athlete.email}`}
+              >
+                Email
+              </Button>
+            )}
+
+            {athlete.phone && athlete.show_phone && (
+              <Button
+                leftIcon={<Phone size={16} />}
+                variant="solid"
+                size="md"
+                bg={secondaryColor}
+                color="white"
+                _hover={{ opacity: 0.8 }}
+                as="a"
+                href={`tel:${athlete.phone}`}
+              >
+                Call
+              </Button>
+            )}
+
+            <Button
+              leftIcon={<Mail size={16} />}
+              variant="solid"
+              size="md"
+              bg={primaryColor}
+              color="white"
+              _hover={{ opacity: 0.8 }}
+              onClick={onContactClick}
+            >
+              Contact
+            </Button>
+          </HStack>
+        </VStack>
+      </Container>
+
+      {/* Scroll Down Arrow - positioned lower to avoid overlap */}
+      <Box position="absolute" bottom={-5} left="50%" transform="translateX(-50%)" zIndex={100}  onClick={handleScrollDown}>
         <IconButton
           aria-label="Scroll to content"
           icon={<ChevronDown size={24} />}
           variant="ghost"
           color="white"
           size="lg"
-          onClick={scrollToContent}
+          bg="whiteAlpha.200"
+          _hover={{ bg: "whiteAlpha.300" }}
+          borderRadius="full"
           animation={`${bounce} 2s infinite`}
-          _hover={{
-            bg: "whiteAlpha.200",
-            transform: "scale(1.1)",
-          }}
-          transition="all 0.2s"
+      
         />
       </Box>
     </Box>

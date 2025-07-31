@@ -29,6 +29,8 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  RadioGroup,
+  Radio,
 } from "@chakra-ui/react"
 import { User, Palette, Eye, Save } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
@@ -144,6 +146,7 @@ export default function ProfilePage() {
     primary_color: "#1a202c",
     secondary_color: "#2d3748",
     theme_mode: "light",
+    default_hero_gender: "male",
     email: "",
     phone: "",
     show_email: false,
@@ -208,6 +211,7 @@ export default function ProfilePage() {
         primary_color: athleteData.primary_color || "#1a202c",
         secondary_color: athleteData.secondary_color || "#2d3748",
         theme_mode: athleteData.theme_mode || "light",
+        default_hero_gender: athleteData.default_hero_gender || "male",
         email: athleteData.email || "",
         phone: athleteData.phone || "",
         show_email: athleteData.show_email || false,
@@ -257,6 +261,7 @@ export default function ProfilePage() {
         primary_color: hasCustomTheming ? formData.primary_color : athlete.primary_color,
         secondary_color: hasCustomTheming ? formData.secondary_color : athlete.secondary_color,
         theme_mode: hasCustomTheming ? formData.theme_mode : athlete.theme_mode,
+        default_hero_gender: formData.default_hero_gender,
         email: formData.email || null,
         phone: formData.phone || null,
         show_email: formData.show_email,
@@ -377,6 +382,7 @@ export default function ProfilePage() {
   const hasCustomTheming = hasFeature(currentTier, "custom_theming")
   const hasMultipleSports = hasFeature(currentTier, "multiple_sports")
   const hasAnalytics = hasFeature(currentTier, "analytics")
+  const hasCustomHero = hasFeature(currentTier, "custom_hero")
   const availablePositions = POSITION_OPTIONS[formData.sport] || []
 
   return (
@@ -894,6 +900,25 @@ export default function ProfilePage() {
               </HStack>
             </Heading>
 
+            {/* Default Hero Image Gender Selection - Available for all tiers */}
+            <FormControl mb={6}>
+              <FormLabel>Default Header Image Style</FormLabel>
+              <Text fontSize="sm" color="gray.600" mb={3}>
+                Choose the style of default header images for your sport
+              </Text>
+              <RadioGroup
+                value={formData.default_hero_gender}
+                onChange={(value) => setFormData({ ...formData, default_hero_gender: value })}
+              >
+                <HStack spacing={6}>
+                  <Radio value="male">Male Athlete Images</Radio>
+                  <Radio value="female">Female Athlete Images</Radio>
+                </HStack>
+              </RadioGroup>
+            </FormControl>
+
+            <Divider mb={6} />
+
             {hasCustomTheming ? (
               <>
                 <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={4}>
@@ -972,7 +997,7 @@ export default function ProfilePage() {
               <HStack spacing={2}>
                 <Icon as={Eye} color="purple.500" />
                 <Text>Custom Hero Image</Text>
-                {!hasFeature(currentTier, "custom_hero") && (
+                {!hasCustomHero && (
                   <Badge colorScheme="purple" variant="outline">
                     Pro
                   </Badge>
@@ -980,7 +1005,7 @@ export default function ProfilePage() {
               </HStack>
             </Heading>
 
-            {hasFeature(currentTier, "custom_hero") ? (
+            {hasCustomHero ? (
               <HeroImageUpload
                 currentHeroUrl={formData.hero_image_url}
                 athleteId={athlete.id}
@@ -1060,7 +1085,7 @@ export default function ProfilePage() {
               <Text fontSize="sm" color="blue.600" mb={3}>
                 Your profile is available at:
                 <Text as="span" fontWeight="medium" ml={1}>
-                http://{athlete.username}.{typeof window !== "undefined" ? window.location.origin : ""}
+                  http://{athlete.username}.{typeof window !== "undefined" ? window.location.origin : ""}
                 </Text>
               </Text>
               <Button

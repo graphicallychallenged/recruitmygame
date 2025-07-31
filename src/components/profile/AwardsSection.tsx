@@ -1,11 +1,10 @@
 "use client"
 
-import { Box, Card, CardBody, Heading, VStack, HStack, Text, Badge, Divider, Icon } from "@chakra-ui/react"
-import { Trophy, GraduationCap, Users, Award, Star } from "lucide-react"
-import type { AthleteAward } from "@/types/database"
+import { Box, VStack, HStack, Text, Heading, Badge, Icon, Wrap, WrapItem, Divider } from "@chakra-ui/react"
+import { Trophy, Award, Star, Medal, Crown } from "lucide-react"
 
 interface AwardsSectionProps {
-  awards: AthleteAward[]
+  awards: any[]
   primaryColor: string
   secondaryColor: string
   textColor: string
@@ -13,6 +12,36 @@ interface AwardsSectionProps {
   cardBgColor: string
   borderColor: string
   isDarkTheme: boolean
+}
+
+const getAwardTypeIcon = (type: string) => {
+  switch (type) {
+    case "academic":
+      return Trophy
+    case "athletic":
+      return Medal
+    case "leadership":
+      return Crown
+    case "community":
+      return Award
+    default:
+      return Star
+  }
+}
+
+const getAwardTypeInfo = (type: string) => {
+  switch (type) {
+    case "academic":
+      return { icon: Trophy, label: "Academic" }
+    case "athletic":
+      return { icon: Medal, label: "Athletic" }
+    case "leadership":
+      return { icon: Crown, label: "Leadership" }
+    case "community":
+      return { icon: Award, label: "Community" }
+    default:
+      return { icon: Star, label: "Other" }
+  }
 }
 
 export function AwardsSection({
@@ -25,79 +54,120 @@ export function AwardsSection({
   borderColor,
   isDarkTheme,
 }: AwardsSectionProps) {
-  if (awards.length === 0) return null
+  const athleteAwards = awards || []
 
-  const getAwardTypeInfo = (type: string) => {
-    const types = {
-      academic: { icon: GraduationCap },
-      athletic: { icon: Trophy },
-      leadership: { icon: Users },
-      community: { icon: Award },
-      other: { icon: Star },
-    }
-    return types[type as keyof typeof types] || types.other
+  if (athleteAwards.length === 0) {
+    return (
+      <Box py={8}>
+        <VStack spacing={4}>
+          <Icon as={Trophy} boxSize={12} color={mutedTextColor} />
+          <Text color={mutedTextColor} textAlign="center">
+            No awards added yet. Check back later to see this athlete's achievements!
+          </Text>
+        </VStack>
+      </Box>
+    )
   }
 
-  return (
-    <Card h="fit-content" bg={cardBgColor} borderColor={borderColor}>
-      <CardBody>
-        <Heading size="md" mb={4} color={textColor}>
-          <HStack spacing={2}>
-            <Icon as={Trophy} color={primaryColor} />
-            <Text>Awards & Honors</Text>
-          </HStack>
-        </Heading>
-        <VStack spacing={4} align="stretch">
-          {awards.slice(0, 5).map((award) => {
-            const typeInfo = getAwardTypeInfo(award.award_type)
+  // Calculate award statistics using primary/secondary colors
+  const awardStats = athleteAwards.reduce(
+    (acc, award) => {
+      acc[award.award_type] = (acc[award.award_type] || 0) + 1
+      acc.total++
+      return acc
+    },
+    { academic: 0, athletic: 0, leadership: 0, community: 0, total: 0 },
+  )
 
-            return (
-              <Box key={award.id}>
-                <HStack justify="space-between" align="start">
-                  <HStack spacing={3} flex={1}>
-                    <Box
-                      p={2}
-                      borderRadius="lg"
-                      bg={isDarkTheme ? "gray.700" : "gray.100"}
-                      color={secondaryColor}
-                      flexShrink={0}
-                    >
-                      <Icon as={typeInfo.icon} size={20} />
-                    </Box>
-                    <VStack align="start" spacing={1} flex={1}>
-                      <Text fontWeight="semibold" color={textColor}>
-                        {award.title}
-                      </Text>
-                      <Text fontSize="sm" color={mutedTextColor}>
-                        {award.organization}
-                      </Text>
-                      {award.description && (
-                        <Text fontSize="sm" color={mutedTextColor}>
-                          {award.description}
-                        </Text>
-                      )}
-                    </VStack>
-                  </HStack>
-                  <HStack align="end" spacing={1}>
-                    <Badge fontSize="xs" bg={secondaryColor} color="white">
-                      {new Date(award.award_date).getFullYear()}
-                    </Badge>
-                    <Badge fontSize="xs" variant="outline" borderColor={secondaryColor} color={secondaryColor}>
-                      {award.award_type.charAt(0).toUpperCase() + award.award_type.slice(1)}
-                    </Badge>
-                  </HStack>
-                </HStack>
-                <Divider mt={3} borderColor={borderColor} />
-              </Box>
-            )
-          })}
-          {awards.length > 5 && (
-            <Text fontSize="sm" color={mutedTextColor} textAlign="center">
-              +{awards.length - 5} more awards
-            </Text>
-          )}
-        </VStack>
-      </CardBody>
-    </Card>
+  return (
+    <VStack spacing={8} align="stretch">
+      {/* Awards Statistics */}
+      <Box>
+        <Heading size="lg" color={textColor} mb={6}>
+          Awards & Recognition
+        </Heading>
+        <Wrap spacing={4}>
+          <WrapItem>
+            <Badge bg={primaryColor} color="white" variant="solid" px={1} py={1} borderRadius="full" fontSize="xs">
+              <HStack spacing={2}>
+                <Icon as={Trophy} boxSize={4} />
+                <Text fontWeight="medium">{awardStats.academic} Academic</Text>
+              </HStack>
+            </Badge>
+          </WrapItem>
+          <WrapItem>
+            <Badge bg={secondaryColor} color="white" variant="solid" px={1} py={1} borderRadius="full" fontSize="xs">
+              <HStack spacing={2}>
+                <Icon as={Medal} boxSize={4} />
+                <Text fontWeight="medium">{awardStats.athletic} Athletic</Text>
+              </HStack>
+            </Badge>
+          </WrapItem>
+          <WrapItem>
+            <Badge bg={primaryColor} color="white" variant="solid" px={1} py={1} borderRadius="full" fontSize="xs">
+              <HStack spacing={2}>
+                <Icon as={Crown} boxSize={4} />
+                <Text fontWeight="medium">{awardStats.leadership} Leadership</Text>
+              </HStack>
+            </Badge>
+          </WrapItem>
+          <WrapItem>
+            <Badge bg={secondaryColor} color="white" variant="solid" px={1} py={1} borderRadius="full" fontSize="xs">
+              <HStack spacing={2}>
+                <Icon as={Award} boxSize={4} />
+                <Text fontWeight="medium">{awardStats.community} Community</Text>
+              </HStack>
+            </Badge>
+          </WrapItem>
+        </Wrap>
+      </Box>
+
+      {/* Awards Grid */}
+      {awards.slice(0, 5).map((award) => {
+        const typeInfo = getAwardTypeInfo(award.award_type)
+        return (
+          <Box key={award.id}>
+            <HStack justify="space-between" align="start">
+              <HStack spacing={3} flex={1}>
+                <Box
+                  p={2}
+                  borderRadius="lg"
+                  bg={isDarkTheme ? "gray.700" : "gray.100"}
+                  color={secondaryColor}
+                  flexShrink={0}
+                >
+                  <Icon as={typeInfo.icon} size={20} />
+                </Box>
+                <VStack align="start" spacing={1} flex={1}>
+                  <Text fontWeight="semibold" color={textColor}>
+                    {award.title}
+                  </Text>
+                  <Text fontSize="sm" color={mutedTextColor}>
+                    {award.organization}
+                  </Text>
+                  {award.description && (
+                    <Text fontSize="sm" color={mutedTextColor}>
+                      {award.description}
+                    </Text>
+                  )}
+                </VStack>
+              </HStack>
+              <HStack align="end" spacing={1}>
+                <Badge fontSize="xs" bg={primaryColor} color="white">
+                  {award.level || "Local"}
+                </Badge>
+                <Badge fontSize="xs" bg={secondaryColor} color="white">
+                  {new Date(award.award_date).getFullYear()}
+                </Badge>
+                <Badge fontSize="xs" variant="outline" borderColor={secondaryColor} color={secondaryColor}>
+                  {award.award_type.charAt(0).toUpperCase() + award.award_type.slice(1)}
+                </Badge>
+              </HStack>
+            </HStack>
+            <Divider mt={3} borderColor={borderColor} />
+          </Box>
+        )
+      })}
+    </VStack>
   )
 }

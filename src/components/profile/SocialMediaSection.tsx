@@ -121,7 +121,7 @@ export function SocialMediaSection({
     <Card bg={cardBgColor} borderColor={borderColor}>
       <CardBody>
         <VStack spacing={6} align="stretch">
-          <Heading size="md" color={textColor}>
+          <Heading size="lg" color={textColor}>
             <HStack spacing={2}>
               <Share2 size={20} color={primaryColor} />
               <Text>Connect & Follow</Text>
