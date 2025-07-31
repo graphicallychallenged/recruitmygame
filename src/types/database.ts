@@ -9,6 +9,7 @@ export type Database = {
           user_id: string
           athlete_name: string
           username: string
+          subdomain: string | null
           sport: string
           sports: string[] | null
           grade: string | null
@@ -60,6 +61,7 @@ export type Database = {
           user_id: string
           athlete_name: string
           username: string
+          subdomain?: string | null
           sport: string
           sports?: string[] | null
           grade?: string | null
@@ -111,6 +113,7 @@ export type Database = {
           user_id?: string
           athlete_name?: string
           username?: string
+          subdomain?: string | null
           sport?: string
           sports?: string[] | null
           grade?: string | null
@@ -641,6 +644,7 @@ export interface AthleteProfile {
   user_id: string
   athlete_name: string
   username: string
+  subdomain?: string | null
   sport: string
   sports?: string[] | null
   grade?: string | null

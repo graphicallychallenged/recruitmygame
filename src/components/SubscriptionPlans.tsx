@@ -50,7 +50,7 @@ const PRICING_PLANS: PricingPlan[] = [
       "Profile customization",
       "Mobile responsive design",
     ],
-    unavailable: ["Videos", "Awards & Honors", "Reviews", "Custom theming", "Schedule management", "Analytics"],
+    unavailable: ["Videos", "Awards & Honors", "Reviews", "Custom theming", "Schedule management", "Analytics",   "Customized Subdomain"],
   },
   {
     id: "premium",
@@ -77,6 +77,7 @@ const PRICING_PLANS: PricingPlan[] = [
       "Custom URL",
       "Business Card Generator",
       "Analytics",
+      "Customized Subdomain"
     ],
   },
   {
@@ -96,6 +97,7 @@ const PRICING_PLANS: PricingPlan[] = [
       "Business Card Generator with QR Code",
       "Advanced Analytics",
       "Priority support",
+      "Pick your own subdomain"
     ],
   },
 ]

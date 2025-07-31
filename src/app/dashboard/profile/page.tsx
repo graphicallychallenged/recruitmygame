@@ -122,6 +122,41 @@ const POSITION_OPTIONS: Record<string, string[]> = {
 
 const DOMINANCE_OPTIONS = ["Left", "Right", "Both"]
 
+const generateUniqueSubdomain = async (baseName: string): Promise<string> => {
+  const sanitized = baseName
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .substring(0, 60)
+
+  // Check if base name is available
+  const { data: existing } = await supabase.from("athletes").select("subdomain").eq("subdomain", sanitized).single()
+
+  if (!existing) {
+    return sanitized
+  }
+
+  // Generate with random 3-digit number
+  let attempts = 0
+  while (attempts < 10) {
+    const randomNum = Math.floor(Math.random() * 900) + 100
+    const candidate = `${sanitized}${randomNum}`
+
+    const { data: existingWithNum } = await supabase
+      .from("athletes")
+      .select("subdomain")
+      .eq("subdomain", candidate)
+      .single()
+
+    if (!existingWithNum) {
+      return candidate
+    }
+    attempts++
+  }
+
+  // Fallback with timestamp
+  return `${sanitized}${Date.now().toString().slice(-3)}`
+}
+
 export default function ProfilePage() {
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -147,6 +182,7 @@ export default function ProfilePage() {
     secondary_color: "#2d3748",
     theme_mode: "light",
     default_hero_gender: "male",
+    subdomain: "",
     email: "",
     phone: "",
     show_email: false,
@@ -166,8 +202,18 @@ export default function ProfilePage() {
     hero_image_url: "",
   })
 
+  const [subdomainChecking, setSubdomainChecking] = useState(false)
+  const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null)
+  const [subdomainError, setSubdomainError] = useState("")
+
   const toast = useToast()
   const router = useRouter()
+
+  const currentTier = (athlete?.subscription_tier || "free") as "free" | "premium" | "pro"
+  const hasCustomTheming = hasFeature(currentTier, "custom_theming")
+  const hasMultipleSports = hasFeature(currentTier, "multiple_sports")
+  const hasAnalytics = hasFeature(currentTier, "analytics")
+  const hasCustomHero = hasFeature(currentTier, "custom_hero")
 
   useEffect(() => {
     fetchAthleteData()
@@ -212,6 +258,7 @@ export default function ProfilePage() {
         secondary_color: athleteData.secondary_color || "#2d3748",
         theme_mode: athleteData.theme_mode || "light",
         default_hero_gender: athleteData.default_hero_gender || "male",
+        subdomain: athleteData.subdomain || "",
         email: athleteData.email || "",
         phone: athleteData.phone || "",
         show_email: athleteData.show_email || false,
@@ -236,8 +283,89 @@ export default function ProfilePage() {
     }
   }
 
+  const checkSubdomainAvailability = async (subdomain: string) => {
+    if (!subdomain || subdomain.length < 3) {
+      setSubdomainAvailable(null)
+      setSubdomainError("")
+      return
+    }
+
+    // Sanitize subdomain
+    const sanitized = subdomain
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "")
+      .substring(0, 60)
+
+    if (sanitized !== subdomain) {
+      setSubdomainError("Subdomain can only contain lowercase letters, numbers, and hyphens")
+      setSubdomainAvailable(false)
+      return
+    }
+
+    if (sanitized.length < 3) {
+      setSubdomainError("Subdomain must be at least 3 characters long")
+      setSubdomainAvailable(false)
+      return
+    }
+
+    setSubdomainChecking(true)
+    setSubdomainError("")
+
+    try {
+      const { data: existing } = await supabase
+        .from("athletes")
+        .select("id")
+        .eq("subdomain", sanitized)
+        .neq("id", athlete?.id || "")
+        .single()
+
+      if (existing) {
+        setSubdomainAvailable(false)
+        setSubdomainError("This subdomain is already taken")
+      } else {
+        setSubdomainAvailable(true)
+        setSubdomainError("")
+      }
+    } catch (error) {
+      // No existing record found, subdomain is available
+      setSubdomainAvailable(true)
+      setSubdomainError("")
+    } finally {
+      setSubdomainChecking(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!hasFeature(currentTier, "custom_subdomain")) return
+
+    const timeoutId = setTimeout(() => {
+      if (formData.subdomain && formData.subdomain !== athlete?.subdomain) {
+        checkSubdomainAvailability(formData.subdomain)
+      } else {
+        setSubdomainAvailable(null)
+        setSubdomainError("")
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [formData.subdomain, athlete?.subdomain])
+
   const handleSave = async () => {
     if (!athlete) return
+
+    // Validate subdomain if it's being changed
+    if (hasFeature(currentTier, "custom_subdomain") && formData.subdomain && formData.subdomain !== athlete.subdomain) {
+      if (subdomainAvailable === false || subdomainError) {
+        toast({
+          title: "Invalid subdomain",
+          description: subdomainError || "Please choose a different subdomain",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        })
+        return
+      }
+    }
 
     setSaving(true)
     try {
@@ -262,6 +390,7 @@ export default function ProfilePage() {
         secondary_color: hasCustomTheming ? formData.secondary_color : athlete.secondary_color,
         theme_mode: hasCustomTheming ? formData.theme_mode : athlete.theme_mode,
         default_hero_gender: formData.default_hero_gender,
+        subdomain: hasFeature(currentTier, "custom_subdomain") ? formData.subdomain || null : athlete.subdomain,
         email: formData.email || null,
         phone: formData.phone || null,
         show_email: formData.show_email,
@@ -280,6 +409,11 @@ export default function ProfilePage() {
           formData.other_recruiting_profiles.length > 0 ? formData.other_recruiting_profiles : null,
         updated_at: new Date().toISOString(),
         hero_image_url: formData.hero_image_url || null,
+      }
+
+      // Handle subdomain generation for new profiles without subdomain
+      if (!athlete.subdomain && formData.athlete_name) {
+        updateData.subdomain = await generateUniqueSubdomain(formData.athlete_name)
       }
 
       const { error } = await supabase.from("athletes").update(updateData).eq("id", athlete.id)
@@ -378,11 +512,6 @@ export default function ProfilePage() {
     )
   }
 
-  const currentTier = (athlete.subscription_tier || "free") as "free" | "premium" | "pro"
-  const hasCustomTheming = hasFeature(currentTier, "custom_theming")
-  const hasMultipleSports = hasFeature(currentTier, "multiple_sports")
-  const hasAnalytics = hasFeature(currentTier, "analytics")
-  const hasCustomHero = hasFeature(currentTier, "custom_hero")
   const availablePositions = POSITION_OPTIONS[formData.sport] || []
 
   return (
@@ -418,6 +547,45 @@ export default function ProfilePage() {
                   />
                 </FormControl>
               </GridItem>
+              {hasFeature(currentTier, "custom_subdomain") && (
+                <GridItem>
+                  <FormControl isInvalid={subdomainAvailable === false || !!subdomainError}>
+                    <FormLabel>
+                      Custom Subdomain
+                      <Badge ml={2} colorScheme="purple" variant="outline">
+                        Pro
+                      </Badge>
+                    </FormLabel>
+                    <Input
+                      value={formData.subdomain}
+                      onChange={(e) => setFormData({ ...formData, subdomain: e.target.value })}
+                      placeholder="your-custom-name"
+                      isDisabled={subdomainChecking}
+                    />
+                    <HStack spacing={2} mt={1}>
+                      <Text fontSize="xs" color="gray.500" flex={1}>
+                        {formData.subdomain || "your-custom-name"}.recruitmygame.com
+                      </Text>
+                      {subdomainChecking && <Spinner size="xs" />}
+                      {subdomainAvailable === true && (
+                        <Text fontSize="xs" color="green.500" fontWeight="medium">
+                          ✓ Available
+                        </Text>
+                      )}
+                      {subdomainAvailable === false && (
+                        <Text fontSize="xs" color="red.500" fontWeight="medium">
+                          ✗ Taken
+                        </Text>
+                      )}
+                    </HStack>
+                    {subdomainError && (
+                      <Text fontSize="xs" color="red.500" mt={1}>
+                        {subdomainError}
+                      </Text>
+                    )}
+                  </FormControl>
+                </GridItem>
+              )}
               <GridItem>
                 <FormControl isRequired>
                   <FormLabel>Primary Sport</FormLabel>
@@ -605,6 +773,53 @@ export default function ProfilePage() {
             <Heading size="md" mb={4}>
               Sports & Positions
             </Heading>
+
+            {/* Additional Sports - Only for Pro */}
+            <FormControl mb={6}>
+              <FormLabel>
+                Additional Sports (Optional)
+                {!hasMultipleSports && (
+                  <Badge ml={2} colorScheme="purple" variant="outline">
+                    Pro
+                  </Badge>
+                )}
+              </FormLabel>
+              <Text fontSize="sm" color="gray.600" mb={3}>
+                Select any additional sports you play besides your primary sport
+              </Text>
+              {hasMultipleSports ? (
+                <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }} gap={2}>
+                  {SPORTS_OPTIONS.filter((sport) => sport !== formData.sport).map((sport) => (
+                    <GridItem key={sport}>
+                      <Button
+                        size="sm"
+                        variant={formData.sports.includes(sport) ? "solid" : "outline"}
+                        colorScheme={formData.sports.includes(sport) ? "blue" : "gray"}
+                        onClick={() => handleSportToggle(sport)}
+                        w="full"
+                      >
+                        {sport}
+                      </Button>
+                    </GridItem>
+                  ))}
+                </Grid>
+              ) : (
+                <Alert status="info">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle>Pro Feature</AlertTitle>
+                    <AlertDescription>
+                      Upgrade to Pro to add multiple sports to your profile.{" "}
+                      <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                        Upgrade Now
+                      </Button>
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+              )}
+            </FormControl>
+
+            <Divider mb={6} />
 
             {/* Positions */}
             {formData.sport && availablePositions.length > 0 && (
@@ -1026,7 +1241,7 @@ export default function ProfilePage() {
         </Flex>
 
         {/* Public Profile Link */}
-        {athlete.username && (
+        {(athlete.subdomain || athlete.username) && (
           <Card bg="blue.50" borderColor="blue.200">
             <CardBody>
               <HStack spacing={2} mb={2}>
@@ -1038,12 +1253,12 @@ export default function ProfilePage() {
               <Text fontSize="sm" color="blue.600" mb={3}>
                 Your profile is available at:
                 <Text as="span" fontWeight="medium" ml={1}>
-                  http://{athlete.username}.recruitmygame.com
+                  http://{athlete.subdomain || athlete.username}.recruitmygame.com
                 </Text>
               </Text>
               <Button
                 as="a"
-                href={`http://${athlete.username}.recruitmygame.com`}
+                href={`http://${athlete.subdomain || athlete.username}.recruitmygame.com`}
                 target="_blank"
                 size="sm"
                 colorScheme="blue"

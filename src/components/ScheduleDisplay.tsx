@@ -22,7 +22,7 @@ interface ScheduleDisplayProps {
 }
 
 const EVENT_TYPES = [
-  { value: "game", label: "Game/Match", icon: Trophy, color: "teal" },
+  { value: "game", label: "Game/Match", icon: Trophy, color: "blue" },
   { value: "training", label: "Training/Practice", icon: Dumbbell, color: "green" },
   { value: "id_camp", label: "ID Camp", icon: Users, color: "purple" },
   { value: "community_service", label: "Community Service", icon: Heart, color: "red" },

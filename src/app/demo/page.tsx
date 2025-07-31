@@ -40,7 +40,7 @@ export default function DemoProfile() {
   }
 
   const stats = [
-    { label: "Points Per Game", value: "18.5", color: "teal" },
+    { label: "Points Per Game", value: "18.5", color: "blue" },
     { label: "Assists Per Game", value: "7.2", color: "green" },
     { label: "Field Goal %", value: "45.8%", color: "purple" },
     { label: "Free Throw %", value: "82.1%", color: "orange" },
