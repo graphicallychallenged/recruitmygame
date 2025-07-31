@@ -546,20 +546,6 @@ export default function SettingsPage() {
 
                   <HStack justify="space-between">
                     <VStack align="start" spacing={0}>
-                      <Text>Show Birth Date</Text>
-                      <Text fontSize="sm" color="gray.600">
-                        Allow age calculation for eligibility verification
-                      </Text>
-                    </VStack>
-                    <Switch
-                      isChecked={privacy?.show_birth_date || false}
-                      onChange={(e) => updatePrivacy({ show_birth_date: e.target.checked })}
-                      isDisabled={settingsSaving}
-                    />
-                  </HStack>
-
-                  <HStack justify="space-between">
-                    <VStack align="start" spacing={0}>
                       <Text>Allow Coach Reviews</Text>
                       <Text fontSize="sm" color="gray.600">
                         Let verified coaches leave reviews on your profile

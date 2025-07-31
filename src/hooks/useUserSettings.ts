@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useToast } from "@chakra-ui/react"
 import { supabase } from "@/utils/supabase/client"
+import { useToast } from "@chakra-ui/react"
 
-export interface NotificationSettings {
+interface NotificationSettings {
   email_notifications: boolean
   push_notifications: boolean
   marketing_emails: boolean
@@ -12,39 +12,25 @@ export interface NotificationSettings {
   schedule_reminders: boolean
 }
 
-export interface PrivacySettings {
+interface PrivacySettings {
   profile_visibility: "public" | "private" | "coaches_only"
   show_contact_info: boolean
   show_location: boolean
-  show_birth_date: boolean
   allow_reviews: boolean
 }
 
-export interface UserActivity {
+interface ActivityLog {
   id: string
-  action: string
-  details?: any
+  user_id: string
+  activity_type: string
+  description: string
   created_at: string
 }
 
 export function useUserSettings() {
-  const [notifications, setNotifications] = useState<NotificationSettings>({
-    email_notifications: true,
-    push_notifications: false,
-    marketing_emails: false,
-    review_notifications: true,
-    schedule_reminders: true,
-  })
-
-  const [privacy, setPrivacy] = useState<PrivacySettings>({
-    profile_visibility: "public",
-    show_contact_info: true,
-    show_location: true,
-    show_birth_date: false,
-    allow_reviews: true,
-  })
-
-  const [activities, setActivities] = useState<UserActivity[]>([])
+  const [notifications, setNotifications] = useState<NotificationSettings | null>(null)
+  const [privacy, setPrivacy] = useState<PrivacySettings | null>(null)
+  const [activities, setActivities] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const toast = useToast()
@@ -60,221 +46,136 @@ export function useUserSettings() {
       } = await supabase.auth.getUser()
       if (!user) return
 
-      // Fetch notification settings
-      const { data: notificationData } = await supabase
-        .from("user_notification_settings")
-        .select("*")
+      // Fetch user settings
+      const { data: userSettings } = await supabase.from("user_settings").select("*").eq("user_id", user.id).single()
+
+      // Fetch athlete profile for privacy settings
+      const { data: athleteProfile } = await supabase
+        .from("athletes")
+        .select("profile_visibility, allow_coach_reviews, show_location, show_email, show_phone")
         .eq("user_id", user.id)
         .single()
 
-      if (notificationData) {
+      if (userSettings) {
         setNotifications({
-          email_notifications: notificationData.email_notifications,
-          push_notifications: notificationData.push_notifications,
-          marketing_emails: notificationData.marketing_emails,
-          review_notifications: notificationData.review_notifications,
-          schedule_reminders: notificationData.schedule_reminders,
+          email_notifications: userSettings.email_notifications ?? true,
+          push_notifications: false, // Not implemented yet
+          marketing_emails: userSettings.marketing_emails ?? false,
+          review_notifications: true, // Default
+          schedule_reminders: true, // Default
         })
       }
 
-      // Fetch privacy settings
-      const { data: privacyData } = await supabase
-        .from("user_privacy_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .single()
-
-      if (privacyData) {
+      if (athleteProfile) {
         setPrivacy({
-          profile_visibility: privacyData.profile_visibility,
-          show_contact_info: privacyData.show_contact_info,
-          show_location: privacyData.show_location,
-          show_birth_date: privacyData.show_birth_date,
-          allow_reviews: privacyData.allow_reviews,
+          profile_visibility: athleteProfile.profile_visibility || "public",
+          show_contact_info: athleteProfile.show_email || athleteProfile.show_phone || false,
+          show_location: athleteProfile.show_location ?? true,
+          allow_reviews: athleteProfile.allow_coach_reviews ?? true,
         })
       }
-
-      // Fetch recent activity
-      const { data: activityData } = await supabase
-        .from("user_activity_log")
-        .select("id, action, details, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10)
-
-      if (activityData) {
-        setActivities(activityData)
-      }
-
-      setLoading(false)
     } catch (error) {
       console.error("Error fetching settings:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load settings",
-        status: "error",
-        duration: 3000,
-      })
+    } finally {
       setLoading(false)
     }
   }
 
-  const updateNotifications = async (newSettings: Partial<NotificationSettings>) => {
+  const updateNotifications = async (updates: Partial<NotificationSettings>) => {
     setSaving(true)
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) throw new Error("No user found")
 
-      const oldSettings = { ...notifications }
-      const updatedSettings = { ...notifications, ...newSettings }
-
-      const { error } = await supabase
-        .from("user_notification_settings")
-        .upsert({
-          user_id: user.id,
-          ...updatedSettings,
-        })
-        .eq("user_id", user.id)
+      const { error } = await supabase.from("user_settings").upsert({
+        user_id: user.id,
+        email_notifications: updates.email_notifications ?? notifications?.email_notifications ?? true,
+        marketing_emails: updates.marketing_emails ?? notifications?.marketing_emails ?? false,
+        updated_at: new Date().toISOString(),
+      })
 
       if (error) throw error
 
-      setNotifications(updatedSettings)
-
-      // Log the activity with detailed change information
-      const changedFields = Object.keys(newSettings).filter(
-        (key) => oldSettings[key as keyof NotificationSettings] !== newSettings[key as keyof NotificationSettings],
-      )
-
-      await logActivity(
-        "notification_settings_updated",
-        "user_settings",
-        user.id,
-        oldSettings,
-        newSettings,
-        `Updated notification settings: ${changedFields.join(", ")}`,
-      )
+      setNotifications((prev) => (prev ? { ...prev, ...updates } : null))
 
       toast({
-        title: "Success",
-        description: "Notification settings updated",
+        title: "Notifications updated",
+        description: "Your notification preferences have been saved.",
         status: "success",
         duration: 3000,
       })
-    } catch (error) {
-      console.error("Error updating notification settings:", error)
+    } catch (error: any) {
+      console.error("Error updating notifications:", error)
       toast({
-        title: "Error",
-        description: "Failed to update notification settings",
+        title: "Error updating notifications",
+        description: error.message,
         status: "error",
-        duration: 3000,
+        duration: 5000,
       })
     } finally {
       setSaving(false)
     }
   }
 
-  const updatePrivacy = async (newSettings: Partial<PrivacySettings>) => {
+  const updatePrivacy = async (updates: Partial<PrivacySettings>) => {
     setSaving(true)
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) return
-
-      const oldSettings = { ...privacy }
-      const updatedSettings = { ...privacy, ...newSettings }
+      if (!user) throw new Error("No user found")
 
       const { error } = await supabase
-        .from("user_privacy_settings")
-        .upsert({
-          user_id: user.id,
-          ...updatedSettings,
+        .from("athletes")
+        .update({
+          profile_visibility: updates.profile_visibility ?? privacy?.profile_visibility ?? "public",
+          allow_coach_reviews: updates.allow_reviews ?? privacy?.allow_reviews ?? true,
+          show_location: updates.show_location ?? privacy?.show_location ?? true,
+          updated_at: new Date().toISOString(),
         })
         .eq("user_id", user.id)
 
       if (error) throw error
 
-      setPrivacy(updatedSettings)
-
-      // Log the activity with detailed change information
-      const changedFields = Object.keys(newSettings).filter(
-        (key) => oldSettings[key as keyof PrivacySettings] !== newSettings[key as keyof PrivacySettings],
-      )
-
-      await logActivity(
-        "privacy_settings_updated",
-        "user_settings",
-        user.id,
-        oldSettings,
-        newSettings,
-        `Updated privacy settings: ${changedFields.join(", ")}`,
-      )
+      setPrivacy((prev) => (prev ? { ...prev, ...updates } : null))
 
       toast({
-        title: "Success",
-        description: "Privacy settings updated",
+        title: "Privacy settings updated",
+        description: "Your privacy preferences have been saved.",
         status: "success",
         duration: 3000,
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating privacy settings:", error)
       toast({
-        title: "Error",
-        description: "Failed to update privacy settings",
+        title: "Error updating privacy settings",
+        description: error.message,
         status: "error",
-        duration: 3000,
+        duration: 5000,
       })
     } finally {
       setSaving(false)
     }
   }
 
-  const logActivity = async (
-    action: string,
-    resourceType = "user_settings",
-    resourceId?: string,
-    oldValues?: any,
-    newValues?: any,
-    description?: string,
-  ) => {
+  const logActivity = async (activityType: string, description?: string) => {
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) return
 
-      // Try to use the audit_logs table if it exists, otherwise use user_activity_log
-      const { error: auditError } = await supabase.from("audit_logs").insert({
+      const { error } = await supabase.from("audit_logs").insert({
         user_id: user.id,
-        action,
-        resource_type: resourceType,
-        resource_id: resourceId || user.id,
-        old_values: oldValues,
-        new_values: newValues,
-        description,
-        ip_address: null, // Could be populated from request headers
-        user_agent: navigator.userAgent,
+        action: activityType,
+        details: description || activityType,
       })
 
-      if (auditError) {
-        // Fallback to user_activity_log
-        await supabase.from("user_activity_log").insert({
-          user_id: user.id,
-          action,
-          details: {
-            resource_type: resourceType,
-            resource_id: resourceId,
-            old_values: oldValues,
-            new_values: newValues,
-            description,
-          },
-        })
+      if (error) {
+        console.error("Error logging activity:", error)
       }
-
-      // Refresh activities
-      fetchSettings()
     } catch (error) {
       console.error("Error logging activity:", error)
     }
@@ -289,6 +190,5 @@ export function useUserSettings() {
     updateNotifications,
     updatePrivacy,
     logActivity,
-    refetch: fetchSettings,
   }
 }

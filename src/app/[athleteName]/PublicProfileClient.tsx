@@ -441,6 +441,18 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
     )
   }
 
+  // Check privacy settings - add this right after the loading check
+  if (athlete.profile_visibility === ("private" as any)) {
+    return (
+      <Flex justify="center" align="center" h="100vh" bg={bgColor} direction="column">
+        <Heading size="lg" color={textColor} mb={4}>
+          Profile Not Available
+        </Heading>
+        <Text color={mutedTextColor}>This athlete's profile is set to private.</Text>
+      </Flex>
+    )
+  }
+
   // Get tier features for conditional rendering - ensure proper typing
   const subscriptionTier = (athlete.subscription_tier || "free") as SubscriptionTier
   const tierFeatures = getSubscriptionLimits(subscriptionTier)
@@ -468,6 +480,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
         primaryColor={primaryColor}
         secondaryColor={secondaryColor}
         onContactClick={onOpen}
+        showLocation={athlete.show_location !== false}
       />
 
       <Container maxW="6xl" py={8}>
@@ -574,8 +587,8 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             </Card>
           )}
 
-          {/* Reviews Section - only show if tier allows */}
-          {tierFeatures.reviews && reviews.length > 0 && (
+          {/* Reviews Section - only show if tier allows AND privacy allows */}
+          {tierFeatures.reviews && reviews.length > 0 && athlete.allow_coach_reviews !== false && (
             <Card bg={cardBgColor} borderColor={borderColor}>
               <CardBody>
                 <ReviewsSection

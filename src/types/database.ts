@@ -55,6 +55,8 @@ export type Database = {
           ncsa_url: string | null
           other_recruiting_profiles: Json | null
           profile_visibility: "public" | "private"
+          allow_coach_reviews: boolean | null
+          show_location: boolean | null
         }
         Insert: {
           id?: string
@@ -107,6 +109,8 @@ export type Database = {
           ncsa_url?: string
           other_recruiting_profiles?: Json
           profile_visibility?: "public" | "private"
+          allow_coach_reviews?: boolean | null
+          show_location?: boolean | null
         }
         Update: {
           id?: string
@@ -159,6 +163,8 @@ export type Database = {
           ncsa_url?: string
           other_recruiting_profiles?: Json
           profile_visibility?: "public" | "private"
+          allow_coach_reviews?: boolean | null
+          show_location?: boolean | null
         }
         Relationships: []
       }
@@ -570,7 +576,7 @@ export type Database = {
           profile_visibility?: "public" | "private"
           theme_preference?: "light" | "dark" | "system"
           created_at?: string
-          updated_at?: string
+          updated_at: string
         }
         Update: {
           id?: string
@@ -689,7 +695,9 @@ export interface AthleteProfile {
   maxpreps_url?: string | null
   ncsa_url?: string | null
   other_recruiting_profiles?: RecruitingProfile[] | null
-  profile_visibility?: ProfileVisibility | null
+  profile_visibility?: "public" | "private" | null
+  allow_coach_reviews?: boolean | null
+  show_location?: boolean | null
 }
 
 export interface RecruitingProfile {

@@ -39,9 +39,10 @@ interface HeroSectionProps {
   primaryColor: string
   secondaryColor: string
   onContactClick: () => void
+  showLocation?: boolean
 }
 
-export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, onContactClick }: HeroSectionProps) {
+export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, onContactClick, showLocation=true }: HeroSectionProps) {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
 
   // Determine theme colors based on athlete's theme
@@ -92,7 +93,7 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
   const createTagline = () => {
     const parts = []
     if (athlete.school) parts.push(athlete.school)
-    if (athlete.location) parts.push(athlete.location)
+    if (athlete.location && showLocation) parts.push(athlete.location)
     if (athlete.graduation_year) parts.push(`Class of ${athlete.graduation_year}`)
     return parts.join(" • ")
   }
