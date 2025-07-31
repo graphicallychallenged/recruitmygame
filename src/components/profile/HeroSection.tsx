@@ -328,7 +328,7 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
       </Container>
 
       {/* Scroll Down Arrow - positioned lower to avoid overlap */}
-      <Box position="absolute" bottom={4} left="50%" transform="translateX(-50%)">
+      <Box position="absolute" bottom={4} left="50%" transform="translateX(-50%)" zIndex={100}>
         <IconButton
           aria-label="Scroll to content"
           icon={<ChevronDown size={24} />}
