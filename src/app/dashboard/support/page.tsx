@@ -82,10 +82,11 @@ export default function SupportPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({
+    name: "",
     subject: "",
     category: "",
     priority: "medium" as const,
-    description: "",
+    message: "",
     email: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -102,7 +103,11 @@ export default function SupportPage() {
 
         if (session?.user) {
           setUser(session.user)
-          setFormData((prev) => ({ ...prev, email: session.user.email || "" }))
+          setFormData((prev) => ({
+            ...prev,
+            email: session.user.email || "",
+            name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
+          }))
         }
       } catch (error) {
         console.error("Error getting user:", error)
@@ -147,8 +152,8 @@ export default function SupportPage() {
     }
   }
 
-  const handleSubmitTicket = async () => {
-    if (!formData.subject || !formData.description || !formData.email) {
+  const handleSubmitContact = async () => {
+    if (!formData.subject || !formData.message || !formData.email || !formData.name) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -159,45 +164,62 @@ export default function SupportPage() {
       return
     }
 
-    if (!user) {
-      toast({
-        title: "Authentication Error",
-        description: "Please log in to submit a support ticket",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      })
-      return
-    }
-
     setIsSubmitting(true)
     try {
-      const { error } = await supabase.from("support_tickets").insert({
-        user_id: user.id,
-        subject: formData.subject,
-        category: formData.category,
-        priority: formData.priority,
-        description: formData.description,
-        contact_email: formData.email,
-        status: "open",
+      // Send email via API
+      const response = await fetch("/api/support/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          category: formData.category,
+          priority: formData.priority,
+          message: formData.message,
+          userId: user?.id,
+        }),
       })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error("Failed to send support request")
+      }
+
+      // Also create a support ticket in the database if user is logged in
+      if (user) {
+        const { error } = await supabase.from("support_tickets").insert({
+          user_id: user.id,
+          subject: formData.subject,
+          category: formData.category,
+          priority: formData.priority,
+          description: formData.message,
+          contact_email: formData.email,
+          status: "open",
+        })
+
+        if (error) {
+          console.error("Error creating support ticket:", error)
+          // Don't throw here, email was sent successfully
+        }
+      }
 
       toast({
-        title: "Support Ticket Created",
-        description: "We'll get back to you within 24 hours",
+        title: "Support Request Sent",
+        description: "We've received your request and will respond within 24 hours. Check your email for confirmation.",
         status: "success",
         duration: 5000,
         isClosable: true,
       })
 
       setFormData({
+        name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "",
         subject: "",
         category: "",
         priority: "medium",
-        description: "",
-        email: user.email || "",
+        message: "",
+        email: user?.email || "",
       })
 
       // Refresh tickets if on tickets tab
@@ -207,7 +229,7 @@ export default function SupportPage() {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to send support request",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -248,7 +270,7 @@ export default function SupportPage() {
   if (loading) {
     return (
       <Center h="50vh">
-        <Spinner size="xl" color="teal.500" />
+        <Spinner size="xl" color="blue.500" />
       </Center>
     )
   }
@@ -259,14 +281,14 @@ export default function SupportPage() {
         {/* Header */}
         <Box>
           <HStack spacing={3} mb={2}>
-            <Icon as={HelpCircle} size={28} color="teal.500" />
+            <Icon as={HelpCircle} size={28} color="blue.500" />
             <Heading size="lg">Support Center</Heading>
           </HStack>
           <Text color="gray.600">Get help with your athlete profile and account</Text>
         </Box>
 
         {/* Quick Help Alert */}
-        <Alert status="info" borderRadius="md" colorScheme="teal">
+        <Alert status="info" borderRadius="md">
           <AlertIcon />
           <Box>
             <AlertTitle>Need immediate help?</AlertTitle>
@@ -278,7 +300,7 @@ export default function SupportPage() {
         <HStack spacing={4} borderBottom="1px" borderColor="gray.200" pb={4}>
           <Button
             variant={activeTab === "faq" ? "solid" : "ghost"}
-            colorScheme="teal"
+            colorScheme="blue"
             leftIcon={<HelpCircle size={18} />}
             onClick={() => setActiveTab("faq")}
           >
@@ -286,7 +308,7 @@ export default function SupportPage() {
           </Button>
           <Button
             variant={activeTab === "contact" ? "solid" : "ghost"}
-            colorScheme="teal"
+            colorScheme="blue"
             leftIcon={<MessageSquare size={18} />}
             onClick={() => setActiveTab("contact")}
           >
@@ -294,7 +316,7 @@ export default function SupportPage() {
           </Button>
           <Button
             variant={activeTab === "tickets" ? "solid" : "ghost"}
-            colorScheme="teal"
+            colorScheme="blue"
             leftIcon={<Clock size={18} />}
             onClick={() => setActiveTab("tickets")}
           >
@@ -337,6 +359,26 @@ export default function SupportPage() {
                 <VStack spacing={4} align="stretch">
                   <HStack spacing={4}>
                     <FormControl isRequired>
+                      <FormLabel>Name</FormLabel>
+                      <Input
+                        value={formData.name}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                        placeholder="Your full name"
+                      />
+                    </FormControl>
+                    <FormControl isRequired>
+                      <FormLabel>Email</FormLabel>
+                      <Input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                        placeholder="your.email@example.com"
+                      />
+                    </FormControl>
+                  </HStack>
+
+                  <HStack spacing={4}>
+                    <FormControl isRequired>
                       <FormLabel>Subject</FormLabel>
                       <Input
                         value={formData.subject}
@@ -361,47 +403,36 @@ export default function SupportPage() {
                     </FormControl>
                   </HStack>
 
-                  <HStack spacing={4}>
-                    <FormControl>
-                      <FormLabel>Priority</FormLabel>
-                      <Select
-                        value={formData.priority}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, priority: e.target.value as any }))}
-                      >
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </Select>
-                    </FormControl>
-                    <FormControl isRequired>
-                      <FormLabel>Email</FormLabel>
-                      <Input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                        placeholder="your.email@example.com"
-                      />
-                    </FormControl>
-                  </HStack>
+                  <FormControl>
+                    <FormLabel>Priority</FormLabel>
+                    <Select
+                      value={formData.priority}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, priority: e.target.value as any }))}
+                    >
+                      <option value="low">Low - General questions</option>
+                      <option value="medium">Medium - Account issues</option>
+                      <option value="high">High - Urgent problems</option>
+                    </Select>
+                  </FormControl>
 
                   <FormControl isRequired>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Message</FormLabel>
                     <Textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                      value={formData.message}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
                       placeholder="Please describe your issue in detail..."
                       rows={6}
                     />
                   </FormControl>
 
                   <Button
-                    colorScheme="teal"
-                    onClick={handleSubmitTicket}
+                    colorScheme="blue"
+                    onClick={handleSubmitContact}
                     isLoading={isSubmitting}
-                    loadingText="Submitting..."
+                    loadingText="Sending..."
                     size="lg"
                   >
-                    Submit Support Ticket
+                    Send Support Request
                   </Button>
                 </VStack>
               </CardBody>
@@ -416,15 +447,15 @@ export default function SupportPage() {
               </Heading>
               <VStack spacing={3} align="stretch">
                 <HStack spacing={3}>
-                  <Icon as={Mail} color="teal.500" />
+                  <Icon as={Mail} color="blue.500" />
                   <Text>Email: support@recruitmygame.com</Text>
                 </HStack>
                 <HStack spacing={3}>
-                  <Icon as={Phone} color="teal.500" />
+                  <Icon as={Phone} color="blue.500" />
                   <Text>Phone: 1-800-RECRUIT (Mon-Fri, 9AM-6PM EST)</Text>
                 </HStack>
                 <HStack spacing={3}>
-                  <Icon as={Clock} color="teal.500" />
+                  <Icon as={Clock} color="blue.500" />
                   <Text>Response Time: Within 24 hours</Text>
                 </HStack>
               </VStack>
@@ -440,7 +471,7 @@ export default function SupportPage() {
             </Heading>
             {loadingTickets ? (
               <Center py={8}>
-                <Spinner size="lg" color="teal.500" />
+                <Spinner size="lg" color="blue.500" />
               </Center>
             ) : tickets.length === 0 ? (
               <Card>
