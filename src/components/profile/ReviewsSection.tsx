@@ -250,7 +250,7 @@ export function ReviewsSection({
                       p={4}
                       bg={isDarkTheme ? "green.900" : "green.50"}
                       borderRadius="lg"
-                      w="full"
+                      w="auto"
                     >
                       <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"} fontWeight="bold">
                         ✓ Verified Review Details:
