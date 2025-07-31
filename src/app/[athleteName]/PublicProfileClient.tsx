@@ -596,7 +596,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           {athlete.bio && (
             <Card bg={cardBgColor} borderColor={borderColor}>
               <CardBody>
-                <Heading size="md" mb={4} color={textColor}>
+                <Heading size="lg" mb={4} color={textColor}>
                   About {athlete.athlete_name}
                 </Heading>
                 <Text lineHeight="tall" color={textColor}>

@@ -71,7 +71,7 @@ export function ReviewsSection({
 
   return (
     <Box>
-      <Heading size={isMobile ? "sm" : "md"} mb={4} color={textColor}>
+      <Heading size={isMobile ? "md" : "lg"} mb={4} color={textColor}>
         <HStack spacing={2}>
           <Icon as={Star} color={primaryColor} />
           <Text>Coach Reviews</Text>
@@ -177,11 +177,6 @@ export function ReviewsSection({
                             Verified: {new Date((review as any).verified_at).toLocaleDateString()}
                           </Text>
                         )}
-                        {review.location && (
-                          <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"}>
-                            Location: {review.location}
-                          </Text>
-                        )}
                         {review.relationship_duration && (
                           <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"}>
                             Coaching Duration: {review.relationship_duration}
@@ -263,11 +258,6 @@ export function ReviewsSection({
                       {(review as any).verified_at && (
                         <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"}>
                           Verified: {new Date((review as any).verified_at).toLocaleDateString()}
-                        </Text>
-                      )}
-                      {review.location && (
-                        <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"}>
-                          Location: {review.location}
                         </Text>
                       )}
                       {review.relationship_duration && (
