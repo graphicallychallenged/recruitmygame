@@ -342,7 +342,7 @@ export function AthleteStats({
           <Text>Athlete Profile</Text>
         </HStack>
       </Heading>
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+      <SimpleGrid columns={{ base: 2, md: 2, lg: 4 }} spacing={6}>
         {enhancedStats.map((stat, index) => renderStatCard(stat, index))}
       </SimpleGrid>
     </Box>

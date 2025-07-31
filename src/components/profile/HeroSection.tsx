@@ -15,9 +15,11 @@ import {
   WrapItem,
   IconButton,
 } from "@chakra-ui/react"
-import { Mail, Phone, Star, ChevronDown } from "lucide-react"
+import { Mail, Phone, Star, ChevronDown, Bell } from "lucide-react"
 import type { AthleteProfile } from "@/types/database"
 import { keyframes } from "@emotion/react"
+import { useState } from "react"
+import { ProfileUpdateSubscriptionModal } from "./ProfileUpdateSubscriptionModal"
 
 const bounce = keyframes`
   0%, 20%, 50%, 80%, 100% {
@@ -40,6 +42,14 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, onContactClick }: HeroSectionProps) {
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
+
+  // Determine theme colors based on athlete's theme
+  const isDarkTheme = athlete.theme_mode === "dark"
+  const textColor = isDarkTheme ? "white" : "gray.800"
+  const cardBgColor = isDarkTheme ? "gray.800" : "white"
+  const borderColor = isDarkTheme ? "gray.600" : "gray.200"
+
   // Get positions organized by sport
   const getPositionsBySport = () => {
     const sportPositions = athlete.sport_positions as Record<string, string[]> | null
@@ -107,18 +117,64 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
       {/* Overlay */}
       <Box position="absolute" top={0} left={0} right={0} bottom={0} bg="blackAlpha.600" />
 
+      {/* Subscription Button - Top Right */}
+      {/* <Box position="absolute" top={15} right={15} zIndex={2}>
+        <Button
+          leftIcon={<Bell size={16} />}
+          variant="solid"
+          size="sm"
+          bg="whiteAlpha.200"
+          color="white"
+          _hover={{ bg: "whiteAlpha.300", transform: "translateY(-1px)" }}
+          _active={{ transform: "translateY(0)" }}
+          backdropFilter="blur(10px)"
+          border="1px solid"
+          borderColor="whiteAlpha.300"
+          borderRadius="full"
+          fontWeight="semibold"
+          transition="all 0.2s"
+          onClick={() => setShowSubscriptionModal(true)}
+        >
+        Subscribe to Athlete Updates
+        </Button>
+      </Box> */}
+
       {/* Content */}
       <Container maxW="7xl" position="relative" zIndex={1}>
         <VStack spacing={{ base: 6, md: 8 }} py={{ base: 12, md: 16 }} align="center">
           {/* Profile Picture */}
-          <Avatar
-            size="2xl"
-            src={athlete.profile_picture_url || undefined}
-            name={athlete.athlete_name}
-            border="4px solid"
-            borderColor="white"
-            shadow="xl"
-          />
+          <Box position="relative">
+            <Avatar
+              size="2xl"
+              src={athlete.profile_picture_url || undefined}
+              name={athlete.athlete_name}
+              border="4px solid"
+              borderColor="white"
+              shadow="xl"
+            />
+
+            {/* Subscription Button - Centered under profile, slightly overlapping */}
+            <Box position="absolute" bottom="-6" left="50%" transform="translateX(-50%)">
+              <Button
+                leftIcon={<Bell size={16} />}
+                variant="solid"
+                size="sm"
+                bg="whiteAlpha.200"
+                color="white"
+                _hover={{ bg: "whiteAlpha.300", transform: "translateY(-1px)" }}
+                _active={{ transform: "translateY(0)" }}
+                backdropFilter="blur(10px)"
+                border="1px solid"
+                borderColor="whiteAlpha.300"
+                borderRadius="full"
+                fontWeight="semibold"
+                transition="all 0.2s"
+                onClick={() => setShowSubscriptionModal(true)}
+              >
+                Subscribe to Athlete Updates
+              </Button>
+            </Box>
+          </Box>
 
           {/* Name and Tagline */}
           <VStack spacing={2}>
@@ -271,7 +327,7 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
       </Container>
 
       {/* Scroll Down Arrow - positioned lower to avoid overlap */}
-      <Box position="absolute" bottom={-5} left="50%" transform="translateX(-50%)" zIndex={100}  onClick={handleScrollDown}>
+      <Box position="absolute" bottom={4} left="50%" transform="translateX(-50%)">
         <IconButton
           aria-label="Scroll to content"
           icon={<ChevronDown size={24} />}
@@ -282,9 +338,24 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
           _hover={{ bg: "whiteAlpha.300" }}
           borderRadius="full"
           animation={`${bounce} 2s infinite`}
-      
+          onClick={handleScrollDown}
         />
       </Box>
+
+      {/* Subscription Modal */}
+      <ProfileUpdateSubscriptionModal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        athleteId={athlete.id}
+        athleteName={athlete.athlete_name}
+        athleteTier={athlete.subscription_tier || "free"}
+        primaryColor={primaryColor}
+        secondaryColor={secondaryColor}
+        textColor={textColor}
+        cardBgColor={cardBgColor}
+        borderColor={borderColor}
+        isDarkTheme={isDarkTheme}
+      />
     </Box>
   )
 }

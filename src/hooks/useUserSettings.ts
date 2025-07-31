@@ -127,6 +127,7 @@ export function useUserSettings() {
       } = await supabase.auth.getUser()
       if (!user) return
 
+      const oldSettings = { ...notifications }
       const updatedSettings = { ...notifications, ...newSettings }
 
       const { error } = await supabase
@@ -141,12 +142,19 @@ export function useUserSettings() {
 
       setNotifications(updatedSettings)
 
-      // Log the activity
-      await supabase.rpc("log_user_activity", {
-        p_user_id: user.id,
-        p_action: "notification_settings_updated",
-        p_details: newSettings,
-      })
+      // Log the activity with detailed change information
+      const changedFields = Object.keys(newSettings).filter(
+        (key) => oldSettings[key as keyof NotificationSettings] !== newSettings[key as keyof NotificationSettings],
+      )
+
+      await logActivity(
+        "notification_settings_updated",
+        "user_settings",
+        user.id,
+        oldSettings,
+        newSettings,
+        `Updated notification settings: ${changedFields.join(", ")}`,
+      )
 
       toast({
         title: "Success",
@@ -175,6 +183,7 @@ export function useUserSettings() {
       } = await supabase.auth.getUser()
       if (!user) return
 
+      const oldSettings = { ...privacy }
       const updatedSettings = { ...privacy, ...newSettings }
 
       const { error } = await supabase
@@ -189,12 +198,19 @@ export function useUserSettings() {
 
       setPrivacy(updatedSettings)
 
-      // Log the activity
-      await supabase.rpc("log_user_activity", {
-        p_user_id: user.id,
-        p_action: "privacy_settings_updated",
-        p_details: newSettings,
-      })
+      // Log the activity with detailed change information
+      const changedFields = Object.keys(newSettings).filter(
+        (key) => oldSettings[key as keyof PrivacySettings] !== newSettings[key as keyof PrivacySettings],
+      )
+
+      await logActivity(
+        "privacy_settings_updated",
+        "user_settings",
+        user.id,
+        oldSettings,
+        newSettings,
+        `Updated privacy settings: ${changedFields.join(", ")}`,
+      )
 
       toast({
         title: "Success",
@@ -215,18 +231,47 @@ export function useUserSettings() {
     }
   }
 
-  const logActivity = async (action: string, details?: any) => {
+  const logActivity = async (
+    action: string,
+    resourceType = "user_settings",
+    resourceId?: string,
+    oldValues?: any,
+    newValues?: any,
+    description?: string,
+  ) => {
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) return
 
-      await supabase.rpc("log_user_activity", {
-        p_user_id: user.id,
-        p_action: action,
-        p_details: details,
+      // Try to use the audit_logs table if it exists, otherwise use user_activity_log
+      const { error: auditError } = await supabase.from("audit_logs").insert({
+        user_id: user.id,
+        action,
+        resource_type: resourceType,
+        resource_id: resourceId || user.id,
+        old_values: oldValues,
+        new_values: newValues,
+        description,
+        ip_address: null, // Could be populated from request headers
+        user_agent: navigator.userAgent,
       })
+
+      if (auditError) {
+        // Fallback to user_activity_log
+        await supabase.from("user_activity_log").insert({
+          user_id: user.id,
+          action,
+          details: {
+            resource_type: resourceType,
+            resource_id: resourceId,
+            old_values: oldValues,
+            new_values: newValues,
+            description,
+          },
+        })
+      }
 
       // Refresh activities
       fetchSettings()

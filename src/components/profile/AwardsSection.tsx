@@ -87,7 +87,7 @@ export function AwardsSection({
           Awards & Recognition
         </Heading>
         <Wrap spacing={4}>
-          <WrapItem>
+              <WrapItem>
             <Badge bg={isDarkTheme ? "gray.700" : "gray.100"} color="white" variant="solid" px={1} py={1} borderRadius="none" fontSize="xs">
               <HStack spacing={2}>
                 <Icon as={Trophy} boxSize={4} />
@@ -127,8 +127,8 @@ export function AwardsSection({
         const typeInfo = getAwardTypeInfo(award.award_type)
         return (
           <Box key={award.id}>
-            <HStack justify="space-between" align="start">
-              <HStack spacing={3} flex={1}>
+            <VStack align="stretch" spacing={3}>
+              <HStack spacing={3} align="start">
                 <Box
                   p={2}
                   borderRadius="lg"
@@ -151,8 +151,19 @@ export function AwardsSection({
                     </Text>
                   )}
                 </VStack>
+                <HStack align="end" spacing={1} display={{ base: "none", md: "flex" }}>
+                  <Badge fontSize="xs" bg={primaryColor} color="white">
+                    {award.level || "Local"}
+                  </Badge>
+                  <Badge fontSize="xs" bg={secondaryColor} color="white">
+                    {new Date(award.award_date).getFullYear()}
+                  </Badge>
+                  <Badge fontSize="xs" variant="outline" borderColor={secondaryColor} color={secondaryColor}>
+                    {award.award_type.charAt(0).toUpperCase() + award.award_type.slice(1)}
+                  </Badge>
+                </HStack>
               </HStack>
-              <HStack align="end" spacing={1}>
+              <HStack spacing={1} display={{ base: "flex", md: "none" }} justify="start" pl={12}>
                 <Badge fontSize="xs" bg={primaryColor} color="white">
                   {award.level || "Local"}
                 </Badge>
@@ -163,7 +174,7 @@ export function AwardsSection({
                   {award.award_type.charAt(0).toUpperCase() + award.award_type.slice(1)}
                 </Badge>
               </HStack>
-            </HStack>
+            </VStack>
             <Divider mt={3} borderColor={borderColor} />
           </Box>
         )

@@ -3,215 +3,509 @@ import { Resend } from "resend"
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 interface ReviewRequestEmailData {
-  to: string
+  reviewerEmail: string
   reviewerName: string
   athleteName: string
-  athleteUsername: string
-  sport: string
-  school: string
-  message: string
-  verificationUrl: string
+  athleteSport: string
+  athleteSchool: string
+  verificationLink: string
+  requestMessage: string
+  expiryDate: string
 }
 
-interface ReviewCancellationEmailData {
-  to: string
+interface CancellationEmailData {
+  reviewerEmail: string
   reviewerName: string
   athleteName: string
+  athleteSport: string
+  athleteSchool: string
+}
+
+interface SubscriptionVerificationEmailData {
+  to: string
+  subscriberEmail?: string
+  subscriberName: string
+  athleteName: string
   athleteUsername: string
-  sport: string
-  school: string
-  originalMessage: string
+  subscriptionTypes?: string[]
+  notificationTypes: string[]
+  verificationToken: string
+}
+
+interface ProfileUpdateNotificationData {
+  to: string
+  subscriberEmail?: string
+  subscriberName: string
+  athleteName: string
+  athleteUsername: string
+  updateType: string
+  updateDescription: string
+  updateContent?: any
+  unsubscribeToken: string
 }
 
 export async function sendReviewRequestEmail(data: ReviewRequestEmailData) {
-  const { to, reviewerName, athleteName, athleteUsername, sport, school, message, verificationUrl } = data
-
   const htmlContent = `
     <!DOCTYPE html>
     <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Athlete Review Request from ${athleteName}</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, rgba(132, 204, 22, 0.9) 0%, rgba(20, 184, 166, 0.8) 50%, rgba(6, 182, 212, 0.9) 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-          .athlete-info { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
-          .message-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e0e0e0; }
-          .cta-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0; }
-          .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 14px; }
-          .expiry-notice { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0; }
-        </style>
-      </head>
-      <body>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Review Request from ${data.athleteName}</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #84cc16 0%, #14b8a6 50%, #0d9488 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
+        .athlete-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .message-box { background: #e3f2fd; padding: 20px; border-left: 4px solid #2196f3; margin: 20px 0; }
+        .cta-button { display: inline-block; background: #22c55e; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+        .verified-badge { background: #22c55e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .expiry-notice { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
         <div class="header">
-          <h1>🏆 Athlete Review Request</h1>
-          <p>You've been asked to provide a verified review</p>
+          <h1>🏆 Verified Review Request</h1>
+          <p>You've been asked to provide a verified review for a student-athlete</p>
         </div>
         
         <div class="content">
-          <p>Hello ${reviewerName},</p>
+          <p>Hello ${data.reviewerName},</p>
           
-          <p>You have received a request to provide a verified review for:</p>
+          <p>You have received a request to provide a <span class="verified-badge">✓ VERIFIED REVIEW</span> for the following student-athlete:</p>
           
           <div class="athlete-info">
-            <h3>${athleteName}</h3>
-            <p><strong>Sport:</strong> ${sport}</p>
-            <p><strong>School:</strong> ${school}</p>
-            <p><strong>Profile:</strong> recruitmygame.com/${athleteUsername}</p>
+            <h3>${data.athleteName}</h3>
+            <p><strong>Sport:</strong> ${data.athleteSport}</p>
+            <p><strong>School:</strong> ${data.athleteSchool}</p>
           </div>
           
           <div class="message-box">
-            <h4>Personal Message from ${athleteName}:</h4>
-            <p style="font-style: italic;">"${message}"</p>
+            <h4>Personal Message from ${data.athleteName}:</h4>
+            <p><em>"${data.requestMessage}"</em></p>
           </div>
           
-          <p>To complete your verified review, please click the button below:</p>
+          <p>Your verified review will help college recruiters and coaches get an authentic perspective on this athlete's character, work ethic, and abilities.</p>
           
           <div style="text-align: center;">
-            <a href="${verificationUrl}" class="cta-button">Complete Review</a>
+            <a href="${data.verificationLink}" class="cta-button">Write Verified Review</a>
           </div>
           
           <div class="expiry-notice">
-            <strong>⏰ Important:</strong> This review link will expire in 7 days. Please complete your review before then.
+            <strong>⏰ Important:</strong> This verification link will expire on ${data.expiryDate}. Please complete your review before this date.
           </div>
           
-           <p>The review form includes categories for:</p>
-            <ul>
-              <li>Athleticism & Skill</li>
-              <li>Character & Integrity</li>
-              <li>Work Ethic</li>
-              <li>Leadership</li>
-              <li>Coachability</li>
-              <li>Teamwork</li>
-            </ul>
-            
-            <p>Your review will be marked as "verified" and will carry more weight with college recruiters.</p>
-            
-            <p>Thank you for taking the time to help ${athleteName} in their recruiting journey!</p>
+          <h4>What makes this review "verified"?</h4>
+          <ul>
+            <li>✅ Your identity is confirmed through email verification</li>
+            <li>✅ Your review will be marked as verified on the athlete's profile</li>
+            <li>✅ Recruiters will know this comes from a trusted source</li>
+            <li>✅ You can choose whether to allow recruiters to contact you</li>
+          </ul>
           
-          <p>If you have any questions or did not expect this request, please contact us at support@recruitmygame.com</p>
+          <p>The review process takes about 5-10 minutes and includes rating the athlete on various attributes like athleticism, character, work ethic, and leadership.</p>
+          
+          <p>If you have any questions or concerns, please don't hesitate to contact us.</p>
+          
+          <p>Thank you for supporting student-athletes!</p>
         </div>
         
         <div class="footer">
-          <p>This email was sent by RecruitMyGame on behalf of ${athleteName}</p>
-          <p>© 2025 RecruitMyGame. All rights reserved. Made for student athletes by a student athlete's mom. We are a family-run, US based business.</p>
+          <p>This email was sent by RecruitMyGame on behalf of ${data.athleteName}</p>
+          <p>If you did not expect this email, you can safely ignore it.</p>
+          <p>© 2024 RecruitMyGame. All rights reserved.</p>
         </div>
-      </body>
+      </div>
+    </body>
     </html>
   `
 
   const textContent = `
-Review Request from ${athleteName}
+Review Request from ${data.athleteName}
 
-Hello ${reviewerName},
+Hello ${data.reviewerName},
 
-You have received a request to provide a verified review for ${athleteName}, a ${sport} player at ${school}.
+You have received a request to provide a VERIFIED REVIEW for:
 
-Personal Message: "${message}"
+${data.athleteName}
+Sport: ${data.athleteSport}
+School: ${data.athleteSchool}
 
-To complete your verified review, please visit: ${verificationUrl}
+Personal Message: "${data.requestMessage}"
 
-This link will expire in 7 days.
+To write your verified review, please visit: ${data.verificationLink}
 
-Your review will be marked as "verified" and will help ${athleteName} in their recruiting journey.
+This link expires on ${data.expiryDate}.
 
-If you have any questions, please contact us at support@recruitmygame.com
+Your verified review will help college recruiters get an authentic perspective on this athlete.
 
-© 2024 RecruitMyGame
+Thank you for supporting student-athletes!
+
+RecruitMyGame Team
   `
 
-  return await resend.emails.send({
-    from: "RecruitMyGame <noreply@recruitmygame.com>",
-    to,
-    subject: `Review Request from ${athleteName}`,
-    html: htmlContent,
-    text: textContent,
-  })
+  try {
+    const result = await resend.emails.send({
+      from: "RecruitMyGame <reviews@recruitmygame.com>",
+      to: [data.reviewerEmail],
+      subject: `Verified Review Request from ${data.athleteName}`,
+      html: htmlContent,
+      text: textContent,
+    })
+
+    return result
+  } catch (error) {
+    console.error("Failed to send review request email:", error)
+    throw error
+  }
 }
 
-export async function sendReviewCancellationEmail(data: ReviewCancellationEmailData) {
-  const { to, reviewerName, athleteName, athleteUsername, sport, school, originalMessage } = data
+export async function sendCancellationEmail(data: CancellationEmailData) {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Review Request Cancelled</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #f56565; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
+        .athlete-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Review Request Cancelled</h1>
+        </div>
+        
+        <div class="content">
+          <p>Hello ${data.reviewerName},</p>
+          
+          <p>The verified review request from the following student-athlete has been cancelled:</p>
+          
+          <div class="athlete-info">
+            <h3>${data.athleteName}</h3>
+            <p><strong>Sport:</strong> ${data.athleteSport}</p>
+            <p><strong>School:</strong> ${data.athleteSchool}</p>
+          </div>
+          
+          <p>No further action is required from you. If you have any questions, please feel free to contact us.</p>
+          
+          <p>Thank you for your time and willingness to support student-athletes.</p>
+        </div>
+        
+        <div class="footer">
+          <p>© 2024 RecruitMyGame. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const textContent = `
+Review Request Cancelled
+
+Hello ${data.reviewerName},
+
+The verified review request from ${data.athleteName} (${data.athleteSport} at ${data.athleteSchool}) has been cancelled.
+
+No further action is required from you.
+
+Thank you for your time and willingness to support student-athletes.
+
+RecruitMyGame Team
+  `
+
+  try {
+    const result = await resend.emails.send({
+      from: "RecruitMyGame <reviews@recruitmygame.com>",
+      to: [data.reviewerEmail],
+      subject: `Review Request Cancelled - ${data.athleteName}`,
+      html: htmlContent,
+      text: textContent,
+    })
+
+    return result
+  } catch (error) {
+    console.error("Failed to send cancellation email:", error)
+    throw error
+  }
+}
+
+export async function sendSubscriptionVerificationEmail(data: SubscriptionVerificationEmailData) {
+  const verificationUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/notifications/verify/${data.verificationToken}`
+
+  const subscriptionTypeNames = {
+    profile_updated: "Profile Updates",
+    new_video: "New Videos",
+    new_photos: "New Photos",
+    schedule_updated: "Schedule Updates",
+    new_award: "New Awards",
+  }
+
+  const selectedNotifications = (data.subscriptionTypes || data.notificationTypes)
+    .map((type) => subscriptionTypeNames[type as keyof typeof subscriptionTypeNames] || type)
+    .join(", ")
 
   const htmlContent = `
     <!DOCTYPE html>
     <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Athlete Review Request Cancelled - ${athleteName}</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #ff7675 0%, #fd79a8 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-          .athlete-info { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff7675; }
-          .message-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e0e0e0; }
-          .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 14px; }
-          .notice { background: #ffe8e6; border: 1px solid #ff7675; color: #d63031; padding: 15px; border-radius: 5px; margin: 20px 0; }
-        </style>
-      </head>
-      <body>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Verify Your Subscription to ${data.athleteName}'s Updates</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
+        .athlete-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .notification-list { background: #e3f2fd; padding: 20px; border-left: 4px solid #2196f3; margin: 20px 0; }
+        .cta-button { display: inline-block; background: #14b8a6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
         <div class="header">
-          <h1>❌ Review Request Cancelled</h1>
-          <p>A review request has been withdrawn</p>
+          <h1>🔔 Verify Your Subscription</h1>
+          <p>Confirm your subscription to ${data.athleteName}'s profile updates</p>
         </div>
         
         <div class="content">
-          <p>Hello ${reviewerName},</p>
+          <p>Hello ${data.subscriberName},</p>
           
-          <div class="notice">
-            <strong>Notice:</strong> The review request from ${athleteName} has been cancelled and no longer requires your response.
-          </div>
-          
-          <p>The following review request has been withdrawn:</p>
+          <p>Thank you for subscribing to updates from <strong>${data.athleteName}</strong>! To start receiving notifications, please verify your email address by clicking the button below.</p>
           
           <div class="athlete-info">
-            <h3>${athleteName}</h3>
-            <p><strong>Sport:</strong> ${sport}</p>
-            <p><strong>School:</strong> ${school}</p>
-            <p><strong>Profile:</strong> recruitmygame.com/${athleteUsername}</p>
+            <h3>You're subscribed to updates from:</h3>
+            <p><strong>${data.athleteName}</strong></p>
+            <p>Profile: <a href="${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}">${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}</a></p>
           </div>
           
-          <div class="message-box">
-            <h4>Original Message:</h4>
-            <p style="font-style: italic;">"${originalMessage}"</p>
+          <div class="notification-list">
+            <h4>You'll receive notifications for:</h4>
+            <p>${selectedNotifications}</p>
           </div>
           
-          <p>You do not need to take any action. If you have any questions about this cancellation, please contact us at support@recruitmygame.com</p>
+          <div style="text-align: center;">
+            <a href="${verificationUrl}" class="cta-button">Verify Email & Start Receiving Updates</a>
+          </div>
           
-          <p>Thank you for your time and consideration.</p>
+          <p>Once verified, you'll receive email notifications whenever ${data.athleteName} updates their profile with the content you selected.</p>
+          
+          <p>You can unsubscribe at any time by clicking the unsubscribe link in any notification email.</p>
+          
+          <p>If you didn't request this subscription, you can safely ignore this email.</p>
         </div>
         
         <div class="footer">
-          <p>This email was sent by RecruitMyGame on behalf of ${athleteName}</p>
-         <p>© 2025 RecruitMyGame. All rights reserved. Made for student athletes by a student athlete's mom. We are a family-run, US based business.</p>
+          <p>This verification link will expire in 24 hours.</p>
+          <p>© 2024 RecruitMyGame. All rights reserved.</p>
         </div>
-      </body>
+      </div>
+    </body>
     </html>
   `
 
   const textContent = `
-Athlete Review Request Cancelled - ${athleteName}
+Verify Your Subscription to ${data.athleteName}'s Updates
 
-Hello ${reviewerName},
+Hello ${data.subscriberName},
 
-The review request from ${athleteName} (${sport} player at ${school}) has been cancelled and no longer requires your response.
+Thank you for subscribing to updates from ${data.athleteName}! To start receiving notifications, please verify your email address.
 
-Original Message: "${originalMessage}"
+You're subscribed to: ${selectedNotifications}
 
-You do not need to take any action. If you have any questions, please contact us at support@recruitmygame.com
+Verify your email: ${verificationUrl}
 
-Thank you for your time and consideration.
+Profile: ${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}
 
-© 2024 RecruitMyGame
+Once verified, you'll receive email notifications whenever ${data.athleteName} updates their profile.
+
+You can unsubscribe at any time. If you didn't request this subscription, you can safely ignore this email.
+
+RecruitMyGame Team
   `
 
-  return await resend.emails.send({
-    from: "RecruitMyGame <noreply@recruitmygame.com>",
-    to,
-    subject: `Review Request Cancelled - ${athleteName}`,
-    html: htmlContent,
-    text: textContent,
-  })
+  try {
+    const result = await resend.emails.send({
+      from: "RecruitMyGame <notifications@recruitmygame.com>",
+      to: [data.subscriberEmail || data.to],
+      subject: `Verify your subscription to ${data.athleteName}'s updates`,
+      html: htmlContent,
+      text: textContent,
+    })
+
+    return result
+  } catch (error) {
+    console.error("Failed to send subscription verification email:", error)
+    throw error
+  }
+}
+
+export async function sendProfileUpdateNotification(data: ProfileUpdateNotificationData) {
+  const unsubscribeUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/notifications/unsubscribe/${data.unsubscribeToken}`
+  const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}`
+
+  let updateMessage = ""
+  let updateDetails = ""
+
+  switch (data.updateType) {
+    case "new_video":
+      updateMessage = `${data.athleteName} uploaded a new video`
+      updateDetails = `
+        <div class="update-details">
+          <h4>New Video: ${data.updateContent?.video_title || "Untitled"}</h4>
+          ${data.updateContent?.video_description ? `<p>${data.updateContent.video_description}</p>` : ""}
+          <p><strong>Type:</strong> ${data.updateContent?.video_type || "Video"}</p>
+        </div>
+      `
+      break
+    case "new_photos":
+      updateMessage = `${data.athleteName} uploaded new photos`
+      updateDetails = `
+        <div class="update-details">
+          <h4>New Photos Added</h4>
+          ${data.updateContent?.photo_caption ? `<p>${data.updateContent.photo_caption}</p>` : ""}
+        </div>
+      `
+      break
+    case "schedule_updated":
+      updateMessage = `${data.athleteName} added a new event to their schedule`
+      updateDetails = `
+        <div class="update-details">
+          <h4>${data.updateContent?.event_name || "New Event"}</h4>
+          <p><strong>Date:</strong> ${data.updateContent?.event_date ? new Date(data.updateContent.event_date).toLocaleDateString() : "TBD"}</p>
+          <p><strong>Type:</strong> ${data.updateContent?.event_type || "Event"}</p>
+          ${data.updateContent?.location ? `<p><strong>Location:</strong> ${data.updateContent.location}</p>` : ""}
+        </div>
+      `
+      break
+    case "new_award":
+      updateMessage = `${data.athleteName} received a new award`
+      updateDetails = `
+        <div class="update-details">
+          <h4>${data.updateContent?.award_title || "New Award"}</h4>
+          ${data.updateContent?.organization ? `<p><strong>From:</strong> ${data.updateContent.organization}</p>` : ""}
+          <p><strong>Date:</strong> ${data.updateContent?.award_date ? new Date(data.updateContent.award_date).toLocaleDateString() : "Recently"}</p>
+          ${data.updateContent?.award_type ? `<p><strong>Type:</strong> ${data.updateContent.award_type}</p>` : ""}
+        </div>
+      `
+      break
+    case "profile_updated":
+      updateMessage = `${data.athleteName} updated their profile`
+      const changes = data.updateContent?.changes
+      const changesList = []
+      if (changes?.bio_updated) changesList.push("Bio")
+      if (changes?.school_updated) changesList.push("School information")
+      if (changes?.graduation_year_updated) changesList.push("Graduation year")
+      if (changes?.gpa_updated) changesList.push("GPA")
+      if (changes?.sat_score_updated) changesList.push("SAT score")
+      if (changes?.act_score_updated) changesList.push("ACT score")
+
+      updateDetails = `
+        <div class="update-details">
+          <h4>Profile Updates</h4>
+          <p>Updated: ${changesList.length > 0 ? changesList.join(", ") : "Various profile information"}</p>
+        </div>
+      `
+      break
+    default:
+      updateMessage = `${data.athleteName} updated their profile`
+      updateDetails = `<div class="update-details"><p>${data.updateDescription || "Check out the latest updates!"}</p></div>`
+  }
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${updateMessage}</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
+        .update-details { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #14b8a6; }
+        .cta-button { display: inline-block; background: #14b8a6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+        .unsubscribe { font-size: 12px; color: #999; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🚀 ${updateMessage}</h1>
+          <p>New update from an athlete you're following</p>
+        </div>
+        
+        <div class="content">
+          <p>Hello ${data.subscriberName},</p>
+          
+          <p>${updateMessage}! Here are the details:</p>
+          
+          ${updateDetails}
+          
+          <div style="text-align: center;">
+            <a href="${profileUrl}" class="cta-button">View Full Profile</a>
+          </div>
+          
+          <p>Stay connected with ${data.athleteName}'s athletic journey and don't miss any important updates!</p>
+        </div>
+        
+        <div class="footer">
+          <p>You're receiving this because you subscribed to updates from ${data.athleteName}.</p>
+          <p class="unsubscribe">
+            <a href="${unsubscribeUrl}">Unsubscribe from these notifications</a>
+          </p>
+          <p>© 2024 RecruitMyGame. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const textContent = `
+${updateMessage}
+
+Hello ${data.subscriberName},
+
+${updateMessage}!
+
+${data.updateType === "new_video" ? `New Video: ${data.updateContent?.video_title || "Untitled"}` : ""}
+${data.updateType === "schedule_updated" ? `Event: ${data.updateContent?.event_name || "New Event"} on ${data.updateContent?.event_date ? new Date(data.updateContent.event_date).toLocaleDateString() : "TBD"}` : ""}
+${data.updateType === "new_award" ? `Award: ${data.updateContent?.award_title || "New Award"}` : ""}
+
+View full profile: ${profileUrl}
+
+You're receiving this because you subscribed to updates from ${data.athleteName}.
+Unsubscribe: ${unsubscribeUrl}
+
+RecruitMyGame Team
+  `
+
+  try {
+    const result = await resend.emails.send({
+      from: "RecruitMyGame <notifications@recruitmygame.com>",
+      to: [data.subscriberEmail || data.to],
+      subject: updateMessage,
+      html: htmlContent,
+      text: textContent,
+    })
+
+    return result
+  } catch (error) {
+    console.error("Failed to send profile update notification:", error)
+    throw error
+  }
 }
