@@ -192,7 +192,7 @@ export function HeroImageUpload({ currentHeroUrl, athleteId, onUploadComplete }:
           as="label"
           htmlFor="hero-image-upload"
           leftIcon={<Upload size={16} />}
-          colorScheme="blue"
+          colorScheme="teal"
           variant="outline"
           isLoading={uploading}
           loadingText="Uploading..."

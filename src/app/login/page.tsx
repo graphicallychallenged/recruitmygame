@@ -284,7 +284,7 @@ export default function LoginPage() {
 
                   <Button
                     type="submit"
-                    colorScheme="blue"
+                    colorScheme="teal"
                     width="full"
                     size="lg"
                     borderRadius="lg"

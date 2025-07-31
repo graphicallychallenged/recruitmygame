@@ -96,7 +96,7 @@ export default function CreateProfilePage() {
                   </Text>
                   <Button
                     size="lg"
-                    colorScheme="blue"
+                    colorScheme="teal"
                     rightIcon={<ArrowRight size={20} />}
                     onClick={handleCreateProfile}
                     w="full"

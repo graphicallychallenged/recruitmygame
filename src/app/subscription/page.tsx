@@ -199,7 +199,7 @@ export default function SubscriptionPage() {
       <VStack spacing={8} align="stretch">
         {/* Back to Dashboard Button */}
         <Box>
-          <Button as={Link} href="/dashboard" leftIcon={<ArrowLeft />} variant="ghost" colorScheme="blue">
+          <Button as={Link} href="/dashboard" leftIcon={<ArrowLeft />} variant="ghost" colorScheme="teal">
             Back to Dashboard
           </Button>
         </Box>

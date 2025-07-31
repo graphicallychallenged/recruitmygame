@@ -14,6 +14,7 @@ interface ReviewsSummaryProps {
     review_type: string
     rating: number
     created_at?: string
+    is_verified: boolean
   }[]
   maxDisplay?: number
 }
@@ -44,9 +45,10 @@ export function ReviewsSummary({ reviews, maxDisplay = 2 }: ReviewsSummaryProps)
   }
 
   const getAverageRating = () => {
-    if (reviews.length === 0) return "0.0"
-    const sum = reviews.reduce((acc, review) => acc + review.rating, 0)
-    return (sum / reviews.length).toFixed(1)
+    const verifiedReviews = reviews.filter((review) => review.is_verified)
+    if (verifiedReviews.length === 0) return "0.0"
+    const sum = verifiedReviews.reduce((acc, review) => acc + review.rating, 0)
+    return (sum / verifiedReviews.length).toFixed(1)
   }
 
   const recentReviews = reviews
@@ -102,6 +104,14 @@ export function ReviewsSummary({ reviews, maxDisplay = 2 }: ReviewsSummaryProps)
                   {getAverageRating()} avg
                 </Text>
               </VStack>
+              <VStack spacing={1} textAlign="center">
+                <Text fontSize="xl" fontWeight="bold">
+                  {reviews.filter((review) => review.is_verified).length}
+                </Text>
+                <Text fontSize="xs" color="gray.600">
+                  Verified
+                </Text>
+              </VStack>
             </HStack>
 
             {/* Recent Reviews */}
@@ -122,12 +132,17 @@ export function ReviewsSummary({ reviews, maxDisplay = 2 }: ReviewsSummaryProps)
                             <Badge colorScheme={typeInfo.color} variant="subtle" fontSize="xs">
                               {typeInfo.label}
                             </Badge>
+                            {review.is_verified && (
+                              <Badge colorScheme="green" variant="solid" fontSize="xs">
+                                Verified
+                              </Badge>
+                            )}
                           </HStack>
                           <Text fontSize="xs" color="gray.600" noOfLines={1}>
                             {review.reviewer_title}
                           </Text>
                         </VStack>
-                        <HStack spacing={1}>{renderStars(review.rating, 10)}</HStack>
+                        {review.is_verified && <HStack spacing={1}>{renderStars(review.rating, 10)}</HStack>}
                       </HStack>
                       <Text fontSize="xs" fontStyle="italic" color="gray.700" noOfLines={2} pl={2}>
                         "{review.review_text}"

@@ -526,7 +526,7 @@ export default function SettingsPage() {
                   </FormControl>
 
                   <Button
-                    colorScheme="blue"
+                    colorScheme="teal"
                     onClick={handlePasswordChange}
                     isLoading={saving}
                     isDisabled={!newPassword || !confirmPassword}
@@ -615,7 +615,7 @@ export default function SettingsPage() {
                         <Text>✓ Priority customer support</Text>
                         <Text>✓ Early access to new features</Text>
                       </VStack>
-                      <Button colorScheme="blue" size="md" mt={2}>
+                      <Button colorScheme="teal" size="md" mt={2}>
                         Upgrade to Premium - $9.99/month
                       </Button>
                     </VStack>
@@ -689,7 +689,7 @@ export default function SettingsPage() {
             <Button variant="ghost" mr={3} onClick={onExportClose}>
               Cancel
             </Button>
-            <Button colorScheme="blue" onClick={handleDataExport}>
+            <Button colorScheme="teal" onClick={handleDataExport}>
               Download Data
             </Button>
           </ModalFooter>

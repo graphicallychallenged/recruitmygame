@@ -213,7 +213,7 @@ export function ScheduleSection({
         </HStack>
       </Heading>
 
-      <Tabs variant="enclosed" colorScheme="blue">
+      <Tabs variant="enclosed" colorScheme="teal">
         <TabList>
           <Tab color={textColor} _selected={{ color: primaryColor, borderColor: primaryColor }}>
             Upcoming ({upcomingEvents.length})

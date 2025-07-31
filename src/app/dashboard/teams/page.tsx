@@ -300,7 +300,7 @@ export default function TeamsPage() {
           <Heading size="lg">My Teams</Heading>
           <Button
             leftIcon={<Plus />}
-            colorScheme="blue"
+            colorScheme="teal"
             onClick={() => {
               resetForm()
               onOpen()
@@ -504,7 +504,7 @@ export default function TeamsPage() {
               </Text>
               <Button
                 leftIcon={<Plus />}
-                colorScheme="blue"
+                colorScheme="teal"
                 onClick={() => {
                   resetForm()
                   onOpen()
@@ -670,7 +670,7 @@ export default function TeamsPage() {
               </Button>
               <Button
                 type="submit"
-                colorScheme="blue"
+                colorScheme="teal"
                 isLoading={submitting}
                 loadingText={editingTeam ? "Updating..." : "Adding..."}
               >

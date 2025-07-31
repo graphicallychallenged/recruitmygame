@@ -370,7 +370,7 @@ export default function ReviewsPage() {
           <Heading size="lg">Coach Reviews</Heading>
           <Button
             leftIcon={<Plus size={20} />}
-            colorScheme="blue"
+            colorScheme="teal"
             onClick={() => {
               resetForm()
               onOpen()
@@ -416,7 +416,7 @@ export default function ReviewsPage() {
                   <Box key={message.id} p={3} bg="gray.50" borderRadius="md">
                     <HStack justify="space-between" mb={2}>
                       <Text fontWeight="semibold">{message.sender_name}</Text>
-                      <Badge colorScheme="blue">About {message.review.reviewer_name}'s review</Badge>
+                      <Badge colorScheme="teal">About {message.review.reviewer_name}'s review</Badge>
                     </HStack>
                     <Text fontSize="sm" color="gray.600" mb={2}>
                       {message.sender_email} • {message.sender_phone}
@@ -455,7 +455,7 @@ export default function ReviewsPage() {
                         <VStack align="start" spacing={2} flex={1}>
                           <HStack spacing={2} wrap="wrap">
                             <Text fontWeight="semibold">{review.reviewer_name}</Text>
-                            <Badge colorScheme="blue">{review.reviewer_title}</Badge>
+                            <Badge colorScheme="teal">{review.reviewer_title}</Badge>
                             {review.is_verified && (
                               <Badge colorScheme="green" variant="solid" display="flex" alignItems="center" gap={1}>
                                 <Shield size={12} />
@@ -720,7 +720,7 @@ export default function ReviewsPage() {
             <Button variant="ghost" mr={3} onClick={onClose}>
               Cancel
             </Button>
-            <Button colorScheme="blue" onClick={handleSubmit}>
+            <Button colorScheme="teal" onClick={handleSubmit}>
               {editingReview ? "Update Review" : "Add Review"}
             </Button>
           </ModalFooter>

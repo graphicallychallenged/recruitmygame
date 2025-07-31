@@ -72,7 +72,7 @@ export function ScheduleSummary({ events, maxDisplay = 3 }: ScheduleSummaryProps
               No events scheduled
             </Text>
             <Link href="/dashboard/schedule">
-              <Button size="sm" colorScheme="blue" leftIcon={<Plus size={14} />}>
+              <Button size="sm" colorScheme="teal" leftIcon={<Plus size={14} />}>
                 Add Event
               </Button>
             </Link>

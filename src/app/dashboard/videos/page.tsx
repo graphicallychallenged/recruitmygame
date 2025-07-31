@@ -32,11 +32,15 @@ import {
   Spinner,
   Center,
   Badge,
+  Progress,
+  Alert,
+  AlertIcon,
 } from "@chakra-ui/react"
 import { Plus, Edit, Trash2, Video } from "lucide-react"
 import Link from "next/link"
 import { VideoPlayer } from "@/components/VideoPlayer"
 import type { AthleteVideo } from "@/types/database"
+import { getSubscriptionLimits, canUploadMore, getUpgradeMessage, type SubscriptionTier } from "@/utils/subscription"
 
 const VIDEO_TYPES = [
   { value: "highlight", label: "Highlight Reel" },
@@ -51,6 +55,7 @@ export default function VideosPage() {
   const [videos, setVideos] = useState<AthleteVideo[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("free")
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [editingVideo, setEditingVideo] = useState<AthleteVideo | null>(null)
   const [formData, setFormData] = useState({
@@ -78,6 +83,7 @@ export default function VideosPage() {
 
       if (athleteData) {
         setAthlete(athleteData)
+        setSubscriptionTier(athleteData.subscription_tier || "free")
 
         // Fetch videos
         const { data: videosData, error } = await supabase
@@ -226,13 +232,16 @@ export default function VideosPage() {
         <Heading size="lg">Create Your Profile First</Heading>
         <Text color="gray.600">You need to create your athlete profile before managing videos.</Text>
         <Link href="/dashboard/profile">
-          <Button colorScheme="blue" size="lg">
+          <Button colorScheme="teal" size="lg">
             Create Profile
           </Button>
         </Link>
       </VStack>
     )
   }
+
+  const limits = getSubscriptionLimits(subscriptionTier)
+  const canAddMore = canUploadMore(videos.length, subscriptionTier, "videos")
 
   return (
     <Container maxW="6xl">
@@ -243,12 +252,54 @@ export default function VideosPage() {
             <Heading size="lg" mb={2}>
               Video Library
             </Heading>
-            <Text color="gray.600">{videos.length} total videos</Text>
+            <HStack spacing={4}>
+              <Text color="gray.600">
+                {videos.length} of {limits.videos} videos used
+              </Text>
+              <Badge
+                colorScheme={subscriptionTier === "free" ? "gray" : subscriptionTier === "premium" ? "blue" : "purple"}
+              >
+                {subscriptionTier.toUpperCase()}
+              </Badge>
+            </HStack>
           </Box>
-          <Button leftIcon={<Plus size={20} />} colorScheme="blue" onClick={onOpen} size={{ base: "sm", md: "md" }}>
+          <Button
+            leftIcon={<Plus size={20} />}
+            colorScheme="teal"
+            onClick={onOpen}
+            isDisabled={!canAddMore}
+            size={{ base: "sm", md: "md" }}
+          >
             Add Video
           </Button>
         </Flex>
+
+        {/* Usage Progress */}
+        <Card>
+          <CardBody>
+            <VStack align="stretch" spacing={3}>
+              <Flex justify="space-between" align="center">
+                <Text fontSize="sm" fontWeight="medium">
+                  Video Usage
+                </Text>
+                <Text fontSize="sm" color="gray.600">
+                  {videos.length} / {limits.videos}
+                </Text>
+              </Flex>
+              <Progress
+                value={(videos.length / limits.videos) * 100}
+                colorScheme={videos.length >= limits.videos ? "red" : "green"}
+                size="sm"
+              />
+              {!canAddMore && (
+                <Alert status="warning" size="sm">
+                  <AlertIcon />
+                  <Text fontSize="sm">{getUpgradeMessage(subscriptionTier, "videos")}</Text>
+                </Alert>
+              )}
+            </VStack>
+          </CardBody>
+        </Card>
 
         {/* Videos Grid */}
         {videos.length === 0 ? (
@@ -264,7 +315,7 @@ export default function VideosPage() {
                 <Text color="gray.500" maxW="md">
                   Start building your video library by adding highlight reels, game footage, and training sessions.
                 </Text>
-                <Button leftIcon={<Plus size={16} />} colorScheme="blue" onClick={onOpen}>
+                <Button leftIcon={<Plus size={16} />} colorScheme="teal" onClick={onOpen} isDisabled={!canAddMore}>
                   Add Your First Video
                 </Button>
               </VStack>
@@ -290,7 +341,7 @@ export default function VideosPage() {
                             <Heading size="sm" noOfLines={2}>
                               {video.title}
                             </Heading>
-                            <Badge colorScheme="blue" variant="subtle" fontSize="xs">
+                            <Badge colorScheme="teal" variant="subtle" fontSize="xs">
                               {typeInfo.label}
                             </Badge>
                           </VStack>
@@ -396,7 +447,7 @@ export default function VideosPage() {
                     </Button>
                     <Button
                       type="submit"
-                      colorScheme="blue"
+                      colorScheme="teal"
                       isLoading={saving}
                       loadingText={editingVideo ? "Updating..." : "Adding..."}
                       flex={1}

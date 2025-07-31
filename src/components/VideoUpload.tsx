@@ -186,7 +186,7 @@ export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVi
               <Text fontSize="sm" color="blue.600">
                 Uploading video...
               </Text>
-              <Progress value={uploadProgress} colorScheme="blue" w="full" />
+              <Progress value={uploadProgress} colorScheme="teal" w="full" />
               <Text fontSize="xs" color="gray.500">
                 {uploadProgress}% - This may take a few minutes
               </Text>
@@ -197,10 +197,10 @@ export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVi
                 Drop your video here, or click to browse
               </Text>
               <HStack spacing={2} wrap="wrap" justify="center">
-                <Badge colorScheme="blue">MP4</Badge>
-                <Badge colorScheme="blue">WebM</Badge>
-                <Badge colorScheme="blue">MOV</Badge>
-                <Badge colorScheme="blue">AVI</Badge>
+                <Badge colorScheme="teal">MP4</Badge>
+                <Badge colorScheme="teal">WebM</Badge>
+                <Badge colorScheme="teal">MOV</Badge>
+                <Badge colorScheme="teal">AVI</Badge>
               </HStack>
               <Text fontSize="sm" color="gray.500">
                 Maximum file size: 100MB

@@ -93,7 +93,7 @@ const PRICING_PLANS: PricingPlan[] = [
       "Schedule management",
       "Validated Reviews",
       "Custom URL",
-      "Business Card Generator with QR Code (250 cards)",
+      "Business Card Generator with QR Code",
       "Advanced Analytics",
       "Priority support",
     ],
@@ -177,7 +177,7 @@ export function SubscriptionPlans({
                 </Text>
               </Box>
               {onManageBilling && (
-                <Button colorScheme="blue" variant="outline" onClick={onManageBilling}>
+                <Button colorScheme="teal" variant="outline" onClick={onManageBilling}>
                   Manage Billing
                 </Button>
               )}
@@ -208,7 +208,7 @@ export function SubscriptionPlans({
                   top="-12px"
                   left="50%"
                   transform="translateX(-50%)"
-                  colorScheme="blue"
+                  colorScheme="teal"
                   px={4}
                   py={2}
                   borderRadius="full"

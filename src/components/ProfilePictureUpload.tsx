@@ -100,7 +100,7 @@ export function ProfilePictureUpload({
             right={0}
             size="sm"
             borderRadius="full"
-            colorScheme="blue"
+            colorScheme="teal"
             onClick={onOpen}
             leftIcon={<Camera size={14} />}
           >

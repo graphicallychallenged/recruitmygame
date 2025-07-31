@@ -114,7 +114,7 @@ export function SubscriptionUpgrade({ currentTier, onUpgrade }: SubscriptionUpgr
                   top="-10px"
                   left="50%"
                   transform="translateX(-50%)"
-                  colorScheme="blue"
+                  colorScheme="teal"
                   px={3}
                   py={1}
                   borderRadius="full"

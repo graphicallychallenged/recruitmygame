@@ -218,7 +218,7 @@ export function FileUpload({
           </VStack>
           {uploading && (
             <Box w="100%" maxW="200px">
-              <Progress value={uploadProgress} colorScheme="blue" size="sm" />
+              <Progress value={uploadProgress} colorScheme="teal" size="sm" />
               <Text fontSize="xs" color="gray.500" mt={1}>
                 {uploadProgress}% complete
               </Text>

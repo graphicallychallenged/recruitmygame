@@ -52,7 +52,7 @@ interface AwardData {
 }
 
 const AWARD_TYPES = [
-  { value: "academic", label: "Academic", icon: Star, color: "blue" },
+  { value: "academic", label: "Academic", icon: Star, color: "teal" },
   { value: "athletic", label: "Athletic", icon: Trophy, color: "yellow" },
   { value: "leadership", label: "Leadership", icon: Award, color: "purple" },
   { value: "community", label: "Community Service", icon: Medal, color: "green" },
@@ -292,7 +292,7 @@ export default function AwardsPage() {
         <Heading size="lg">Create Your Profile First</Heading>
         <Text color="gray.600">You need to create your athlete profile before managing awards.</Text>
         <Link href="/dashboard/profile">
-          <Button colorScheme="blue" size="lg">
+          <Button colorScheme="teal" size="lg">
             Create Profile
           </Button>
         </Link>
@@ -317,7 +317,7 @@ export default function AwardsPage() {
             </Heading>
             <Text color="gray.600">{awards.length} total awards</Text>
           </Box>
-          <Button leftIcon={<Plus size={20} />} colorScheme="blue" onClick={onOpen} size={{ base: "sm", md: "md" }}>
+          <Button leftIcon={<Plus size={20} />} colorScheme="teal" onClick={onOpen} size={{ base: "sm", md: "md" }}>
             Add Award
           </Button>
         </Flex>
@@ -363,7 +363,7 @@ export default function AwardsPage() {
                   Start building your achievement record by adding your academic honors, athletic awards, and
                   recognition.
                 </Text>
-                <Button leftIcon={<Plus size={16} />} colorScheme="blue" onClick={onOpen}>
+                <Button leftIcon={<Plus size={16} />} colorScheme="teal" onClick={onOpen}>
                   Add Your First Award
                 </Button>
               </VStack>
@@ -380,7 +380,7 @@ export default function AwardsPage() {
                       <Heading size="md" color="gray.700">
                         {year}
                       </Heading>
-                      <Badge colorScheme="blue" variant="subtle">
+                      <Badge colorScheme="teal" variant="subtle">
                         {yearAwards.length} award{yearAwards.length !== 1 ? "s" : ""}
                       </Badge>
                     </HStack>
@@ -553,7 +553,7 @@ export default function AwardsPage() {
                     </Button>
                     <Button
                       type="submit"
-                      colorScheme="blue"
+                      colorScheme="teal"
                       isLoading={saving}
                       loadingText={editingAward ? "Updating..." : "Adding..."}
                       flex={1}

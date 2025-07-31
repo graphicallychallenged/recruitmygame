@@ -17,7 +17,7 @@ export default function NotFound() {
           <Text fontSize="lg" color="gray.600">
             The athlete profile you're looking for doesn't exist or has been made private.
           </Text>
-          <Button leftIcon={<Home size={20} />} colorScheme="blue" size="lg" onClick={() => router.push("/")}>
+          <Button leftIcon={<Home size={20} />} colorScheme="teal" size="lg" onClick={() => router.push("/")}>
             Go Home
           </Button>
         </VStack>

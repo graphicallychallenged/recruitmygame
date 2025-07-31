@@ -88,7 +88,7 @@ export function AwardsSection({
         </Heading>
         <Wrap spacing={4}>
           <WrapItem>
-            <Badge bg={primaryColor} color="white" variant="solid" px={1} py={1} borderRadius="full" fontSize="xs">
+            <Badge bg={isDarkTheme ? "gray.700" : "gray.100"} color="white" variant="solid" px={1} py={1} borderRadius="none" fontSize="xs">
               <HStack spacing={2}>
                 <Icon as={Trophy} boxSize={4} />
                 <Text fontWeight="medium">{awardStats.academic} Academic</Text>
@@ -96,7 +96,7 @@ export function AwardsSection({
             </Badge>
           </WrapItem>
           <WrapItem>
-            <Badge bg={secondaryColor} color="white" variant="solid" px={1} py={1} borderRadius="full" fontSize="xs">
+            <Badge bg={isDarkTheme ? "gray.700" : "gray.100"} color="white" variant="solid" px={1} py={1} borderRadius="none" fontSize="xs">
               <HStack spacing={2}>
                 <Icon as={Medal} boxSize={4} />
                 <Text fontWeight="medium">{awardStats.athletic} Athletic</Text>
@@ -104,7 +104,7 @@ export function AwardsSection({
             </Badge>
           </WrapItem>
           <WrapItem>
-            <Badge bg={primaryColor} color="white" variant="solid" px={1} py={1} borderRadius="full" fontSize="xs">
+            <Badge bg={isDarkTheme ? "gray.700" : "gray.100"} color="white" variant="solid" px={1} py={1} borderRadius="none" fontSize="xs">
               <HStack spacing={2}>
                 <Icon as={Crown} boxSize={4} />
                 <Text fontWeight="medium">{awardStats.leadership} Leadership</Text>
@@ -112,7 +112,7 @@ export function AwardsSection({
             </Badge>
           </WrapItem>
           <WrapItem>
-            <Badge bg={secondaryColor} color="white" variant="solid" px={1} py={1} borderRadius="full" fontSize="xs">
+            <Badge bg={isDarkTheme ? "gray.700" : "gray.100"} color="white" variant="solid" px={1} py={1} borderRadius="none" fontSize="xs">
               <HStack spacing={2}>
                 <Icon as={Award} boxSize={4} />
                 <Text fontWeight="medium">{awardStats.community} Community</Text>

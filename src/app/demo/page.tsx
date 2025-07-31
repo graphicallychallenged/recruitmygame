@@ -40,7 +40,7 @@ export default function DemoProfile() {
   }
 
   const stats = [
-    { label: "Points Per Game", value: "18.5", color: "blue" },
+    { label: "Points Per Game", value: "18.5", color: "teal" },
     { label: "Assists Per Game", value: "7.2", color: "green" },
     { label: "Field Goal %", value: "45.8%", color: "purple" },
     { label: "Free Throw %", value: "82.1%", color: "orange" },
@@ -153,7 +153,7 @@ export default function DemoProfile() {
               <VStack align="start" spacing={2}>
                 <Heading size="2xl">{demoAthlete.name}</Heading>
                 <HStack spacing={4} flexWrap="wrap">
-                  <Badge colorScheme="blue" fontSize="md" px={3} py={1}>
+                  <Badge colorScheme="teal" fontSize="md" px={3} py={1}>
                     {demoAthlete.sport} • {demoAthlete.position}
                   </Badge>
                   <HStack spacing={1}>
@@ -211,7 +211,7 @@ export default function DemoProfile() {
           </Box>
 
           {/* Main Content Tabs */}
-          <Tabs variant="enclosed" colorScheme="blue">
+          <Tabs variant="enclosed" colorScheme="teal">
             <TabList>
               <Tab>Photos & Videos</Tab>
               <Tab>Awards & Achievements</Tab>
@@ -314,7 +314,7 @@ export default function DemoProfile() {
                             </Text>
                             <Text color="gray.600">{award.organization}</Text>
                             <HStack spacing={2}>
-                              <Badge colorScheme="blue" variant="subtle">
+                              <Badge colorScheme="teal" variant="subtle">
                                 {award.type}
                               </Badge>
                               <Badge colorScheme="green" variant="outline">
@@ -425,7 +425,7 @@ export default function DemoProfile() {
               Join Alex and thousands of other student-athletes showcasing their complete story
             </Text>
             <HStack spacing={4} justify="center">
-              <Button as={Link} href="/login" colorScheme="blue" size="lg">
+              <Button as={Link} href="/login" colorScheme="teal" size="lg">
                 Get Started Free
               </Button>
               <Button as={Link} href="/subscription" variant="outline" size="lg">

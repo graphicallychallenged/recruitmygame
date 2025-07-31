@@ -212,7 +212,7 @@ export function ConsentManager({ onConsentChange }: ConsentManagerProps) {
                     isChecked={isGranted}
                     onChange={(e) => updateConsent(consentType.type, e.target.checked)}
                     isDisabled={consentType.required || isUpdating}
-                    colorScheme="blue"
+                    colorScheme="teal"
                   />
                 </HStack>
 

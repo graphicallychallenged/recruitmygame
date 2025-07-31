@@ -49,6 +49,7 @@ interface Review {
   review_type: string
   rating: number
   created_at: string
+  is_verified: boolean
 }
 
 interface AthleteProfile {
@@ -77,6 +78,7 @@ export default function DashboardPage() {
   })
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
+  const [verifiedReviews, setVerifiedReviews] = useState<Review[]>([])
 
   useEffect(() => {
     fetchDashboardData()
@@ -122,7 +124,7 @@ export default function DashboardPage() {
           hasFeature(athleteData.subscription_tier, "reviews")
             ? supabase
                 .from("athlete_reviews")
-                .select("*")
+                .select("*, is_verified")
                 .eq("athlete_id", athleteData.id)
                 .order("created_at", { ascending: false })
             : Promise.resolve({ data: [] }),
@@ -142,10 +144,14 @@ export default function DashboardPage() {
             : Promise.resolve({ data: [] }),
         ])
 
-        // Calculate average rating
+        // Calculate average rating from verified reviews only
         const reviewData = reviewsResult.data || []
+        const verifiedReviews = reviewData.filter((review) => review.is_verified)
+        setVerifiedReviews(verifiedReviews)
         const averageRating =
-          reviewData.length > 0 ? reviewData.reduce((sum, review) => sum + review.rating, 0) / reviewData.length : 0
+          verifiedReviews.length > 0
+            ? verifiedReviews.reduce((sum, review) => sum + review.rating, 0) / verifiedReviews.length
+            : 0
 
         setStats({
           totalAwards: awardsResult.data?.length || 0,
@@ -422,8 +428,8 @@ export default function DashboardPage() {
                 </Stat>
                 <Text fontSize="xs" color="gray.500">
                   {hasFeature(athlete.subscription_tier, "reviews")
-                    ? stats.averageRating > 0
-                      ? `${stats.averageRating} avg rating`
+                    ? stats.totalReviews > 0
+                      ? `${verifiedReviews.length} verified of ${stats.totalReviews} total`
                       : "No reviews yet"
                     : "Premium feature"}
                 </Text>

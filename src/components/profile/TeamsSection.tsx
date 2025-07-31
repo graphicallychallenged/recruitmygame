@@ -1,7 +1,6 @@
 "use client"
-
-import { Box, VStack, HStack, Text, Heading, Card, CardBody, Badge, SimpleGrid, Icon, Divider } from "@chakra-ui/react"
-import { Users, Hash, Trophy } from "lucide-react"
+import { Box, Heading, Text, VStack, HStack, Badge, Grid, GridItem, Divider, Icon } from "@chakra-ui/react"
+import { Users, Calendar, MapPin } from "lucide-react"
 import type { AthleteTeam } from "@/types/database"
 
 interface TeamsSectionProps {
@@ -11,7 +10,7 @@ interface TeamsSectionProps {
   mutedTextColor: string
   cardBgColor: string
   borderColor: string
-  isDarkTheme?: boolean
+  isDarkTheme: boolean
 }
 
 export function TeamsSection({
@@ -21,183 +20,156 @@ export function TeamsSection({
   mutedTextColor,
   cardBgColor,
   borderColor,
-  isDarkTheme = false,
+  isDarkTheme,
 }: TeamsSectionProps) {
-  if (teams.length === 0) {
-    return null
-  }
-
-  // Separate current and past teams
   const currentTeams = teams.filter((team) => team.is_current)
   const pastTeams = teams.filter((team) => !team.is_current)
 
-  return (
-    <Box>
-      <Heading size="lg" mb={6} color={textColor}>
-        <HStack spacing={2}>
-          <Icon as={Users} color={primaryColor} />
-          <Text>Teams & Organizations</Text>
+  const renderTeam = (team: AthleteTeam) => (
+    <Box
+      key={team.id}
+      p={6}
+      bg={cardBgColor}
+      borderRadius="xl"
+      borderWidth="1px"
+      borderColor={borderColor}
+      shadow="sm"
+      transition="all 0.2s"
+      _hover={{ shadow: "md", borderColor: primaryColor }}
+    >
+      <VStack align="start" spacing={4}>
+        <HStack justify="space-between" w="full">
+          <VStack align="start" spacing={1}>
+            <Heading size="md" color={textColor}>
+              {team.team_name}
+            </Heading>
+            <HStack spacing={2}>
+              {team.is_current && (
+                <Badge colorScheme="green" variant="solid" fontSize="xs">
+                  Current Team
+                </Badge>
+              )}
+              {!team.is_public && (
+                <Badge colorScheme="gray" variant="outline" fontSize="xs">
+                  Private
+                </Badge>
+              )}
+            </HStack>
+          </VStack>
         </HStack>
-      </Heading>
 
-      <VStack spacing={6} align="stretch">
-        {/* Current Teams */}
-        {currentTeams.length > 0 && (
-          <Box>
-            <Heading size="md" mb={4} color={textColor}>
-              Current Teams
-            </Heading>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              {currentTeams.map((team) => (
-                <TeamCard
-                  key={team.id}
-                  team={team}
-                  primaryColor={primaryColor}
-                  textColor={textColor}
-                  mutedTextColor={mutedTextColor}
-                  cardBgColor={cardBgColor}
-                  borderColor={borderColor}
-                  isDarkTheme={isDarkTheme}
-                />
-              ))}
-            </SimpleGrid>
-          </Box>
-        )}
+        <HStack spacing={6} wrap="wrap">
+          {team.position && (
+            <HStack spacing={2}>
+              <Icon as={Users} size={16} color={primaryColor} />
+              <Text fontSize="sm" color={textColor} fontWeight="medium">
+                {team.position}
+              </Text>
+            </HStack>
+          )}
 
-        {/* Past Teams */}
-        {pastTeams.length > 0 && (
-          <Box>
-            <Heading size="md" mb={4} color={textColor}>
-              Previous Teams
-            </Heading>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-              {pastTeams.map((team) => (
-                <TeamCard
-                  key={team.id}
-                  team={team}
-                  primaryColor={primaryColor}
-                  textColor={textColor}
-                  mutedTextColor={mutedTextColor}
-                  cardBgColor={cardBgColor}
-                  borderColor={borderColor}
-                  isDarkTheme={isDarkTheme}
-                />
+          {team.jersey_number && (
+            <HStack spacing={2}>
+              <Text fontSize="sm" color={primaryColor} fontWeight="bold">
+                #
+              </Text>
+              <Text fontSize="sm" color={textColor} fontWeight="medium">
+                {team.jersey_number}
+              </Text>
+            </HStack>
+          )}
+
+          {team.season && (
+            <HStack spacing={2}>
+              <Icon as={Calendar} size={16} color={primaryColor} />
+              <Text fontSize="sm" color={textColor} fontWeight="medium">
+                {team.season}
+              </Text>
+            </HStack>
+          )}
+
+          {team.league && (
+            <HStack spacing={2}>
+              <Icon as={MapPin} size={16} color={primaryColor} />
+              <Text fontSize="sm" color={textColor} fontWeight="medium">
+                {team.league}
+              </Text>
+            </HStack>
+          )}
+        </HStack>
+
+        {team.stats && Object.keys(team.stats).length > 0 && (
+          <Box w="full">
+            <Text fontSize="sm" fontWeight="semibold" color={textColor} mb={3}>
+              Season Statistics
+            </Text>
+            <Grid templateColumns="repeat(auto-fit, minmax(100px, 1fr))" gap={3}>
+              {Object.entries(team.stats).map(([key, value]) => (
+                <GridItem key={key}>
+                  <Box
+                    textAlign="center"
+                    p={3}
+                    bg={isDarkTheme ? "gray.600" : "gray.50"}
+                    borderRadius="lg"
+                    border="1px solid"
+                    borderColor={borderColor}
+                  >
+                    <Text fontSize="xl" fontWeight="bold" color={primaryColor}>
+                      {String(value)}
+                    </Text>
+                    <Text fontSize="xs" color={mutedTextColor} textTransform="capitalize" mt={1}>
+                      {key.replace(/_/g, " ")}
+                    </Text>
+                  </Box>
+                </GridItem>
               ))}
-            </SimpleGrid>
+            </Grid>
           </Box>
         )}
       </VStack>
     </Box>
   )
-}
-
-interface TeamCardProps {
-  team: AthleteTeam
-  primaryColor: string
-  textColor: string
-  mutedTextColor: string
-  cardBgColor: string
-  borderColor: string
-  isDarkTheme: boolean
-}
-
-function TeamCard({
-  team,
-  primaryColor,
-  textColor,
-  mutedTextColor,
-  cardBgColor,
-  borderColor,
-  isDarkTheme,
-}: TeamCardProps) {
-  const stats = (team.stats as Record<string, any>) || {}
-  const hasStats = Object.keys(stats).length > 0
 
   return (
-    <Card bg={cardBgColor} borderColor={borderColor} variant="outline">
-      <CardBody>
-        <VStack spacing={3} align="stretch">
-          {/* Team Header */}
-          <VStack spacing={1} align="start">
-            <HStack spacing={2} align="center">
-              <Heading size="sm" color={textColor}>
-                {team.team_name}
-              </Heading>
-              {team.is_current && (
-                <Badge colorScheme="green" variant="subtle" size="sm">
-                  Current
-                </Badge>
-              )}
-            </HStack>
-            {team.league && (
-              <Text fontSize="sm" color={mutedTextColor}>
-                {team.league}
-              </Text>
-            )}
+    <VStack align="start" spacing={8} w="full">
+      <HStack spacing={3}>
+        <Icon as={Users} color={primaryColor} size={24} />
+        <Heading size="lg" color={textColor}>
+          Teams
+        </Heading>
+      </HStack>
+
+      {currentTeams.length > 0 && (
+        <Box w="full">
+          <Heading size="md" color={textColor} mb={4}>
+            Current Teams
+          </Heading>
+          <VStack spacing={4} align="stretch">
+            {currentTeams.map(renderTeam)}
           </VStack>
+        </Box>
+      )}
 
-          {/* Team Details */}
-          <VStack spacing={2} align="stretch">
-            {team.position && (
-              <HStack>
-                <Text fontSize="sm" fontWeight="medium" color={textColor} minW="16">
-                  Position:
-                </Text>
-                <Text fontSize="sm" color={mutedTextColor}>
-                  {team.position}
-                </Text>
-              </HStack>
-            )}
-
-            {team.jersey_number && (
-              <HStack>
-                <Icon as={Hash} size={14} color={primaryColor} />
-                <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                  {team.jersey_number}
-                </Text>
-              </HStack>
-            )}
-
-            {team.season && (
-              <HStack>
-                <Text fontSize="sm" fontWeight="medium" color={textColor} minW="16">
-                  Season:
-                </Text>
-                <Text fontSize="sm" color={mutedTextColor}>
-                  {team.season}
-                </Text>
-              </HStack>
-            )}
+      {pastTeams.length > 0 && (
+        <Box w="full">
+          {currentTeams.length > 0 && <Divider my={6} borderColor={borderColor} />}
+          <Heading size="md" color={textColor} mb={4}>
+            Past Teams
+          </Heading>
+          <VStack spacing={4} align="stretch">
+            {pastTeams.map(renderTeam)}
           </VStack>
+        </Box>
+      )}
 
-          {/* Statistics */}
-          {hasStats && (
-            <>
-              <Divider borderColor={borderColor} />
-              <Box>
-                <HStack spacing={2} mb={2}>
-                  <Icon as={Trophy} size={14} color={primaryColor} />
-                  <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                    Statistics
-                  </Text>
-                </HStack>
-                <SimpleGrid columns={2} spacing={2}>
-                  {Object.entries(stats).map(([key, value]) => (
-                    <VStack key={key} spacing={0} align="start">
-                      <Text fontSize="xs" color={mutedTextColor}>
-                        {key}
-                      </Text>
-                      <Text fontSize="sm" fontWeight="medium" color={textColor}>
-                        {value}
-                      </Text>
-                    </VStack>
-                  ))}
-                </SimpleGrid>
-              </Box>
-            </>
-          )}
-        </VStack>
-      </CardBody>
-    </Card>
+      {teams.length === 0 && (
+        <Box textAlign="center" py={12} w="full">
+          <Icon as={Users} size={48} color={mutedTextColor} mb={4} />
+          <Text color={mutedTextColor} fontSize="lg" fontStyle="italic">
+            No teams added yet.
+          </Text>
+        </Box>
+      )}
+    </VStack>
   )
 }

@@ -185,7 +185,7 @@ export default function DashboardLayout({
   if (loading) {
     return (
       <Flex justify="center" align="center" h="100vh">
-        <Spinner size="xl" color="blue.500" />
+        <Spinner size="xl" color="teal.500" />
       </Flex>
     )
   }
@@ -231,7 +231,7 @@ export default function DashboardLayout({
                   <Text color="gray.600" fontSize="sm">
                     {athlete.sport} • {athlete.school}
                   </Text>
-                  <Text color="blue.500" fontSize="xs">
+                  <Text color="teal.500" fontSize="xs">
                     Profile: {athlete.username}
                   </Text>
                 </VStack>
@@ -245,7 +245,7 @@ export default function DashboardLayout({
                   </Button>
                 </Link>
                 <Link href="/dashboard/profile">
-                  <Button size="sm" colorScheme="blue" flex={1}>
+                  <Button size="sm" colorScheme="teal" flex={1}>
                     Edit Profile
                   </Button>
                 </Link>
@@ -269,7 +269,7 @@ export default function DashboardLayout({
                     <Link href={isAccessible ? item.href : "#"}>
                       <Button
                         variant={isActive ? "solid" : "ghost"}
-                        colorScheme={isActive ? "blue" : "gray"}
+                        colorScheme={isActive ? "teal" : "gray"}
                         justifyContent="flex-start"
                         leftIcon={<Icon size={18} />}
                         w="full"
@@ -313,7 +313,7 @@ export default function DashboardLayout({
                     <Link href={isAccessible ? item.href : "#"}>
                       <Button
                         variant={isActive ? "solid" : "ghost"}
-                        colorScheme={isActive ? "blue" : "gray"}
+                        colorScheme={isActive ? "teal" : "gray"}
                         justifyContent="flex-start"
                         leftIcon={<Icon size={18} />}
                         w="full"
@@ -357,7 +357,7 @@ export default function DashboardLayout({
                     <Link href={isAccessible ? item.href : "#"}>
                       <Button
                         variant={isActive ? "solid" : "ghost"}
-                        colorScheme={isActive ? "blue" : "gray"}
+                        colorScheme={isActive ? "teal" : "gray"}
                         justifyContent="flex-start"
                         leftIcon={<Icon size={18} />}
                         w="full"
@@ -400,7 +400,7 @@ export default function DashboardLayout({
                     <Link href={item.href}>
                       <Button
                         variant={isActive ? "solid" : "ghost"}
-                        colorScheme={isActive ? "blue" : "gray"}
+                        colorScheme={isActive ? "teal" : "gray"}
                         justifyContent="flex-start"
                         leftIcon={<Icon size={18} />}
                         w="full"

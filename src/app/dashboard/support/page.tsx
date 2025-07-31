@@ -278,7 +278,7 @@ export default function SupportPage() {
         <HStack spacing={4} borderBottom="1px" borderColor="gray.200" pb={4}>
           <Button
             variant={activeTab === "faq" ? "solid" : "ghost"}
-            colorScheme="blue"
+            colorScheme="teal"
             leftIcon={<HelpCircle size={18} />}
             onClick={() => setActiveTab("faq")}
           >
@@ -286,7 +286,7 @@ export default function SupportPage() {
           </Button>
           <Button
             variant={activeTab === "contact" ? "solid" : "ghost"}
-            colorScheme="blue"
+            colorScheme="teal"
             leftIcon={<MessageSquare size={18} />}
             onClick={() => setActiveTab("contact")}
           >
@@ -294,7 +294,7 @@ export default function SupportPage() {
           </Button>
           <Button
             variant={activeTab === "tickets" ? "solid" : "ghost"}
-            colorScheme="blue"
+            colorScheme="teal"
             leftIcon={<Clock size={18} />}
             onClick={() => setActiveTab("tickets")}
           >
@@ -395,7 +395,7 @@ export default function SupportPage() {
                   </FormControl>
 
                   <Button
-                    colorScheme="blue"
+                    colorScheme="teal"
                     onClick={handleSubmitTicket}
                     isLoading={isSubmitting}
                     loadingText="Submitting..."

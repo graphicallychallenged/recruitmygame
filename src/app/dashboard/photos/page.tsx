@@ -265,7 +265,7 @@ export default function PhotosPage() {
         <Heading size="lg">Create Your Profile First</Heading>
         <Text color="gray.600">You need to create your athlete profile before managing photos.</Text>
         <Link href="/dashboard/profile">
-          <Button colorScheme="blue" size="lg">
+          <Button colorScheme="teal" size="lg">
             Create Profile
           </Button>
         </Link>
@@ -298,7 +298,7 @@ export default function PhotosPage() {
           </Box>
           <Button
             leftIcon={<Plus size={20} />}
-            colorScheme="blue"
+            colorScheme="teal"
             onClick={onOpen}
             isDisabled={!canAddMore}
             size={{ base: "sm", md: "md" }}
@@ -348,7 +348,7 @@ export default function PhotosPage() {
                 <Text color="gray.500" maxW="md">
                   Add your first photos to showcase your athletic achievements, team moments, and training sessions.
                 </Text>
-                <Button leftIcon={<Plus size={16} />} colorScheme="blue" onClick={onOpen} isDisabled={!canAddMore}>
+                <Button leftIcon={<Plus size={16} />} colorScheme="teal" onClick={onOpen} isDisabled={!canAddMore}>
                   Add Your First Photo
                 </Button>
               </VStack>
@@ -488,7 +488,7 @@ export default function PhotosPage() {
                     </Button>
                     <Button
                       type="submit"
-                      colorScheme="blue"
+                      colorScheme="teal"
                       isLoading={saving}
                       loadingText={editingPhoto ? "Updating..." : "Adding..."}
                       flex={1}

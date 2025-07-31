@@ -161,7 +161,7 @@ export function DataExportManager() {
                   <Checkbox
                     isChecked={options[option.key]}
                     onChange={(e) => updateOption(option.key, e.target.checked)}
-                    colorScheme="blue"
+                    colorScheme="teal"
                     mt={1}
                   />
                   <HStack spacing={2} flex={1}>
@@ -181,7 +181,7 @@ export function DataExportManager() {
 
           <Button
             leftIcon={<Download size={16} />}
-            colorScheme="blue"
+            colorScheme="teal"
             onClick={handleExport}
             isLoading={exporting}
             loadingText="Exporting..."

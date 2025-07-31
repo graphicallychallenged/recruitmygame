@@ -323,7 +323,7 @@ export default function VerifiedReviewsPage() {
               </Text>
               <Button
                 size="sm"
-                colorScheme="blue"
+                colorScheme="teal"
                 leftIcon={<Crown size={16} />}
                 onClick={() => router.push("/subscription")}
               >

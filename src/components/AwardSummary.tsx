@@ -82,7 +82,7 @@ export function AwardsSummary({ awards, maxDisplay = 3 }: AwardsSummaryProps) {
               No awards added yet
             </Text>
             <Link href="/dashboard/awards">
-              <Button size="sm" colorScheme="blue" leftIcon={<Plus size={14} />}>
+              <Button size="sm" colorScheme="teal" leftIcon={<Plus size={14} />}>
                 Add Award
               </Button>
             </Link>

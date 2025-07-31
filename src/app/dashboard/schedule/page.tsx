@@ -60,7 +60,7 @@ const EVENT_TYPES = [
     value: "game",
     label: "Game/Match",
     icon: Trophy,
-    color: "blue",
+    color: "teal",
     description: "Competitive games and matches",
   },
   {
@@ -307,7 +307,7 @@ export default function SchedulePage() {
         <Heading size="lg">Create Your Profile First</Heading>
         <Text color="gray.600">You need to create your athlete profile before managing your schedule.</Text>
         <Link href="/dashboard/profile">
-          <Button colorScheme="blue" size="lg">
+          <Button colorScheme="teal" size="lg">
             Create Profile
           </Button>
         </Link>
@@ -334,7 +334,7 @@ export default function SchedulePage() {
               {events.length} total events • {upcomingEvents.length} upcoming
             </Text>
           </Box>
-          <Button leftIcon={<Plus size={20} />} colorScheme="blue" onClick={onOpen} size={{ base: "sm", md: "md" }}>
+          <Button leftIcon={<Plus size={20} />} colorScheme="teal" onClick={onOpen} size={{ base: "sm", md: "md" }}>
             Add Event
           </Button>
         </Flex>
@@ -393,7 +393,7 @@ export default function SchedulePage() {
                         Add your games, training sessions, ID camps, and community service events to keep track of your
                         schedule.
                       </Text>
-                      <Button leftIcon={<Plus size={16} />} colorScheme="blue" onClick={onOpen}>
+                      <Button leftIcon={<Plus size={16} />} colorScheme="teal" onClick={onOpen}>
                         Add Your First Event
                       </Button>
                     </VStack>
@@ -514,7 +514,7 @@ export default function SchedulePage() {
                       <Text color="gray.500" maxW="md">
                         Start building your schedule by adding games, training sessions, and other important events.
                       </Text>
-                      <Button leftIcon={<Plus size={16} />} colorScheme="blue" onClick={onOpen}>
+                      <Button leftIcon={<Plus size={16} />} colorScheme="teal" onClick={onOpen}>
                         Add Event
                       </Button>
                     </VStack>
@@ -699,7 +699,7 @@ export default function SchedulePage() {
                     </Button>
                     <Button
                       type="submit"
-                      colorScheme="blue"
+                      colorScheme="teal"
                       isLoading={saving}
                       loadingText={editingEvent ? "Updating..." : "Adding..."}
                       flex={1}

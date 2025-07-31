@@ -182,7 +182,7 @@ export function ReviewsDisplay({
                   <VStack align="start" spacing={1} flex={1}>
                     <HStack spacing={2} wrap="wrap">
                       <Heading size="sm">{review.reviewer_name}</Heading>
-                      <Badge colorScheme="blue" variant="subtle">
+                      <Badge colorScheme="teal" variant="subtle">
                         {review.reviewer_title}
                       </Badge>
                     </HStack>
@@ -214,7 +214,7 @@ export function ReviewsDisplay({
                       <Button
                         size="sm"
                         variant="outline"
-                        colorScheme="blue"
+                        colorScheme="teal"
                         leftIcon={<MessageCircle size={14} />}
                         onClick={() => handleContactReviewer(review)}
                       >

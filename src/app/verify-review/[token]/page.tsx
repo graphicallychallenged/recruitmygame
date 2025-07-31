@@ -277,13 +277,13 @@ export default function VerifyReviewPage() {
                 Rate from 1 (Poor) to 10 (Excellent)
               </Text>
             </VStack>
-            <Badge colorScheme="blue" fontSize="lg" px={3} py={1} borderRadius="full">
+            <Badge colorScheme="teal" fontSize="lg" px={3} py={1} borderRadius="full">
               {value}/10
             </Badge>
           </HStack>
 
           <Box px={4} py={2}>
-            <Slider value={value} onChange={setValue} min={1} max={10} step={1} colorScheme="blue" size="lg">
+            <Slider value={value} onChange={setValue} min={1} max={10} step={1} colorScheme="teal" size="lg">
               <SliderMark value={1} mt={4} ml={-3} fontSize="sm" color="gray.400" fontWeight="medium">
                 1
               </SliderMark>
@@ -556,7 +556,7 @@ export default function VerifyReviewPage() {
                                   id="can-contact"
                                   isChecked={canContactReviewer}
                                   onChange={(e) => setCanContactReviewer(e.target.checked)}
-                                  colorScheme="blue"
+                                  colorScheme="teal"
                                   size="lg"
                                 />
                                 <VStack align="start" spacing={1}>

@@ -169,16 +169,19 @@ export default function SportsPage() {
         })
       }
 
-      // Add additional sports
+      // Add additional sports (excluding the primary sport to avoid duplicates)
       if (athleteData.sports && athleteData.sports.length > 0) {
         const sportPositions = athleteData.sport_positions as Record<string, string[]> | null
 
         athleteData.sports.forEach((sport: string) => {
-          initialSports.push({
-            sport,
-            positions: sportPositions?.[sport] || [],
-            isPrimary: false,
-          })
+          // Only add if it's not already the primary sport
+          if (sport !== athleteData.sport) {
+            initialSports.push({
+              sport,
+              positions: sportPositions?.[sport] || [],
+              isPrimary: false,
+            })
+          }
         })
       }
 
@@ -335,7 +338,7 @@ export default function SportsPage() {
               <AlertTitle>Pro Feature</AlertTitle>
               <AlertDescription>
                 Add multiple sports to your profile with Pro plan. Currently showing your primary sport only.{" "}
-                <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                <Button as={Link} href="/subscription" size="sm" colorScheme="teal" variant="link">
                   Upgrade to Pro
                 </Button>
               </AlertDescription>
@@ -358,7 +361,7 @@ export default function SportsPage() {
                         {sportData.sport}
                       </Text>
                       {sportData.isPrimary && (
-                        <Badge colorScheme="blue" variant="solid">
+                        <Badge colorScheme="teal" variant="solid">
                           <HStack spacing={1}>
                             <Star size={12} />
                             <Text>Primary</Text>
@@ -581,7 +584,7 @@ export default function SportsPage() {
         <Flex justify="end">
           <Button
             leftIcon={<Save size={16} />}
-            colorScheme="blue"
+            colorScheme="teal"
             size="lg"
             onClick={handleSave}
             isLoading={saving}

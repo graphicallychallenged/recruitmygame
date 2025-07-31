@@ -606,53 +606,6 @@ export default function ProfilePage() {
               Sports & Positions
             </Heading>
 
-            {/* Additional Sports - Only for Pro */}
-            <FormControl mb={6}>
-              <FormLabel>
-                Additional Sports (Optional)
-                {!hasMultipleSports && (
-                  <Badge ml={2} colorScheme="purple" variant="outline">
-                    Pro
-                  </Badge>
-                )}
-              </FormLabel>
-              <Text fontSize="sm" color="gray.600" mb={3}>
-                Select any additional sports you play besides your primary sport
-              </Text>
-              {hasMultipleSports ? (
-                <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }} gap={2}>
-                  {SPORTS_OPTIONS.filter((sport) => sport !== formData.sport).map((sport) => (
-                    <GridItem key={sport}>
-                      <Button
-                        size="sm"
-                        variant={formData.sports.includes(sport) ? "solid" : "outline"}
-                        colorScheme={formData.sports.includes(sport) ? "blue" : "gray"}
-                        onClick={() => handleSportToggle(sport)}
-                        w="full"
-                      >
-                        {sport}
-                      </Button>
-                    </GridItem>
-                  ))}
-                </Grid>
-              ) : (
-                <Alert status="info">
-                  <AlertIcon />
-                  <Box>
-                    <AlertTitle>Pro Feature</AlertTitle>
-                    <AlertDescription>
-                      Upgrade to Pro to add multiple sports to your profile.{" "}
-                      <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
-                        Upgrade Now
-                      </Button>
-                    </AlertDescription>
-                  </Box>
-                </Alert>
-              )}
-            </FormControl>
-
-            <Divider mb={6} />
-
             {/* Positions */}
             {formData.sport && availablePositions.length > 0 && (
               <FormControl>
@@ -1085,7 +1038,7 @@ export default function ProfilePage() {
               <Text fontSize="sm" color="blue.600" mb={3}>
                 Your profile is available at:
                 <Text as="span" fontWeight="medium" ml={1}>
-                  http://{athlete.username}.{typeof window !== "undefined" ? window.location.origin : ""}
+                  http://{athlete.username}.recruitmygame.com
                 </Text>
               </Text>
               <Button
