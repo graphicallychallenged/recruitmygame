@@ -52,7 +52,7 @@ interface AwardData {
 }
 
 const AWARD_TYPES = [
-  { value: "academic", label: "Academic", icon: Star, color: "teal" },
+  { value: "academic", label: "Academic", icon: Star, color: "blue" },
   { value: "athletic", label: "Athletic", icon: Trophy, color: "yellow" },
   { value: "leadership", label: "Leadership", icon: Award, color: "purple" },
   { value: "community", label: "Community Service", icon: Medal, color: "green" },

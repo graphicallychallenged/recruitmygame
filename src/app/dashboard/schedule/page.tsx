@@ -60,7 +60,7 @@ const EVENT_TYPES = [
     value: "game",
     label: "Game/Match",
     icon: Trophy,
-    color: "teal",
+    color: "blue",
     description: "Competitive games and matches",
   },
   {

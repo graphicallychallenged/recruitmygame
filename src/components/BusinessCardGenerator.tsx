@@ -375,7 +375,7 @@ export function BusinessCardGenerator({ athlete, subscription_tier }: BusinessCa
           <VStack spacing={4}>
             {!isConnected ? (
               <>
-                <Alert status="info">
+                <Alert status="info" colorScheme="teal">
                   <AlertIcon />
                   <Box>
                     <Text fontWeight="medium">Connect to Canva</Text>

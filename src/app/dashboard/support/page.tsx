@@ -248,7 +248,7 @@ export default function SupportPage() {
   if (loading) {
     return (
       <Center h="50vh">
-        <Spinner size="xl" color="blue.500" />
+        <Spinner size="xl" color="teal.500" />
       </Center>
     )
   }
@@ -259,14 +259,14 @@ export default function SupportPage() {
         {/* Header */}
         <Box>
           <HStack spacing={3} mb={2}>
-            <Icon as={HelpCircle} size={28} color="blue.500" />
+            <Icon as={HelpCircle} size={28} color="teal.500" />
             <Heading size="lg">Support Center</Heading>
           </HStack>
           <Text color="gray.600">Get help with your athlete profile and account</Text>
         </Box>
 
         {/* Quick Help Alert */}
-        <Alert status="info" borderRadius="md">
+        <Alert status="info" borderRadius="md" colorScheme="teal">
           <AlertIcon />
           <Box>
             <AlertTitle>Need immediate help?</AlertTitle>
@@ -416,15 +416,15 @@ export default function SupportPage() {
               </Heading>
               <VStack spacing={3} align="stretch">
                 <HStack spacing={3}>
-                  <Icon as={Mail} color="blue.500" />
+                  <Icon as={Mail} color="teal.500" />
                   <Text>Email: support@recruitmygame.com</Text>
                 </HStack>
                 <HStack spacing={3}>
-                  <Icon as={Phone} color="blue.500" />
+                  <Icon as={Phone} color="teal.500" />
                   <Text>Phone: 1-800-RECRUIT (Mon-Fri, 9AM-6PM EST)</Text>
                 </HStack>
                 <HStack spacing={3}>
-                  <Icon as={Clock} color="blue.500" />
+                  <Icon as={Clock} color="teal.500" />
                   <Text>Response Time: Within 24 hours</Text>
                 </HStack>
               </VStack>
@@ -440,7 +440,7 @@ export default function SupportPage() {
             </Heading>
             {loadingTickets ? (
               <Center py={8}>
-                <Spinner size="lg" color="blue.500" />
+                <Spinner size="lg" color="teal.500" />
               </Center>
             ) : tickets.length === 0 ? (
               <Card>

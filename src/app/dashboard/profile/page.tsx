@@ -774,53 +774,6 @@ export default function ProfilePage() {
               Sports & Positions
             </Heading>
 
-            {/* Additional Sports - Only for Pro */}
-            <FormControl mb={6}>
-              <FormLabel>
-                Additional Sports (Optional)
-                {!hasMultipleSports && (
-                  <Badge ml={2} colorScheme="purple" variant="outline">
-                    Pro
-                  </Badge>
-                )}
-              </FormLabel>
-              <Text fontSize="sm" color="gray.600" mb={3}>
-                Select any additional sports you play besides your primary sport
-              </Text>
-              {hasMultipleSports ? (
-                <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }} gap={2}>
-                  {SPORTS_OPTIONS.filter((sport) => sport !== formData.sport).map((sport) => (
-                    <GridItem key={sport}>
-                      <Button
-                        size="sm"
-                        variant={formData.sports.includes(sport) ? "solid" : "outline"}
-                        colorScheme={formData.sports.includes(sport) ? "blue" : "gray"}
-                        onClick={() => handleSportToggle(sport)}
-                        w="full"
-                      >
-                        {sport}
-                      </Button>
-                    </GridItem>
-                  ))}
-                </Grid>
-              ) : (
-                <Alert status="info">
-                  <AlertIcon />
-                  <Box>
-                    <AlertTitle>Pro Feature</AlertTitle>
-                    <AlertDescription>
-                      Upgrade to Pro to add multiple sports to your profile.{" "}
-                      <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
-                        Upgrade Now
-                      </Button>
-                    </AlertDescription>
-                  </Box>
-                </Alert>
-              )}
-            </FormControl>
-
-            <Divider mb={6} />
-
             {/* Positions */}
             {formData.sport && availablePositions.length > 0 && (
               <FormControl>
@@ -868,6 +821,7 @@ export default function ProfilePage() {
                 <FormControl mt={2}>
                   <HStack>
                     <Switch
+                    colorScheme="teal"
                       isChecked={formData.show_email}
                       onChange={(e) => setFormData({ ...formData, show_email: e.target.checked })}
                     />
@@ -888,6 +842,7 @@ export default function ProfilePage() {
                 <FormControl mt={2}>
                   <HStack>
                     <Switch
+                    colorScheme="teal"
                       isChecked={formData.show_phone}
                       onChange={(e) => setFormData({ ...formData, show_phone: e.target.checked })}
                     />
@@ -1180,7 +1135,7 @@ export default function ProfilePage() {
                 onUploadComplete={handleHeroImageUpload}
               />
             ) : (
-              <Alert status="info">
+              <Alert status="info" colorScheme="teal">
                 <AlertIcon />
                 <Box>
                   <AlertTitle>Pro Feature</AlertTitle>
@@ -1210,7 +1165,7 @@ export default function ProfilePage() {
             {hasAnalytics ? (
               <Text>Advanced analytics will be displayed here.</Text>
             ) : (
-              <Alert status="info">
+              <Alert status="info" colorScheme="teal">
                 <AlertIcon />
                 <Box>
                   <AlertTitle>Pro Feature</AlertTitle>
@@ -1230,7 +1185,7 @@ export default function ProfilePage() {
         <Flex justify="end">
           <Button
             leftIcon={<Save size={16} />}
-            colorScheme="blue"
+            colorScheme="teal"
             size="lg"
             onClick={handleSave}
             isLoading={saving}
