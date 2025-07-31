@@ -28,15 +28,16 @@ import {
   useDisclosure,
   useToast,
   Spinner,
-  Badge,
   Card,
   CardBody,
   CardHeader,
   Heading,
   SimpleGrid,
   IconButton,
+  Code,
+  Image,
 } from "@chakra-ui/react"
-import { Lock, Bell, Download, Trash2, Eye, EyeOff, Shield, Crown, Settings, Database } from "lucide-react"
+import { Lock, Bell, Eye, EyeOff, Shield, Settings, Database, Smartphone, Copy, Check } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { ConsentManager } from "@/components/compliance/ConsentManager"
@@ -51,6 +52,13 @@ interface UserProfile {
   created_at: string
 }
 
+interface MFAFactor {
+  id: string
+  type: string
+  status: string
+  created_at: string
+}
+
 export default function SettingsPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -60,8 +68,18 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
+  // MFA states
+  const [mfaFactors, setMfaFactors] = useState<MFAFactor[]>([])
+  const [mfaLoading, setMfaLoading] = useState(false)
+  const [qrCode, setQrCode] = useState("")
+  const [secret, setSecret] = useState("")
+  const [verificationCode, setVerificationCode] = useState("")
+  const [secretCopied, setSecretCopied] = useState(false)
+  const [currentFactorId, setCurrentFactorId] = useState("")
+
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
   const { isOpen: isExportOpen, onOpen: onExportOpen, onClose: onExportClose } = useDisclosure()
+  const { isOpen: isMfaSetupOpen, onOpen: onMfaSetupOpen, onClose: onMfaSetupClose } = useDisclosure()
   const toast = useToast()
 
   const {
@@ -77,6 +95,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchUserData()
+    fetchMfaFactors()
   }, [])
 
   const fetchUserData = async () => {
@@ -109,6 +128,23 @@ export default function SettingsPage() {
       })
       setLoading(false)
     }
+  }
+
+  const fetchMfaFactors = async () => {
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors()
+      if (error) throw error
+      setMfaFactors(data?.totp || [])
+    } catch (error) {
+      console.error("Error fetching MFA factors:", error)
+    }
+  }
+
+  const generateQRCodeUrl = (secret: string, email: string) => {
+    const issuer = "RecruitMyGame"
+    const accountName = `${issuer}:${email}`
+    const otpauthUrl = `otpauth://totp/${encodeURIComponent(accountName)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}`
   }
 
   const handlePasswordChange = async () => {
@@ -161,6 +197,147 @@ export default function SettingsPage() {
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleMfaEnroll = async () => {
+    setMfaLoading(true)
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "RecruitMyGame Authenticator",
+      })
+
+      if (error) throw error
+
+      // Extract the secret from the response
+      const totpSecret = data.totp?.secret || data.secret
+      if (!totpSecret) {
+        throw new Error("No TOTP secret received")
+      }
+
+      setSecret(totpSecret)
+      setCurrentFactorId(data.id)
+
+      // Generate QR code URL
+      const qrCodeUrl = generateQRCodeUrl(totpSecret, profile?.email || "")
+      setQrCode(qrCodeUrl)
+
+      onMfaSetupOpen()
+    } catch (error) {
+      console.error("Error enrolling MFA:", error)
+      toast({
+        title: "Error",
+        description: "Failed to set up MFA. Please try again.",
+        status: "error",
+        duration: 3000,
+      })
+    } finally {
+      setMfaLoading(false)
+    }
+  }
+
+  const handleMfaVerify = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid 6-digit code",
+        status: "error",
+        duration: 3000,
+      })
+      return
+    }
+
+    setMfaLoading(true)
+    try {
+      // First, we need to create a challenge
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: currentFactorId,
+      })
+
+      if (challengeError) throw challengeError
+
+      // Then verify the challenge with the code
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: currentFactorId,
+        challengeId: challengeData.id,
+        code: verificationCode,
+      })
+
+      if (verifyError) throw verifyError
+
+      await fetchMfaFactors()
+      await logActivity("mfa_enabled")
+
+      toast({
+        title: "Success",
+        description: "Multi-Factor Authentication enabled successfully",
+        status: "success",
+        duration: 3000,
+      })
+
+      onMfaSetupClose()
+      setVerificationCode("")
+      setQrCode("")
+      setSecret("")
+      setCurrentFactorId("")
+    } catch (error) {
+      console.error("Error verifying MFA:", error)
+      toast({
+        title: "Error",
+        description: "Invalid verification code. Please try again.",
+        status: "error",
+        duration: 3000,
+      })
+    } finally {
+      setMfaLoading(false)
+    }
+  }
+
+  const handleMfaDisable = async (factorId: string) => {
+    setMfaLoading(true)
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({
+        factorId,
+      })
+
+      if (error) throw error
+
+      await fetchMfaFactors()
+      await logActivity("mfa_disabled")
+
+      toast({
+        title: "Success",
+        description: "Multi-Factor Authentication disabled",
+        status: "success",
+        duration: 3000,
+      })
+    } catch (error) {
+      console.error("Error disabling MFA:", error)
+      toast({
+        title: "Error",
+        description: "Failed to disable MFA",
+        status: "error",
+        duration: 3000,
+      })
+    } finally {
+      setMfaLoading(false)
+    }
+  }
+
+  const copySecret = async () => {
+    try {
+      await navigator.clipboard.writeText(secret)
+      setSecretCopied(true)
+      setTimeout(() => setSecretCopied(false), 2000)
+      toast({
+        title: "Copied",
+        description: "Secret key copied to clipboard",
+        status: "success",
+        duration: 2000,
+      })
+    } catch (error) {
+      console.error("Error copying secret:", error)
     }
   }
 
@@ -262,7 +439,7 @@ export default function SettingsPage() {
   if (loading || settingsLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minH="400px">
-        <Spinner size="xl" color="blue.500" />
+        <Spinner size="xl" color="teal.500" />
       </Box>
     )
   }
@@ -272,8 +449,9 @@ export default function SettingsPage() {
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Lock },
     { id: "data", label: "Privacy & Data", icon: Database },
-    { id: "subscription", label: "Subscription", icon: Crown },
   ]
+
+  const hasMfaEnabled = mfaFactors.some((factor) => factor.status === "verified")
 
   return (
     <Box maxW="6xl" mx="auto">
@@ -293,7 +471,7 @@ export default function SettingsPage() {
             <Button
               key={tab.id}
               variant={activeTab === tab.id ? "solid" : "ghost"}
-              colorScheme={activeTab === tab.id ? "blue" : "gray"}
+              colorScheme={activeTab === tab.id ? "teal" : "gray"}
               leftIcon={<tab.icon size={16} />}
               onClick={() => setActiveTab(tab.id)}
               minW="fit-content"
@@ -540,113 +718,78 @@ export default function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <Heading size="md">Data & Account Management</Heading>
+                <Heading size="md">Multi-Factor Authentication</Heading>
                 <Text fontSize="sm" color="gray.600">
-                  Export your data or delete your account
+                  Add an extra layer of security to your account
                 </Text>
               </CardHeader>
               <CardBody>
                 <VStack spacing={4} align="stretch">
-                  <Button leftIcon={<Download size={16} />} variant="outline" onClick={onExportOpen}>
-                    Export My Data
-                  </Button>
+                  {hasMfaEnabled ? (
+                    <>
+                      <Alert status="success" size="sm">
+                        <AlertIcon />
+                        <Box>
+                          <AlertTitle fontSize="sm">MFA Enabled</AlertTitle>
+                          <AlertDescription fontSize="xs">
+                            Your account is protected with multi-factor authentication
+                          </AlertDescription>
+                        </Box>
+                      </Alert>
 
-                  <Button leftIcon={<Trash2 size={16} />} colorScheme="red" variant="outline" onClick={onDeleteOpen}>
-                    Delete Account
-                  </Button>
+                      <VStack spacing={2} align="start">
+                        {mfaFactors.map((factor) => (
+                          <HStack key={factor.id} justify="space-between" w="full">
+                            <HStack>
+                              <Smartphone size={16} />
+                              <VStack align="start" spacing={0}>
+                                <Text fontSize="sm" fontWeight="medium">
+                                  Authenticator App
+                                </Text>
+                                <Text fontSize="xs" color="gray.500">
+                                  Added {new Date(factor.created_at).toLocaleDateString()}
+                                </Text>
+                              </VStack>
+                            </HStack>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              colorScheme="red"
+                              onClick={() => handleMfaDisable(factor.id)}
+                              isLoading={mfaLoading}
+                            >
+                              Disable
+                            </Button>
+                          </HStack>
+                        ))}
+                      </VStack>
+                    </>
+                  ) : (
+                    <>
+                      <Alert status="warning" size="sm">
+                        <AlertIcon />
+                        <Box>
+                          <AlertTitle fontSize="sm">MFA Not Enabled</AlertTitle>
+                          <AlertDescription fontSize="xs">
+                            Enable MFA to secure your account with an authenticator app
+                          </AlertDescription>
+                        </Box>
+                      </Alert>
 
-                  <Alert status="info" size="sm">
-                    <AlertIcon />
-                    <Box>
-                      <AlertTitle fontSize="sm">Data Protection</AlertTitle>
-                      <AlertDescription fontSize="xs">
-                        Your data is encrypted and protected. We never share your information without explicit consent.
-                      </AlertDescription>
-                    </Box>
-                  </Alert>
+                      <Button
+                        leftIcon={<Smartphone size={16} />}
+                        onClick={handleMfaEnroll}
+                        isLoading={mfaLoading}
+                        colorScheme="teal"
+                      >
+                        Enable MFA
+                      </Button>
+                    </>
+                  )}
                 </VStack>
               </CardBody>
             </Card>
           </SimpleGrid>
-        )}
-
-        {/* Subscription Settings */}
-        {activeTab === "subscription" && (
-          <Card>
-            <CardHeader>
-              <HStack justify="space-between">
-                <Heading size="md">Subscription Plan</Heading>
-                <Badge
-                  colorScheme={profile?.subscription_tier === "premium" ? "gold" : "blue"}
-                  variant="solid"
-                  px={3}
-                  py={1}
-                  fontSize="sm"
-                >
-                  {profile?.subscription_tier?.toUpperCase() || "FREE"}
-                </Badge>
-              </HStack>
-            </CardHeader>
-            <CardBody>
-              <VStack spacing={6} align="stretch">
-                <Alert status="info">
-                  <AlertIcon />
-                  <Box>
-                    <AlertTitle>Current Plan: {profile?.subscription_tier?.toUpperCase() || "FREE"}</AlertTitle>
-                    <AlertDescription>
-                      {profile?.subscription_tier === "premium"
-                        ? "You have access to all premium features including unlimited uploads, advanced analytics, and priority support."
-                        : "You're on the free plan. Upgrade to Premium for unlimited uploads, advanced analytics, and priority support."}
-                    </AlertDescription>
-                  </Box>
-                </Alert>
-
-                {profile?.subscription_tier !== "premium" && (
-                  <Box p={6} border="1px" borderColor="blue.200" borderRadius="lg" bg="blue.50">
-                    <VStack spacing={4} align="start">
-                      <Text fontWeight="bold" color="blue.800" fontSize="lg">
-                        Upgrade to Premium
-                      </Text>
-                      <VStack align="start" spacing={2} fontSize="sm" color="blue.700">
-                        <Text>✓ Unlimited video and photo uploads</Text>
-                        <Text>✓ Advanced profile analytics and insights</Text>
-                        <Text>✓ Priority coach matching and visibility</Text>
-                        <Text>✓ Custom profile themes and branding</Text>
-                        <Text>✓ Priority customer support</Text>
-                        <Text>✓ Early access to new features</Text>
-                      </VStack>
-                      <Button colorScheme="teal" size="md" mt={2}>
-                        Upgrade to Premium - $9.99/month
-                      </Button>
-                    </VStack>
-                  </Box>
-                )}
-
-                <Divider />
-
-                <VStack spacing={3} align="start">
-                  <Text fontWeight="semibold" fontSize="lg">
-                    Account Information
-                  </Text>
-                  <VStack align="start" spacing={1} fontSize="sm" color="gray.600">
-                    <Text>
-                      <strong>Username:</strong> {profile?.username}
-                    </Text>
-                    <Text>
-                      <strong>Email:</strong> {profile?.email}
-                    </Text>
-                    <Text>
-                      <strong>Member since:</strong>{" "}
-                      {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "N/A"}
-                    </Text>
-                    <Text>
-                      <strong>Account ID:</strong> {profile?.id}
-                    </Text>
-                  </VStack>
-                </VStack>
-              </VStack>
-            </CardBody>
-          </Card>
         )}
 
         {/* Privacy & Data Settings */}
@@ -658,6 +801,101 @@ export default function SettingsPage() {
           </VStack>
         )}
       </VStack>
+
+      {/* MFA Setup Modal */}
+      <Modal isOpen={isMfaSetupOpen} onClose={onMfaSetupClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Set Up Multi-Factor Authentication</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={6} align="stretch">
+              <Alert status="info">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle fontSize="sm">Step 1: Scan QR Code</AlertTitle>
+                  <AlertDescription fontSize="xs">
+                    Use your authenticator app (Google Authenticator, Authy, Microsoft Authenticator, etc.) to scan this
+                    QR code
+                  </AlertDescription>
+                </Box>
+              </Alert>
+
+              {qrCode && (
+                <Box textAlign="center" p={4} bg="white" borderRadius="md" border="1px" borderColor="gray.200">
+                  <Image
+                    src={qrCode || "/placeholder.svg"}
+                    alt="MFA QR Code"
+                    maxW="200px"
+                    mx="auto"
+                    onError={(e) => {
+                      console.error("QR code failed to load:", e)
+                      // Fallback to showing just the secret
+                    }}
+                  />
+                </Box>
+              )}
+
+              {secret && (
+                <Box>
+                  <Text fontSize="sm" fontWeight="medium" mb={2}>
+                    Or enter this secret key manually in your authenticator app:
+                  </Text>
+                  <HStack>
+                    <Code fontSize="sm" p={2} flex={1} wordBreak="break-all">
+                      {secret}
+                    </Code>
+                    <IconButton
+                      aria-label="Copy secret"
+                      icon={secretCopied ? <Check size={16} /> : <Copy size={16} />}
+                      size="sm"
+                      onClick={copySecret}
+                      colorScheme={secretCopied ? "green" : "gray"}
+                    />
+                  </HStack>
+                </Box>
+              )}
+
+              <Alert status="info" size="sm">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle fontSize="sm">Step 2: Enter Verification Code</AlertTitle>
+                  <AlertDescription fontSize="xs">
+                    After adding the account to your authenticator app, enter the 6-digit code it generates
+                  </AlertDescription>
+                </Box>
+              </Alert>
+
+              <FormControl>
+                <FormLabel>Verification Code</FormLabel>
+                <Input
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="Enter 6-digit code"
+                  maxLength={6}
+                  textAlign="center"
+                  fontSize="lg"
+                  letterSpacing="0.5em"
+                />
+                <FormHelperText>Enter the 6-digit code from your authenticator app</FormHelperText>
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onMfaSetupClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="teal"
+              onClick={handleMfaVerify}
+              isLoading={mfaLoading}
+              isDisabled={!verificationCode || verificationCode.length !== 6}
+            >
+              Verify & Enable MFA
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       {/* Data Export Modal */}
       <Modal isOpen={isExportOpen} onClose={onExportClose}>
