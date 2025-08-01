@@ -11,6 +11,8 @@ import {
   CardBody,
   Container,
   Flex,
+  Grid,
+  GridItem,
   Heading,
   Text,
   VStack,
@@ -27,7 +29,6 @@ import {
   FormLabel,
   Input,
   Textarea,
-  Select,
   Alert,
   AlertIcon,
   Badge,
@@ -36,48 +37,42 @@ import {
   Center,
   Progress,
   AspectRatio,
-  SimpleGrid,
   Tabs,
   TabList,
   TabPanels,
   Tab,
   TabPanel,
 } from "@chakra-ui/react"
-import { Plus, Edit, Trash2, Play, Eye } from "lucide-react"
+import { Plus, Edit, Trash2, Play, ExternalLink } from "lucide-react"
 import { VideoUpload } from "@/components/VideoUpload"
-import { VideoPlayer } from "@/components/VideoPlayer"
 import { getSubscriptionLimits, canUploadMore, getUpgradeMessage, type SubscriptionTier } from "@/utils/subscription"
 import { deleteFile, extractStoragePath } from "@/utils/supabase/storage"
-import { extractVideoId, getVideoThumbnail } from "@/utils/videoThumbnails"
 import Link from "next/link"
 
-interface VideoItem {
+interface Video {
   id: string
   title: string
-  description: string | null
+  description: string
   video_url: string
   video_type: "youtube" | "vimeo" | "upload"
-  thumbnail_url: string | null
-  is_featured: boolean
+  thumbnail_url?: string
   created_at: string
+  updated_at: string
 }
 
 export default function VideosPage() {
   const [athlete, setAthlete] = useState<any>(null)
-  const [videos, setVideos] = useState<VideoItem[]>([])
+  const [videos, setVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("free")
   const { isOpen, onOpen, onClose } = useDisclosure()
-  const { isOpen: isViewerOpen, onOpen: onViewerOpen, onClose: onViewerClose } = useDisclosure()
-  const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null)
-  const [viewingVideo, setViewingVideo] = useState<VideoItem | null>(null)
+  const [editingVideo, setEditingVideo] = useState<Video | null>(null)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     video_url: "",
     video_type: "youtube" as "youtube" | "vimeo" | "upload",
-    thumbnail_url: "",
   })
   const toast = useToast()
 
@@ -128,29 +123,26 @@ export default function VideosPage() {
 
     setSaving(true)
     try {
-      // Generate thumbnail for YouTube/Vimeo videos
-      let thumbnailUrl = formData.thumbnail_url
-      if (!thumbnailUrl && formData.video_type !== "upload") {
-        const videoId = extractVideoId(formData.video_url, formData.video_type)
-        if (videoId) {
-          thumbnailUrl = getVideoThumbnail(videoId, formData.video_type)
-        }
-      }
-
       const videoData = {
         title: formData.title,
-        description: formData.description,
+        description: formData.description || null,
         video_url: formData.video_url,
         video_type: formData.video_type,
-        thumbnail_url: thumbnailUrl,
+        thumbnail_url: null,
         athlete_id: athlete.id,
+        is_featured: false,
         updated_at: new Date().toISOString(),
       }
 
       if (editingVideo) {
         // Update existing video
         const { error } = await supabase.from("athlete_videos").update(videoData).eq("id", editingVideo.id)
-        if (error) throw error
+
+        if (error) {
+          console.error("Database update error:", error)
+          throw error
+        }
+
         toast({
           title: "Video updated",
           description: "Your video has been updated successfully",
@@ -162,10 +154,14 @@ export default function VideosPage() {
         // Create new video
         const { error } = await supabase.from("athlete_videos").insert({
           ...videoData,
-          is_featured: false,
           created_at: new Date().toISOString(),
         })
-        if (error) throw error
+
+        if (error) {
+          console.error("Database insert error:", error)
+          throw error
+        }
+
         toast({
           title: "Video added",
           description: "Your video has been added successfully",
@@ -179,6 +175,7 @@ export default function VideosPage() {
       await fetchData()
       handleCloseModal()
     } catch (error: any) {
+      console.error("Error saving video:", error)
       toast({
         title: "Error saving video",
         description: error.message,
@@ -191,7 +188,7 @@ export default function VideosPage() {
     }
   }
 
-  const handleDelete = async (video: VideoItem) => {
+  const handleDelete = async (video: Video) => {
     if (!confirm("Are you sure you want to delete this video?")) return
 
     try {
@@ -199,7 +196,7 @@ export default function VideosPage() {
       const { error } = await supabase.from("athlete_videos").delete().eq("id", video.id)
       if (error) throw error
 
-      // Delete file from storage if it's an uploaded video
+      // Delete file from storage if it's a direct upload
       if (video.video_type === "upload" && video.video_url.includes("supabase")) {
         const pathInfo = extractStoragePath(video.video_url)
         if (pathInfo) {
@@ -227,21 +224,15 @@ export default function VideosPage() {
     }
   }
 
-  const handleEdit = (video: VideoItem) => {
+  const handleEdit = (video: Video) => {
     setEditingVideo(video)
     setFormData({
       title: video.title,
-      description: video.description || "",
+      description: video.description,
       video_url: video.video_url,
       video_type: video.video_type,
-      thumbnail_url: video.thumbnail_url || "",
     })
     onOpen()
-  }
-
-  const handleView = (video: VideoItem) => {
-    setViewingVideo(video)
-    onViewerOpen()
   }
 
   const handleCloseModal = () => {
@@ -251,35 +242,56 @@ export default function VideosPage() {
       description: "",
       video_url: "",
       video_type: "youtube",
-      thumbnail_url: "",
     })
     onClose()
   }
 
-  const handleVideoUpload = () => {
-    // Refresh data after upload
-    fetchData()
+  const handleVideoUpload = (videoUrl: string) => {
+    // When video is uploaded, just set the URL and let user add title/description
+    setFormData({
+      ...formData,
+      video_url: videoUrl,
+      video_type: "upload",
+    })
+
+    // Auto-generate title from timestamp if empty
+    if (!formData.title) {
+      setFormData((prev) => ({
+        ...prev,
+        title: `Video ${new Date().toLocaleDateString()}`,
+      }))
+    }
   }
 
   const handleUrlChange = (url: string) => {
     setFormData({ ...formData, video_url: url })
 
-    // Auto-detect video type and generate thumbnail
+    // Auto-detect video type
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
       setFormData((prev) => ({ ...prev, video_type: "youtube" }))
-      const videoId = extractVideoId(url, "youtube")
-      if (videoId) {
-        const thumbnail = getVideoThumbnail(videoId, "youtube")
-        setFormData((prev) => ({ ...prev, thumbnail_url: thumbnail }))
-      }
     } else if (url.includes("vimeo.com")) {
       setFormData((prev) => ({ ...prev, video_type: "vimeo" }))
-      const videoId = extractVideoId(url, "vimeo")
-      if (videoId) {
-        const thumbnail = getVideoThumbnail(videoId, "vimeo")
-        setFormData((prev) => ({ ...prev, thumbnail_url: thumbnail }))
-      }
     }
+  }
+
+  const getYouTubeEmbedUrl = (url: string) => {
+    if (url.includes("youtube.com/watch?v=")) {
+      const videoId = url.split("v=")[1]?.split("&")[0]
+      return `https://www.youtube.com/embed/${videoId}`
+    }
+    if (url.includes("youtu.be/")) {
+      const videoId = url.split("youtu.be/")[1]?.split("?")[0]
+      return `https://www.youtube.com/embed/${videoId}`
+    }
+    return url
+  }
+
+  const getVimeoEmbedUrl = (url: string) => {
+    if (url.includes("vimeo.com/")) {
+      const videoId = url.split("vimeo.com/")[1]?.split("?")[0]?.split("/")[0]
+      return `https://player.vimeo.com/video/${videoId}`
+    }
+    return url
   }
 
   if (loading) {
@@ -314,7 +326,7 @@ export default function VideosPage() {
         <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
           <Box>
             <Heading size="lg" mb={2}>
-              Video Gallery
+              Game Film & Videos
             </Heading>
             <HStack spacing={4}>
               <Text color="gray.600">
@@ -352,7 +364,7 @@ export default function VideosPage() {
               </Flex>
               <Progress
                 value={(videos.length / limits.videos) * 100}
-                colorScheme={videos.length >= limits.videos ? "red" : "green"}
+                colorScheme={videos.length >= limits.videos ? "red" : "blue"}
                 size="sm"
               />
               {!canAddMore && (
@@ -371,13 +383,13 @@ export default function VideosPage() {
             <CardBody py={12} textAlign="center">
               <VStack spacing={4}>
                 <Box color="gray.400">
-                  <video size={48} />
+                  <Play size={48} />
                 </Box>
                 <Heading size="md" color="gray.600">
                   No videos yet
                 </Heading>
                 <Text color="gray.500" maxW="md">
-                  Add your first videos to showcase your skills, highlights, and athletic performances.
+                  Add your first game film or highlight video to showcase your skills to college coaches.
                 </Text>
                 <Button leftIcon={<Plus size={16} />} colorScheme="blue" onClick={onOpen} isDisabled={!canAddMore}>
                   Add Your First Video
@@ -386,113 +398,108 @@ export default function VideosPage() {
             </CardBody>
           </Card>
         ) : (
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+          <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={6}>
             {videos.map((video) => (
-              <Card key={video.id} overflow="hidden" _hover={{ transform: "scale(1.02)" }} transition="all 0.2s">
-                <CardBody p={0}>
-                  <VStack spacing={0} align="stretch">
-                    {/* Video Thumbnail */}
-                    <AspectRatio ratio={16 / 9}>
-                      <Box
-                        position="relative"
-                        bg="gray.100"
-                        cursor="pointer"
-                        onClick={() => handleView(video)}
-                        backgroundImage={video.thumbnail_url ? `url(${video.thumbnail_url})` : undefined}
-                        backgroundSize="cover"
-                        backgroundPosition="center"
-                      >
-                        {!video.thumbnail_url && (
-                          <Box
-                            w="full"
-                            h="full"
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="center"
-                            color="gray.400"
-                          >
-                            <video size={48} />
-                          </Box>
-                        )}
-                        {/* Play button overlay */}
+              <GridItem key={video.id}>
+                <Card h="full">
+                  <CardBody p={0}>
+                    <VStack spacing={0} align="stretch">
+                      {/* Video Thumbnail/Player */}
+                      <AspectRatio ratio={16 / 9}>
                         <Box
-                          position="absolute"
-                          top="50%"
-                          left="50%"
-                          transform="translate(-50%, -50%)"
-                          bg="blackAlpha.700"
-                          borderRadius="full"
-                          p={3}
-                          color="white"
-                          _hover={{ bg: "blackAlpha.800" }}
-                          transition="all 0.2s"
+                          bg="black"
+                          borderTopRadius="md"
+                          overflow="hidden"
+                          position="relative"
+                          cursor="pointer"
+                          _hover={{ opacity: 0.8 }}
                         >
-                          <Play size={24} fill="currentColor" />
+                          {video.video_type === "youtube" ? (
+                            <iframe
+                              src={getYouTubeEmbedUrl(video.video_url)}
+                              title={video.title}
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              style={{ width: "100%", height: "100%" }}
+                            />
+                          ) : video.video_type === "vimeo" ? (
+                            <iframe
+                              src={getVimeoEmbedUrl(video.video_url)}
+                              title={video.title}
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              style={{ width: "100%", height: "100%" }}
+                            />
+                          ) : (
+                            <video
+                              controls
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              poster={video.thumbnail_url}
+                            >
+                              <source src={video.video_url} type="video/mp4" />
+                              Your browser does not support the video tag.
+                            </video>
+                          )}
                         </Box>
-                        {/* Video type badge */}
-                        <Badge
-                          position="absolute"
-                          top={2}
-                          right={2}
-                          colorScheme={
-                            video.video_type === "youtube" ? "red" : video.video_type === "vimeo" ? "blue" : "green"
-                          }
-                          textTransform="uppercase"
-                        >
-                          {video.video_type}
-                        </Badge>
-                      </Box>
-                    </AspectRatio>
+                      </AspectRatio>
 
-                    {/* Video Info & Actions */}
-                    <Box p={4}>
-                      <VStack align="stretch" spacing={3}>
-                        <Heading size="sm" noOfLines={2}>
-                          {video.title}
-                        </Heading>
+                      {/* Video Info */}
+                      <Box p={4}>
+                        <VStack align="stretch" spacing={3}>
+                          <Box>
+                            <Heading size="sm" mb={1} noOfLines={2}>
+                              {video.title}
+                            </Heading>
+                            {video.description && (
+                              <Text fontSize="sm" color="gray.600" noOfLines={2}>
+                                {video.description}
+                              </Text>
+                            )}
+                          </Box>
 
-                        {video.description && (
-                          <Text fontSize="sm" color="gray.600" noOfLines={2}>
-                            {video.description}
+                          <Text fontSize="xs" color="gray.500">
+                            Added {new Date(video.created_at).toLocaleDateString()}
                           </Text>
-                        )}
 
-                        <Text fontSize="xs" color="gray.500">
-                          Added {new Date(video.created_at).toLocaleDateString()}
-                        </Text>
-
-                        {/* Actions */}
-                        <HStack spacing={2} justify="center">
-                          <IconButton
-                            aria-label="View video"
-                            icon={<Eye size={16} />}
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleView(video)}
-                          />
-                          <IconButton
-                            aria-label="Edit video"
-                            icon={<Edit size={16} />}
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEdit(video)}
-                          />
-                          <IconButton
-                            aria-label="Delete video"
-                            icon={<Trash2 size={16} />}
-                            size="sm"
-                            variant="ghost"
-                            colorScheme="red"
-                            onClick={() => handleDelete(video)}
-                          />
-                        </HStack>
-                      </VStack>
-                    </Box>
-                  </VStack>
-                </CardBody>
-              </Card>
+                          {/* Actions */}
+                          <HStack spacing={2}>
+                            <IconButton
+                              aria-label="Edit video"
+                              icon={<Edit size={16} />}
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEdit(video)}
+                            />
+                            <IconButton
+                              aria-label="Delete video"
+                              icon={<Trash2 size={16} />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="red"
+                              onClick={() => handleDelete(video)}
+                            />
+                            {(video.video_type === "youtube" || video.video_type === "vimeo") && (
+                              <IconButton
+                                aria-label="Open in new tab"
+                                icon={<ExternalLink size={16} />}
+                                size="sm"
+                                variant="ghost"
+                                as="a"
+                                href={video.video_url}
+                                target="_blank"
+                              />
+                            )}
+                          </HStack>
+                        </VStack>
+                      </Box>
+                    </VStack>
+                  </CardBody>
+                </Card>
+              </GridItem>
             ))}
-          </SimpleGrid>
+          </Grid>
         )}
 
         {/* Add/Edit Video Modal */}
@@ -509,7 +516,7 @@ export default function VideosPage() {
                     <Input
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Enter video title..."
+                      placeholder="Game vs. Lincoln High - Highlights"
                     />
                   </FormControl>
 
@@ -518,7 +525,7 @@ export default function VideosPage() {
                     <Textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Describe this video..."
+                      placeholder="Describe what's shown in this video..."
                       rows={3}
                     />
                   </FormControl>
@@ -538,18 +545,6 @@ export default function VideosPage() {
                               onChange={(e) => handleUrlChange(e.target.value)}
                               placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
                             />
-                            <Select
-                              value={formData.video_type}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  video_type: e.target.value as "youtube" | "vimeo" | "upload",
-                                })
-                              }
-                            >
-                              <option value="youtube">YouTube</option>
-                              <option value="vimeo">Vimeo</option>
-                            </Select>
                           </VStack>
                         </TabPanel>
                         <TabPanel px={0}>
@@ -581,42 +576,6 @@ export default function VideosPage() {
                   </HStack>
                 </VStack>
               </form>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-
-        {/* Video Viewer Modal */}
-        <Modal isOpen={isViewerOpen} onClose={onViewerClose} size="6xl">
-          <ModalOverlay bg="blackAlpha.900" />
-          <ModalContent bg="transparent" shadow="none" maxW="90vw" maxH="90vh">
-            <ModalCloseButton color="white" size="lg" zIndex={2} />
-            <ModalBody p={0} display="flex" alignItems="center" justifyContent="center">
-              {viewingVideo && (
-                <VStack spacing={4} w="full" h="full" justify="center">
-                  <Box maxW="full" maxH="80vh" w="full">
-                    <VideoPlayer
-                      url={viewingVideo.video_url}
-                      type={viewingVideo.video_type}
-                      title={viewingVideo.title}
-                      thumbnail={viewingVideo.thumbnail_url}
-                    />
-                  </Box>
-
-                  <VStack spacing={2} textAlign="center" maxW="2xl">
-                    <Heading size="md" color="white">
-                      {viewingVideo.title}
-                    </Heading>
-                    {viewingVideo.description && (
-                      <Text color="gray.300" fontSize="sm">
-                        {viewingVideo.description}
-                      </Text>
-                    )}
-                    <Text color="gray.400" fontSize="xs">
-                      Added {new Date(viewingVideo.created_at).toLocaleDateString()}
-                    </Text>
-                  </VStack>
-                </VStack>
-              )}
             </ModalBody>
           </ModalContent>
         </Modal>

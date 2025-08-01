@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   Box,
   Button,
@@ -17,23 +17,35 @@ import {
   Badge,
 } from "@chakra-ui/react"
 import { Upload, X, Video } from "lucide-react"
-import { uploadMedia, type UploadResult } from "@/utils/supabase/storage"
+import { supabase } from "@/utils/supabase/client"
 
 interface VideoUploadProps {
-  onUploadComplete?: (result: UploadResult) => void
+  onUploadComplete?: (videoUrl: string) => void
   onUploadStart?: () => void
-  userId: string
+  athleteId: string
   currentVideoUrl?: string
   onDelete?: () => void
 }
 
-export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVideoUrl, onDelete }: VideoUploadProps) {
+export function VideoUpload({
+  onUploadComplete,
+  onUploadStart,
+  athleteId,
+  currentVideoUrl,
+  onDelete,
+}: VideoUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string>(currentVideoUrl || "")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
+
+  // Update uploaded video URL when currentVideoUrl changes
+  useEffect(() => {
+    setUploadedVideoUrl(currentVideoUrl || "")
+  }, [currentVideoUrl])
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -48,7 +60,28 @@ export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVi
     onUploadStart?.()
 
     try {
-      // Validate file size (100MB limit)
+      // Get current session to ensure user is authenticated
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        console.error("Session error:", sessionError)
+        throw new Error(`Session error: ${sessionError.message}`)
+      }
+
+      if (!session) {
+        console.error("No session found")
+        throw new Error("User not authenticated. Please log in and try again.")
+      }
+
+      console.log("User authenticated:", {
+        userId: session.user.id,
+        email: session.user.email,
+      })
+
+      // Validate file size (100MB limit for videos)
       const maxSize = 100 * 1024 * 1024
       if (file.size > maxSize) {
         throw new Error("File size must be less than 100MB")
@@ -62,38 +95,65 @@ export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVi
 
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 5, 90))
-      }, 500)
+        setUploadProgress((prev) => Math.min(prev + 10, 90))
+      }, 200)
 
-      const result = await uploadMedia(file, userId, "video") // Pass userId directly
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop()
+      const fileName = `video_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`
+      // Use user_id for folder structure to match storage policies
+      const filePath = `${session.user.id}/${fileName}`
+
+      console.log("Uploading video to path:", filePath)
+      console.log("File details:", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      })
+
+      // Upload to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage.from("athlete-videos").upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
 
       clearInterval(progressInterval)
+
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError)
+        throw new Error(`Upload failed: ${uploadError.message}`)
+      }
+
+      console.log("Storage upload successful:", data)
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("athlete-videos").getPublicUrl(data.path)
+
+      console.log("Video uploaded successfully, URL:", publicUrl)
+
+      // Set the uploaded video URL for preview
+      setUploadedVideoUrl(publicUrl)
       setUploadProgress(100)
 
-      if (result.success) {
-        toast({
-          title: "Video uploaded successfully",
-          description: "Your video has been uploaded and is ready to use",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        })
-        onUploadComplete?.(result)
-      } else {
-        setError(result.error || "Upload failed")
-        toast({
-          title: "Upload failed",
-          description: result.error,
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        })
-      }
+      toast({
+        title: "Video uploaded successfully",
+        description: "Video ready to save with title and description",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      })
+
+      // Call completion callback with just the URL - let parent handle saving to database
+      onUploadComplete?.(publicUrl)
     } catch (err: any) {
-      setError(err.message || "Upload failed")
+      console.error("Upload failed:", err)
+      const errorMessage = err.message || err.code || "Upload failed"
+      setError(errorMessage)
       toast({
         title: "Upload failed",
-        description: err.message,
+        description: errorMessage,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -101,6 +161,43 @@ export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVi
     } finally {
       setUploading(false)
       setTimeout(() => setUploadProgress(0), 1000)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (uploadedVideoUrl) {
+      try {
+        // Extract file path from URL for storage deletion
+        const urlParts = uploadedVideoUrl.split("/")
+        const fileName = urlParts[urlParts.length - 1]
+        const userId = urlParts[urlParts.length - 2]
+        const filePath = `${userId}/${fileName}`
+
+        // Delete from storage
+        const { error: storageError } = await supabase.storage.from("athlete-videos").remove([filePath])
+        if (storageError) {
+          console.warn("Storage deletion failed:", storageError)
+        }
+
+        setUploadedVideoUrl("")
+        onDelete?.()
+
+        toast({
+          title: "Video removed",
+          description: "Video file has been deleted",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        })
+      } catch (err: any) {
+        toast({
+          title: "Delete failed",
+          description: err.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        })
+      }
     }
   }
 
@@ -124,40 +221,44 @@ export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVi
     }
   }
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes"
-    const k = 1024
-    const sizes = ["Bytes", "KB", "MB", "GB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  // Show uploaded video preview
+  if (uploadedVideoUrl) {
+    return (
+      <VStack spacing={4} w="full">
+        <Alert status="success" borderRadius="md">
+          <AlertIcon />
+          <Text fontSize="sm">Video uploaded! Add title and description below, then save.</Text>
+        </Alert>
+
+        {/* Video Preview */}
+        <Box position="relative" w="full">
+          <Box bg="black" borderRadius="md" overflow="hidden" position="relative" aspectRatio="16/9">
+            <video controls style={{ width: "100%", height: "100%", objectFit: "cover" }}>
+              <source src={uploadedVideoUrl} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </Box>
+          <IconButton
+            aria-label="Delete video"
+            icon={<X size={16} />}
+            size="sm"
+            colorScheme="red"
+            position="absolute"
+            top={2}
+            right={2}
+            onClick={handleDelete}
+          />
+        </Box>
+
+        <Button size="sm" variant="outline" onClick={() => setUploadedVideoUrl("")}>
+          Upload Different Video
+        </Button>
+      </VStack>
+    )
   }
 
   return (
     <VStack spacing={4} w="full">
-      {/* Current video preview */}
-      {currentVideoUrl && (
-        <Box position="relative" w="full">
-          <Box bg="black" borderRadius="md" overflow="hidden" position="relative" aspectRatio="16/9">
-            <video controls style={{ width: "100%", height: "100%", objectFit: "cover" }}>
-              <source src={currentVideoUrl} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </Box>
-          {onDelete && (
-            <IconButton
-              aria-label="Delete current video"
-              icon={<X size={16} />}
-              size="sm"
-              colorScheme="red"
-              position="absolute"
-              top={2}
-              right={2}
-              onClick={onDelete}
-            />
-          )}
-        </Box>
-      )}
-
       {/* Upload area */}
       <Box
         w="full"
@@ -186,9 +287,9 @@ export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVi
               <Text fontSize="sm" color="blue.600">
                 Uploading video...
               </Text>
-              <Progress value={uploadProgress} colorScheme="teal" w="full" />
+              <Progress value={uploadProgress} colorScheme="blue" w="full" />
               <Text fontSize="xs" color="gray.500">
-                {uploadProgress}% - This may take a few minutes
+                {uploadProgress}%
               </Text>
             </VStack>
           ) : (
@@ -197,10 +298,10 @@ export function VideoUpload({ onUploadComplete, onUploadStart, userId, currentVi
                 Drop your video here, or click to browse
               </Text>
               <HStack spacing={2} wrap="wrap" justify="center">
-                <Badge colorScheme="teal">MP4</Badge>
-                <Badge colorScheme="teal">WebM</Badge>
-                <Badge colorScheme="teal">MOV</Badge>
-                <Badge colorScheme="teal">AVI</Badge>
+                <Badge colorScheme="blue">MP4</Badge>
+                <Badge colorScheme="blue">WebM</Badge>
+                <Badge colorScheme="blue">MOV</Badge>
+                <Badge colorScheme="blue">AVI</Badge>
               </HStack>
               <Text fontSize="sm" color="gray.500">
                 Maximum file size: 100MB
