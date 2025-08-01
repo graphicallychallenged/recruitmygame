@@ -12,11 +12,14 @@ import {
   Badge,
   useBreakpointValue,
   SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
+  Progress,
+  Flex,
+  Card,
+  CardBody,
+  Divider,
+  useColorModeValue,
 } from "@chakra-ui/react"
-import { Star, MessageCircle, Shield, Trophy, Users, Heart, Brain, Target, BookOpen } from "lucide-react"
+import { Star, MessageCircle, Shield, Trophy, Users, Heart, Brain, Target, Calendar, CheckCircle } from "lucide-react"
 import type { AthleteReview } from "@/types/database"
 import { useState } from "react"
 
@@ -51,6 +54,12 @@ export function ReviewsSection({
   // Responsive values
   const isMobile = useBreakpointValue({ base: true, md: false })
 
+  // Color values
+  const verifiedBg = useColorModeValue("green.50", "green.900")
+  const verifiedBorder = useColorModeValue("green.200", "green.700")
+  const verifiedText = useColorModeValue("green.700", "green.200")
+  const cardShadow = useColorModeValue("lg", "dark-lg")
+
   const handleContactReviewer = (review: AthleteReview) => {
     setSelectedReview(review)
     setIsContactModalOpen(true)
@@ -73,22 +82,62 @@ export function ReviewsSection({
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        size={20}
-        fill={i < validRating ? "currentColor" : "none"}
+        size={16}
+        fill={i < validRating ? "#F6E05E" : "none"}
         color={i < validRating ? "#F6E05E" : "#E2E8F0"}
-        style={{ color: i < validRating ? "#F6E05E" : "#E2E8F0" }}
       />
     ))
   }
 
+  const getReviewerType = (review: AthleteReview) => {
+    const title = review.reviewer_title?.toLowerCase() || ""
+    if (title.includes("coach") || title.includes("trainer") || title.includes("instructor")) {
+      return "Coach"
+    }
+    if (title.includes("teacher") || title.includes("professor") || title.includes("educator")) {
+      return "Teacher"
+    }
+    if (title.includes("scout") || title.includes("recruiter")) {
+      return "Scout"
+    }
+    if (title.includes("director") || title.includes("manager") || title.includes("coordinator")) {
+      return "Director"
+    }
+    return "Reviewer"
+  }
+
+  const formatRecommendation = (recommendation: string | null | undefined) => {
+    if (!recommendation) return null
+
+    const recommendations: { [key: string]: string } = {
+      highly_recommend: "Highly Recommend",
+      recommend: "Recommend",
+      somewhat_recommend: "Somewhat Recommend",
+      neutral: "Neutral",
+      do_not_recommend: "Do Not Recommend",
+    }
+
+    return recommendations[recommendation] || recommendation
+  }
+
+  const getProgressColorScheme = (color: string) => {
+    if (color.includes("#3182CE")) return "blue"
+    if (color.includes("#E53E3E")) return "red"
+    if (color.includes("#38A169")) return "green"
+    if (color.includes("#805AD5")) return "purple"
+    if (color.includes("#DD6B20")) return "orange"
+    if (color.includes("#319795")) return "teal"
+    return "gray"
+  }
+
   const renderDetailedRatings = (review: AthleteReview) => {
     const ratings = [
-      { label: "Athleticism", value: review.athleticism, icon: Trophy, color: "blue.500" },
-      { label: "Character", value: review.character, icon: Heart, color: "red.500" },
-      { label: "Work Ethic", value: review.work_ethic, icon: Target, color: "green.500" },
-      { label: "Leadership", value: review.leadership, icon: Users, color: "purple.500" },
-      { label: "Coachability", value: review.coachability, icon: Brain, color: "orange.500" },
-      { label: "Teamwork", value: review.teamwork, icon: Users, color: "teal.500" },
+      { label: "Athleticism", value: review.athleticism, icon: Trophy, color: "#3182CE" },
+      { label: "Character", value: review.character, icon: Heart, color: "#E53E3E" },
+      { label: "Work Ethic", value: review.work_ethic, icon: Target, color: "#38A169" },
+      { label: "Leadership", value: review.leadership, icon: Users, color: "#805AD5" },
+      { label: "Coachability", value: review.coachability, icon: Brain, color: "#DD6B20" },
+      { label: "Teamwork", value: review.teamwork, icon: Users, color: "#319795" },
     ]
 
     const validRatings = ratings.filter((rating) => rating.value && rating.value > 0)
@@ -96,33 +145,35 @@ export function ReviewsSection({
     if (validRatings.length === 0) return null
 
     return (
-      <Box w="full" mt={4}>
-        <Text fontSize="sm" fontWeight="bold" color={textColor} mb={3}>
-          Detailed Coach Ratings
+      <Box w="full" mt={6}>
+        <Text fontSize="sm" fontWeight="bold" color={textColor} mb={4}>
+          Detailed Ratings (Out of 10)
         </Text>
-        <SimpleGrid columns={{ base: 2, md: 4 }} spacing={3}>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
           {validRatings.map((rating) => (
-            <Box key={rating.label} textAlign="center">
-              <VStack spacing={1}>
-                <Icon as={rating.icon} color={rating.color} size={16} />
-                <Text fontSize="xs" color={mutedTextColor} fontWeight="medium">
-                  {rating.label}
-                </Text>
-                <HStack spacing={0}>
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <Star
-                      key={i}
-                      size={12}
-                      fill={i < (rating.value || 0) ? rating.color : "none"}
-                      color={i < (rating.value || 0) ? rating.color : "#E2E8F0"}
-                      style={{ color: i < (rating.value || 0) ? rating.color : "#E2E8F0" }}
-                    />
-                  ))}
+            <Box key={rating.label} p={3} bg={isDarkTheme ? "gray.700" : "gray.50"} borderRadius="lg">
+              <HStack justify="space-between" mb={2}>
+                <HStack spacing={2}>
+                  <Icon as={rating.icon} color={rating.color} size={16} />
+                  <Text fontSize="sm" fontWeight="medium" color={textColor}>
+                    {rating.label}
+                  </Text>
                 </HStack>
-                <Text fontSize="xs" color={textColor} fontWeight="bold">
-                  {rating.value}/5
+                <Text fontSize="lg" fontWeight="bold" color={rating.color}>
+                  {rating.value}/10
                 </Text>
-              </VStack>
+              </HStack>
+              <Progress
+                value={(rating.value || 0) * 10}
+                colorScheme={getProgressColorScheme(rating.color)}
+                size="sm"
+                borderRadius="full"
+                sx={{
+                  "& > div": {
+                    backgroundColor: secondaryColor,
+                  },
+                }}
+              />
             </Box>
           ))}
         </SimpleGrid>
@@ -136,79 +187,74 @@ export function ReviewsSection({
 
   return (
     <Box>
-      <VStack spacing={6} align="stretch">
+      <VStack spacing={8} align="stretch">
         {/* Header with Stats */}
         <Box>
-          <HStack justify="space-between" align="start" mb={4}>
-            <Heading size={isMobile ? "sm" : "md"} color={textColor}>
-              <HStack spacing={2}>
-                <Icon as={Star} color={primaryColor} />
-                <Text>Coach Reviews</Text>
+          <HStack justify="space-between" align="start" mb={6}>
+            <VStack align="start" spacing={2}>
+              <HStack spacing={3}>
+                <Icon as={MessageCircle} color={primaryColor} size={24} />
+                <Heading size={isMobile ? "md" : "lg"} color={textColor}>
+                  Reviews
+                </Heading>
               </HStack>
-            </Heading>
+              <Text fontSize="sm" color={mutedTextColor}>
+                {reviews.length} total reviews • {verifiedReviews.length} verified
+              </Text>
+            </VStack>
 
             {verifiedReviews.length > 0 && (
-              <VStack align="end" spacing={1}>
+              <VStack align="end" spacing={2}>
                 <HStack spacing={2}>
-                  <Badge colorScheme="green" variant="solid" size="sm">
-                    <HStack spacing={1}>
-                      <Shield size={10} />
-                      <Text fontSize="xs">{verifiedReviews.length} Verified</Text>
+                  <Badge colorScheme="green" variant="solid" size="lg" px={3} py={1}>
+                    <HStack spacing={2}>
+                      <Shield size={14} />
+                      <Text fontWeight="bold">{verifiedReviews.length} Verified</Text>
                     </HStack>
                   </Badge>
                 </HStack>
-                <Text fontSize="xs" color={mutedTextColor}>
-                  {reviews.length} total reviews
-                </Text>
+                <HStack spacing={1}>
+                  {renderStars(
+                    verifiedReviews.reduce((sum, review) => sum + (review.rating || 0), 0) / verifiedReviews.length,
+                  )}
+                  <Text fontSize="sm" color={mutedTextColor} ml={2}>
+                    {(
+                      verifiedReviews.reduce((sum, review) => sum + (review.rating || 0), 0) / verifiedReviews.length
+                    ).toFixed(1)}
+                    /5.0
+                  </Text>
+                </HStack>
               </VStack>
             )}
           </HStack>
-
-          {/* Overall Rating Summary for Verified Reviews */}
-          {verifiedReviews.length > 0 && (
-            <Box p={4} bg={isDarkTheme ? "green.900" : "green.50"} borderRadius="lg" mb={4}>
-              <HStack justify="space-between" align="center">
-                <VStack align="start" spacing={1}>
-                  <Text fontSize="sm" fontWeight="bold" color={isDarkTheme ? "green.200" : "green.700"}>
-                    Verified Coach Rating Average
-                  </Text>
-                  <HStack spacing={1}>
-                    {renderStars(
-                      verifiedReviews.reduce((sum, review) => sum + (review.rating || 0), 0) / verifiedReviews.length,
-                    )}
-                    <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.700"} ml={2}>
-                      {(
-                        verifiedReviews.reduce((sum, review) => sum + (review.rating || 0), 0) / verifiedReviews.length
-                      ).toFixed(1)}
-                      /5.0
-                    </Text>
-                  </HStack>
-                </VStack>
-                <Stat textAlign="right" size="sm">
-                  <StatNumber fontSize="lg" color={isDarkTheme ? "green.200" : "green.700"}>
-                    {verifiedReviews.length}
-                  </StatNumber>
-                  <StatLabel fontSize="xs" color={isDarkTheme ? "green.300" : "green.600"}>
-                    Verified Reviews
-                  </StatLabel>
-                </Stat>
-              </HStack>
-            </Box>
-          )}
         </Box>
 
         {/* Reviews List */}
         <VStack spacing={6} align="stretch">
           {displayedReviews.map((review) => {
             const isVerified = (review as any).is_verified || false
+            const reviewerType = getReviewerType(review)
+            const formattedRecommendation = formatRecommendation((review as any).would_recommend)
+
             return (
-              <Box key={review.id} p={5} bg={isDarkTheme ? "gray.700" : "gray.50"} borderRadius="lg">
-                {isMobile ? (
-                  // MOBILE: Complete vertical stack - NO horizontal layout at all
-                  <VStack align="stretch" spacing={4} w="full">
-                    {/* Section 1: Avatar and reviewer info - FULL WIDTH */}
-                    <VStack align="start" spacing={2} w="full">
-                      <HStack spacing={3} w="full">
+              <Card
+                key={review.id}
+                shadow={cardShadow}
+                borderLeft={isVerified ? "4px" : "none"}
+                borderLeftColor={isVerified ? "green.400" : "transparent"}
+                bg={cardBgColor}
+                overflow="hidden"
+              >
+                <CardBody p={6}>
+                  <VStack align="stretch" spacing={5}>
+                    {/* Header Section */}
+                    <Flex
+                      direction={{ base: "column", md: "row" }}
+                      justify="space-between"
+                      align={{ base: "start", md: "center" }}
+                      gap={4}
+                    >
+                      <HStack spacing={4} flex={1}>
                         <Avatar
                           name={review.reviewer_name}
                           src={review.reviewer_image_url || undefined}
@@ -217,204 +263,119 @@ export function ReviewsSection({
                           color="white"
                         />
                         <VStack align="start" spacing={1} flex={1}>
-                          <HStack spacing={2} align="center" flexWrap="wrap">
+                          <HStack spacing={3} align="center" flexWrap="wrap">
                             <Text fontWeight="bold" color={textColor} fontSize="xl">
                               {review.reviewer_name}
                             </Text>
                             {isVerified && (
                               <Badge colorScheme="green" variant="solid" size="sm">
                                 <HStack spacing={1}>
-                                  <Shield size={10} />
-                                  <Text fontSize="xs">Verified</Text>
+                                  <CheckCircle size={12} />
+                                  <Text fontSize="xs">Verified Review</Text>
                                 </HStack>
                               </Badge>
                             )}
                           </HStack>
-                        </VStack>
-                      </HStack>
-                      <Text fontSize="lg" color={mutedTextColor} fontWeight="medium" w="full">
-                        {review.reviewer_title}
-                      </Text>
-                      <Text fontSize="lg" color={mutedTextColor} w="full">
-                        {review.reviewer_organization}
-                      </Text>
-                      {review.relationship && (
-                        <Text fontSize="md" color={mutedTextColor} w="full">
-                          {review.relationship} 
-                        </Text>
-                      )}
-                      {review.relationship_duration && (
-                        <Text fontSize="md" color={mutedTextColor} w="full">
-                          for {review.relationship_duration}
-                        </Text>
-                      )}
-                    </VStack>
 
-                    {/* Section 2: Stars - FULL WIDTH */}
-                    <Box w="full">
-                      <HStack spacing={1} justify="start">
-                        {renderStars(review.rating)}
-                      </HStack>
-                    </Box>
-
-                    {/* Section 3: Review text - FULL WIDTH */}
-                    <Box w="full">
-                      <Text fontSize="lg" color={textColor} fontStyle="italic" lineHeight="1.6">
-                        "{review.review_text}"
-                      </Text>
-                    </Box>
-
-                    {/* Section 4: Detailed ratings for verified reviews - FULL WIDTH */}
-                    {isVerified && renderDetailedRatings(review)}
-
-                    {/* Section 5: Contact button - FULL WIDTH */}
-                    {review.can_contact_reviewer && (
-                      <Box w="full">
-                        <Button
-                          size="lg"
-                          bg={primaryColor}
-                          color="white"
-                          _hover={{ bg: secondaryColor }}
-                          leftIcon={<MessageCircle size={18} />}
-                          onClick={() => handleContactReviewer(review)}
-                          w="full"
-                          fontSize="lg"
-                          py={6}
-                          borderRadius="lg"
-                        >
-                          Contact Coach
-                        </Button>
-                      </Box>
-                    )}
-
-                    {/* Section 6: Verified details - FULL WIDTH */}
-                    {isVerified && (
-                      <Box w="full">
-                        <VStack
-                          align="start"
-                          spacing={2}
-                          p={4}
-                          bg={isDarkTheme ? "green.900" : "green.50"}
-                          borderRadius="lg"
-                          w="full"
-                        >
-                          <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"} fontWeight="bold">
-                            ✓ Verified Review Details:
-                          </Text>
-                          {(review as any).verified_at && (
-                            <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"}>
-                              Verified: {new Date((review as any).verified_at).toLocaleDateString()}
+                          {review.reviewer_title && review.reviewer_organization && (
+                            <Text fontSize="md" color={mutedTextColor} fontWeight="medium">
+                              {review.reviewer_title} at {review.reviewer_organization}
                             </Text>
                           )}
-                          {review.relationship_duration && (
-                            <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"}>
-                              Known For: {review.relationship_duration}
-                            </Text>
-                          )}
-                        </VStack>
-                      </Box>
-                    )}
-                  </VStack>
-                ) : (
-                  // DESKTOP: Side by side layout
-                  <VStack align="start" spacing={4}>
-                    <HStack justify="space-between" w="full" align="start">
-                      <HStack spacing={4}>
-                        <Avatar
-                          name={review.reviewer_name}
-                          src={review.reviewer_image_url || undefined}
-                          size="lg"
-                          bg={primaryColor}
-                          color="white"
-                        />
-                        <VStack align="start" spacing={1}>
-                          <HStack spacing={2} align="center">
-                            <Text fontWeight="bold" color={textColor} fontSize="xl">
-                              {review.reviewer_name}
-                            </Text>
-                            {isVerified && (
-                              <Badge colorScheme="green" variant="solid" size="sm">
-                                <HStack spacing={1}>
-                                  <Shield size={12} />
-                                  <Text fontSize="xs">Verified</Text>
-                                </HStack>
-                              </Badge>
+
+                          <HStack spacing={4} fontSize="sm" color={mutedTextColor}>
+                            {review.relationship_duration && (
+                              <HStack spacing={1}>
+                                <Calendar size={14} />
+                                <Text>
+                                  {reviewerType} for {review.relationship_duration}
+                                </Text>
+                              </HStack>
+                            )}
+                            {(review as any).verified_at && (
+                              <HStack spacing={1}>
+                                <CheckCircle size={14} />
+                                <Text>Verified {new Date((review as any).verified_at).toLocaleDateString()}</Text>
+                              </HStack>
                             )}
                           </HStack>
-                          <Text fontSize="md" color={mutedTextColor}>
-                            {review.reviewer_title} at {review.reviewer_organization}
-                          </Text>
-                          {review.relationship_duration && (
-                            <Text fontSize="sm" color={mutedTextColor}>
-                              Known for {review.relationship_duration}
-                            </Text>
-                          )}
                         </VStack>
                       </HStack>
-                      <VStack align="end" spacing={3}>
-                        <HStack spacing={1}>{renderStars(review.rating)}</HStack>
+
+                      <VStack align={{ base: "start", md: "end" }} spacing={3}>
+                        {isVerified && review.rating && (
+                          <HStack spacing={1}>
+                            {renderStars(review.rating)}
+                            <Text fontSize="sm" color={textColor} ml={2} fontWeight="bold">
+                              {review.rating}/5
+                            </Text>
+                          </HStack>
+                        )}
                         {review.can_contact_reviewer && (
                           <Button
-                            size="md"
+                            size="sm"
                             bg={primaryColor}
                             color="white"
                             _hover={{ bg: secondaryColor }}
                             leftIcon={<MessageCircle size={16} />}
                             onClick={() => handleContactReviewer(review)}
+                            borderRadius="full"
                           >
-                            Contact Coach About This Player
+                            Contact {reviewerType}
                           </Button>
                         )}
                       </VStack>
-                    </HStack>
+                    </Flex>
 
-                    <Text fontSize="md" color={textColor} fontStyle="italic" lineHeight="1.6" w="full">
-                      "{review.review_text}"
-                    </Text>
+                    <Divider />
 
-                    {review.would_recommend && (
-                    <Text fontSize="md" color={textColor} fontStyle="italic" lineHeight="1.6" w="full">
-                      <strong>Recommendation: </strong> {review.would_recommend}"
-                    </Text>)}
-                      
+                    {/* Review Content */}
+                    <Box>
+                      <Text fontSize="md" color={textColor} lineHeight="1.7" fontStyle="italic">
+                        "{review.review_text}"
+                      </Text>
+
+                      {formattedRecommendation && (
+                        <Box mt={4} p={3} bg={verifiedBg} borderRadius="lg" border="1px" borderColor={verifiedBorder}>
+                          <Text fontSize="sm" color={verifiedText} fontWeight="medium">
+                            <strong>{reviewerType}'s Recommendation:</strong> {formattedRecommendation}
+                          </Text>
+                        </Box>
+                      )}
+                    </Box>
 
                     {/* Detailed ratings for verified reviews */}
                     {isVerified && renderDetailedRatings(review)}
 
+                    {/* Verified Details Footer */}
                     {isVerified && (
-                      <VStack
-                        align="start"
-                        spacing={2}
-                        p={4}
-                        bg={isDarkTheme ? "green.900" : "green.50"}
-                        borderRadius="lg"
-                        w="full"
-                      >
-                        <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"} fontWeight="bold">
-                          ✓ Verified Review Details:
-                        </Text>
-                        {(review as any).verified_at && (
-                          <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"}>
-                            Verified: {new Date((review as any).verified_at).toLocaleDateString()}
+                      <Box p={4} bg={verifiedBg} borderRadius="lg" border="1px" borderColor={verifiedBorder}>
+                        <HStack spacing={4} justify="space-between" align="center">
+                          <HStack spacing={2}>
+                            <Shield size={16} color={verifiedText} />
+                            <Text fontSize="sm" color={verifiedText} fontWeight="bold">
+                              Verified Review
+                            </Text>
+                          </HStack>
+                          <Text fontSize="xs" color={verifiedText}>
+                            This review was verified through our secure verification system
                           </Text>
-                        )}
-                        {review.relationship_duration && (
-                          <Text fontSize="sm" color={isDarkTheme ? "green.200" : "green.600"}>
-                            Known For: {review.relationship_duration}
-                          </Text>
-                        )}
-                      </VStack>
+                        </HStack>
+                      </Box>
                     )}
                   </VStack>
-                )}
-              </Box>
+                </CardBody>
+              </Card>
             )
           })}
         </VStack>
+
         {reviews.length > maxDisplay && (
-          <Text fontSize="sm" color={mutedTextColor} textAlign="center" mt={4}>
-            +{reviews.length - maxDisplay} more reviews
-          </Text>
+          <Box textAlign="center" pt={4}>
+            <Text fontSize="sm" color={mutedTextColor}>
+              +{reviews.length - maxDisplay} more reviews available
+            </Text>
+          </Box>
         )}
       </VStack>
     </Box>
