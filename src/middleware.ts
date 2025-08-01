@@ -72,7 +72,7 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl
   const hostname = request.headers.get("host")
 
-  let athleteName: string | null = null
+  let athleteIdentifier: string | null = null
   const VERCEL_URL = process.env.VERCEL_URL
 
   let baseDomain = "localhost:3000"
@@ -96,20 +96,52 @@ export async function middleware(request: NextRequest) {
   if (hostname && !hostname.includes(baseDomain)) {
     const parts = hostname.split(".")
     if (parts.length > 2) {
-      athleteName = parts[0]
+      athleteIdentifier = parts[0]
     } else if (parts.length === 2 && parts[0] !== "www" && parts[1] !== "com") {
       // Handle edge cases
     }
   } else if (hostname === baseDomain || hostname === `www.${baseDomain}`) {
-    athleteName = null
+    athleteIdentifier = null
   }
 
   const reservedSubdomains = new Set(["www", "app", "api", "dashboard", "login", "auth", "admin"])
 
-  if (athleteName && !reservedSubdomains.has(athleteName)) {
-    console.log(`Middleware - Rewriting to /${athleteName}${url.pathname}`)
-    url.pathname = `/${athleteName}${url.pathname}`
-    return NextResponse.rewrite(url)
+  if (athleteIdentifier && !reservedSubdomains.has(athleteIdentifier)) {
+    console.log(`Middleware - Found subdomain: ${athleteIdentifier}`)
+
+    // Check if this is a custom subdomain first, then fall back to username
+    try {
+      const { data: athleteBySubdomain } = await supabase
+        .from("athletes")
+        .select("username")
+        .eq("subdomain", athleteIdentifier)
+        .eq("is_profile_public", true)
+        .single()
+
+      if (athleteBySubdomain) {
+        console.log(`Middleware - Found custom subdomain match: ${athleteIdentifier} -> ${athleteBySubdomain.username}`)
+        url.pathname = `/${athleteBySubdomain.username}${url.pathname}`
+        return NextResponse.rewrite(url)
+      }
+
+      // Fall back to username-based routing
+      const { data: athleteByUsername } = await supabase
+        .from("athletes")
+        .select("username")
+        .eq("username", athleteIdentifier)
+        .eq("is_profile_public", true)
+        .single()
+
+      if (athleteByUsername) {
+        console.log(`Middleware - Found username match: ${athleteIdentifier}`)
+        url.pathname = `/${athleteIdentifier}${url.pathname}`
+        return NextResponse.rewrite(url)
+      }
+
+      console.log(`Middleware - No athlete found for subdomain: ${athleteIdentifier}`)
+    } catch (error) {
+      console.error("Middleware - Error checking subdomain:", error)
+    }
   }
   // --- END: Wildcard Subdomain Logic ---
 

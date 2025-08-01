@@ -417,6 +417,27 @@ export default function ProfilePage() {
         updateData.subdomain = await generateUniqueSubdomain(formData.athlete_name)
       }
 
+      // If custom subdomain is being set/changed, update the username to match
+      if (
+        hasFeature(currentTier, "custom_subdomain") &&
+        formData.subdomain &&
+        formData.subdomain !== athlete.subdomain
+      ) {
+        // Store the old subdomain to potentially invalidate it
+        const oldSubdomain = athlete.subdomain
+
+        // Update username to match the new subdomain
+        updateData.username = formData.subdomain
+
+        console.log(`Updating username from ${athlete.username} to ${formData.subdomain}`)
+
+        // If there was an old subdomain, we could add logic here to invalidate it
+        // For now, we'll just update to the new one
+        if (oldSubdomain && oldSubdomain !== formData.subdomain) {
+          console.log(`Replacing old subdomain: ${oldSubdomain} with new: ${formData.subdomain}`)
+        }
+      }
+
       const { error } = await supabase.from("athletes").update(updateData).eq("id", athlete.id)
 
       if (error) throw error
@@ -489,6 +510,14 @@ export default function ProfilePage() {
       ...prev,
       hero_image_url: url,
     }))
+  }
+
+  // Get the correct URL for the public profile
+  const getPublicProfileUrl = () => {
+    if (hasFeature(currentTier, "custom_subdomain") && (formData.subdomain || athlete?.subdomain)) {
+      return `http://${formData.subdomain || athlete?.subdomain}.recruitmygame.com`
+    }
+    return `http://${athlete?.username}.recruitmygame.com`
   }
 
   if (loading) {
@@ -603,6 +632,9 @@ export default function ProfilePage() {
                         {subdomainError}
                       </Text>
                     )}
+                    <Text fontSize="xs" color="blue.600" mt={2}>
+                      💡 Setting a custom subdomain will update your profile URL and username
+                    </Text>
                   </FormControl>
                 </GridItem>
               )}
@@ -793,6 +825,53 @@ export default function ProfilePage() {
             <Heading size="md" mb={4}>
               Sports & Positions
             </Heading>
+
+            {/* Additional Sports - Only for Pro */}
+            <FormControl mb={6}>
+              <FormLabel>
+                Additional Sports (Optional)
+                {!hasMultipleSports && (
+                  <Badge ml={2} colorScheme="purple" variant="outline">
+                    Pro
+                  </Badge>
+                )}
+              </FormLabel>
+              <Text fontSize="sm" color="gray.600" mb={3}>
+                Select any additional sports you play besides your primary sport
+              </Text>
+              {hasMultipleSports ? (
+                <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }} gap={2}>
+                  {SPORTS_OPTIONS.filter((sport) => sport !== formData.sport).map((sport) => (
+                    <GridItem key={sport}>
+                      <Button
+                        size="sm"
+                        variant={formData.sports.includes(sport) ? "solid" : "outline"}
+                        colorScheme={formData.sports.includes(sport) ? "blue" : "gray"}
+                        onClick={() => handleSportToggle(sport)}
+                        w="full"
+                      >
+                        {sport}
+                      </Button>
+                    </GridItem>
+                  ))}
+                </Grid>
+              ) : (
+                <Alert status="info">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle>Pro Feature</AlertTitle>
+                    <AlertDescription>
+                      Upgrade to Pro to add multiple sports to your profile.{" "}
+                      <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                        Upgrade Now
+                      </Button>
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+              )}
+            </FormControl>
+
+            <Divider mb={6} />
 
             {/* Positions */}
             {formData.sport && availablePositions.length > 0 && (
@@ -1226,12 +1305,12 @@ export default function ProfilePage() {
               <Text fontSize="sm" color="blue.600" mb={3}>
                 Your profile is available at:
                 <Text as="span" fontWeight="medium" ml={1}>
-                  http://{athlete.subdomain || athlete.username}.recruitmygame.com
+                  {getPublicProfileUrl()}
                 </Text>
               </Text>
               <Button
                 as="a"
-                href={`http://${athlete.subdomain || athlete.username}.recruitmygame.com`}
+                href={getPublicProfileUrl()}
                 target="_blank"
                 size="sm"
                 colorScheme="blue"
