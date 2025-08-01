@@ -776,6 +776,15 @@ export interface AthleteReview {
   can_contact_reviewer?: boolean | null
   created_at: string
   updated_at: string
+  athleticism?: number | null
+  character?: number | null
+  work_ethic?: number | null
+  leadership?:number | null
+  coachability?:number | null
+  teamwork?: number | null
+  years_known?:string | null
+  relationship?:string |null
+  would_recommend?:string | null
 }
 
 export interface AthleteTeam {

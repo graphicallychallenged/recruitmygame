@@ -17,9 +17,8 @@ import {
 } from "@chakra-ui/react"
 import { Camera } from "lucide-react"
 import { FileUpload } from "./FileUpload"
-
-// Import storage utilities - let's be very explicit about the path
-import { deleteFile, extractStoragePath, type UploadResult } from "../utils/supabase/storage"
+import { supabase } from "../utils/supabase/client"
+import { deleteFile, extractStoragePath } from "../utils/supabase/storage"
 
 interface ProfilePictureUploadProps {
   currentImageUrl?: string
@@ -40,15 +39,39 @@ export function ProfilePictureUpload({
   const { isOpen, onOpen, onClose } = useDisclosure()
   const toast = useToast()
 
-  const handleUploadComplete = (result: UploadResult) => {
-    if (result.success && result.url) {
-      onImageUpdate(result.url)
+  const handleUploadComplete = async (url: string) => {
+    try {
+      // Update the database with the new profile picture URL
+      const { error } = await supabase.from("athletes").update({ profile_picture_url: url }).eq("user_id", userId)
+
+      if (error) {
+        console.error("Error updating profile picture in database:", error)
+        toast({
+          title: "Upload successful, but failed to save",
+          description: "The image was uploaded but couldn't be saved to your profile. Please try again.",
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+        })
+        return
+      }
+
+      onImageUpdate(url)
       onClose()
       toast({
         title: "Profile picture updated",
         description: "Your profile picture has been updated successfully",
         status: "success",
         duration: 3000,
+        isClosable: true,
+      })
+    } catch (error) {
+      console.error("Error updating profile picture:", error)
+      toast({
+        title: "Error saving profile picture",
+        description: "Please try again or contact support if the issue persists",
+        status: "error",
+        duration: 5000,
         isClosable: true,
       })
     }
@@ -61,22 +84,36 @@ export function ProfilePictureUpload({
       // Extract path from URL for deletion using the helper function
       const pathInfo = extractStoragePath(currentImageUrl)
 
-      if (!pathInfo) {
-        console.error("Could not extract storage path from URL:", currentImageUrl)
-        return
+      if (pathInfo) {
+        const success = await deleteFile(pathInfo.bucket, pathInfo.path)
+        if (!success) {
+          console.warn("Failed to delete file from storage, but continuing with database update")
+        }
       }
 
-      const success = await deleteFile(pathInfo.bucket, pathInfo.path)
-      if (success) {
-        onImageUpdate("")
+      // Update database to remove profile picture URL
+      const { error } = await supabase.from("athletes").update({ profile_picture_url: null }).eq("user_id", userId)
+
+      if (error) {
+        console.error("Error removing profile picture from database:", error)
         toast({
-          title: "Profile picture removed",
-          description: "Your profile picture has been removed",
-          status: "info",
+          title: "Error removing profile picture",
+          description: "Failed to remove profile picture from your profile",
+          status: "error",
           duration: 3000,
           isClosable: true,
         })
+        return
       }
+
+      onImageUpdate("")
+      toast({
+        title: "Profile picture removed",
+        description: "Your profile picture has been removed",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      })
     } catch (error) {
       console.error("Error deleting profile picture:", error)
       toast({
@@ -100,7 +137,7 @@ export function ProfilePictureUpload({
             right={0}
             size="sm"
             borderRadius="full"
-            colorScheme="teal"
+            colorScheme="blue"
             onClick={onOpen}
             leftIcon={<Camera size={14} />}
           >

@@ -344,6 +344,17 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             // Include verification fields
             is_verified: review.is_verified,
             verified_at: review.verified_at,
+            athleticism: review.athleticism,
+            character: review.character,
+            work_ethic: review.work_ethic,
+            leadership: review.leadership,
+            coachability: review.coachability,
+            teamwork: review.teamwork,
+            years_known:review.years_known,
+            relationship:review.relationship,
+            would_recommend: review.would_recommend
+
+            
           })) || [],
         )
         setTeams(

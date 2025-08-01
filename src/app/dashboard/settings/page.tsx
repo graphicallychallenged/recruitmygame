@@ -36,6 +36,10 @@ import {
   IconButton,
   Code,
   Image,
+  Badge,
+  Stat,
+  StatLabel,
+  StatNumber,
 } from "@chakra-ui/react"
 import { Lock, Bell, Eye, EyeOff, Shield, Settings, Database, Smartphone, Copy, Check } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
@@ -88,6 +92,7 @@ export default function SettingsPage() {
     activities,
     loading: settingsLoading,
     saving: settingsSaving,
+    followerCount,
     updateNotifications,
     updatePrivacy,
     logActivity,
@@ -565,87 +570,163 @@ export default function SettingsPage() {
 
         {/* Notification Settings */}
         {activeTab === "notifications" && (
-          <Card>
-            <CardHeader>
-              <Heading size="md">Notification Preferences</Heading>
-              <Text fontSize="sm" color="gray.600">
-                Choose how you want to be notified about important updates
-              </Text>
-            </CardHeader>
-            <CardBody>
-              <VStack spacing={4} align="stretch">
-                <HStack justify="space-between">
-                  <VStack align="start" spacing={0}>
-                    <Text>Email Notifications</Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Receive important updates via email
-                    </Text>
-                  </VStack>
-                  <Switch
-                    isChecked={notifications?.email_notifications || false}
-                    onChange={(e) => updateNotifications({ email_notifications: e.target.checked })}
-                    isDisabled={settingsSaving}
-                  />
-                </HStack>
+          <VStack spacing={6} align="stretch">
+            <Card>
+              <CardHeader>
+                <Heading size="md">Notification Preferences</Heading>
+                <Text fontSize="sm" color="gray.600">
+                  Choose how you want to be notified about important updates
+                </Text>
+              </CardHeader>
+              <CardBody>
+                <VStack spacing={4} align="stretch">
+                  <HStack justify="space-between">
+                    <VStack align="start" spacing={0}>
+                      <Text>Email Notifications</Text>
+                      <Text fontSize="sm" color="gray.600">
+                        Receive important updates via email
+                      </Text>
+                    </VStack>
+                    <Switch
+                      isChecked={notifications?.email_notifications || false}
+                      onChange={(e) => updateNotifications({ email_notifications: e.target.checked })}
+                      isDisabled={settingsSaving}
+                    />
+                  </HStack>
 
-                <HStack justify="space-between">
-                  <VStack align="start" spacing={0}>
-                    <Text>Push Notifications</Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Browser and mobile push notifications
-                    </Text>
-                  </VStack>
-                  <Switch
-                    isChecked={notifications?.push_notifications || false}
-                    onChange={(e) => updateNotifications({ push_notifications: e.target.checked })}
-                    isDisabled={settingsSaving}
-                  />
-                </HStack>
+                  <HStack justify="space-between">
+                    <VStack align="start" spacing={0}>
+                      <Text>Push Notifications</Text>
+                      <Text fontSize="sm" color="gray.600">
+                        Browser and mobile push notifications
+                      </Text>
+                    </VStack>
+                    <Switch
+                      isChecked={notifications?.push_notifications || false}
+                      onChange={(e) => updateNotifications({ push_notifications: e.target.checked })}
+                      isDisabled={settingsSaving}
+                    />
+                  </HStack>
 
-                <HStack justify="space-between">
-                  <VStack align="start" spacing={0}>
-                    <Text>Marketing Emails</Text>
-                    <Text fontSize="sm" color="gray.600">
-                      Tips, features, and promotional content
-                    </Text>
-                  </VStack>
-                  <Switch
-                    isChecked={notifications?.marketing_emails || false}
-                    onChange={(e) => updateNotifications({ marketing_emails: e.target.checked })}
-                    isDisabled={settingsSaving}
-                  />
-                </HStack>
+                  <HStack justify="space-between">
+                    <VStack align="start" spacing={0}>
+                      <Text>Marketing Emails</Text>
+                      <Text fontSize="sm" color="gray.600">
+                        Tips, features, and promotional content
+                      </Text>
+                    </VStack>
+                    <Switch
+                      isChecked={notifications?.marketing_emails || false}
+                      onChange={(e) => updateNotifications({ marketing_emails: e.target.checked })}
+                      isDisabled={settingsSaving}
+                    />
+                  </HStack>
 
-                <HStack justify="space-between">
-                  <VStack align="start" spacing={0}>
-                    <Text>Review Notifications</Text>
-                    <Text fontSize="sm" color="gray.600">
-                      When coaches leave reviews on your profile
-                    </Text>
-                  </VStack>
-                  <Switch
-                    isChecked={notifications?.review_notifications || false}
-                    onChange={(e) => updateNotifications({ review_notifications: e.target.checked })}
-                    isDisabled={settingsSaving}
-                  />
-                </HStack>
+                  <HStack justify="space-between">
+                    <VStack align="start" spacing={0}>
+                      <Text>Review Notifications</Text>
+                      <Text fontSize="sm" color="gray.600">
+                        When coaches leave reviews on your profile
+                      </Text>
+                    </VStack>
+                    <Switch
+                      isChecked={notifications?.review_notifications || false}
+                      onChange={(e) => updateNotifications({ review_notifications: e.target.checked })}
+                      isDisabled={settingsSaving}
+                    />
+                  </HStack>
 
+                  <HStack justify="space-between">
+                    <VStack align="start" spacing={0}>
+                      <Text>Schedule Reminders</Text>
+                      <Text fontSize="sm" color="gray.600">
+                        Upcoming events and important deadlines
+                      </Text>
+                    </VStack>
+                    <Switch
+                      isChecked={notifications?.schedule_reminders || false}
+                      onChange={(e) => updateNotifications({ schedule_reminders: e.target.checked })}
+                      isDisabled={settingsSaving}
+                    />
+                  </HStack>
+                </VStack>
+              </CardBody>
+            </Card>
+
+            {/* Profile Update Notifications */}
+            <Card>
+              <CardHeader>
                 <HStack justify="space-between">
-                  <VStack align="start" spacing={0}>
-                    <Text>Schedule Reminders</Text>
+                  <VStack align="start" spacing={1}>
+                    <Heading size="md">Profile Update Notifications</Heading>
                     <Text fontSize="sm" color="gray.600">
-                      Upcoming events and important deadlines
+                      Allow people to subscribe to updates about your profile changes
                     </Text>
                   </VStack>
-                  <Switch
-                    isChecked={notifications?.schedule_reminders || false}
-                    onChange={(e) => updateNotifications({ schedule_reminders: e.target.checked })}
-                    isDisabled={settingsSaving}
-                  />
+                  <HStack spacing={2}>
+                    <Stat textAlign="center" size="sm">
+                      <StatNumber fontSize="lg">{followerCount}</StatNumber>
+                      <StatLabel fontSize="xs">Followers</StatLabel>
+                    </Stat>
+                  </HStack>
                 </HStack>
-              </VStack>
-            </CardBody>
-          </Card>
+              </CardHeader>
+              <CardBody>
+                <VStack spacing={4} align="stretch">
+                  <HStack justify="space-between">
+                    <VStack align="start" spacing={0}>
+                      <HStack spacing={2}>
+                        <Text>Allow Profile Update Subscriptions</Text>
+                        {notifications?.allow_profile_notifications ? (
+                          <Badge colorScheme="green" size="sm">
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge colorScheme="red" size="sm">
+                            Disabled
+                          </Badge>
+                        )}
+                      </HStack>
+                      <Text fontSize="sm" color="gray.600">
+                        When enabled, people can subscribe to receive email notifications when you update your profile
+                      </Text>
+                    </VStack>
+                    <Switch
+                      isChecked={notifications?.allow_profile_notifications || false}
+                      onChange={(e) => updateNotifications({ allow_profile_notifications: e.target.checked })}
+                      isDisabled={settingsSaving}
+                    />
+                  </HStack>
+
+                  {notifications?.allow_profile_notifications === false && (
+                    <Alert status="warning" size="sm">
+                      <AlertIcon />
+                      <Box>
+                        <AlertTitle fontSize="sm">Profile notifications are disabled</AlertTitle>
+                        <AlertDescription fontSize="xs">
+                          People cannot subscribe to your profile updates. If you re-enable this feature, previous
+                          subscribers will need to subscribe again.
+                        </AlertDescription>
+                      </Box>
+                    </Alert>
+                  )}
+
+                  {notifications?.allow_profile_notifications && followerCount > 0 && (
+                    <Alert status="info" size="sm">
+                      <AlertIcon />
+                      <Box>
+                        <AlertTitle fontSize="sm">{followerCount} people are following your updates</AlertTitle>
+                        <AlertDescription fontSize="xs">
+                          They will receive email notifications when you add new content or update your profile
+                          information.
+                        </AlertDescription>
+                      </Box>
+                    </Alert>
+                  )}
+                </VStack>
+              </CardBody>
+            </Card>
+          </VStack>
         )}
 
         {/* Security Settings */}

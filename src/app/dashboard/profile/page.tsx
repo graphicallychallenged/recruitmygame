@@ -39,6 +39,7 @@ import Link from "next/link"
 import type { AthleteProfile } from "@/types/database"
 import { hasFeature, getTierDisplayName, getTierColor } from "@/utils/tierFeatures"
 import { HeroImageUpload } from "@/components/HeroImageUpload"
+import { ProfilePictureUpload } from "@/components/ProfilePictureUpload"
 
 const SPORTS_OPTIONS = [
   "Football",
@@ -536,6 +537,25 @@ export default function ProfilePage() {
             <Heading size="md" mb={4}>
               Basic Information
             </Heading>
+            {/* Profile Picture Upload */}
+            <Box mb={6}>
+              <FormLabel mb={3}>Profile Picture</FormLabel>
+              <ProfilePictureUpload
+                currentImageUrl={athlete.profile_picture_url}
+                onImageUpdate={(url) => {
+                  setAthlete((prev) => (prev ? { ...prev, profile_picture_url: url } : null))
+                  // Dispatch custom event for layout to update
+                  window.dispatchEvent(
+                    new CustomEvent("profilePictureUpdated", {
+                      detail: { athleteId: athlete.id, newUrl: url },
+                    }),
+                  )
+                }}
+                userId={athlete.user_id}
+                athleteName={athlete.athlete_name}
+                size="xl"
+              />
+            </Box>
             <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
               <GridItem>
                 <FormControl isRequired>
@@ -821,7 +841,6 @@ export default function ProfilePage() {
                 <FormControl mt={2}>
                   <HStack>
                     <Switch
-                    colorScheme="teal"
                       isChecked={formData.show_email}
                       onChange={(e) => setFormData({ ...formData, show_email: e.target.checked })}
                     />
@@ -842,7 +861,6 @@ export default function ProfilePage() {
                 <FormControl mt={2}>
                   <HStack>
                     <Switch
-                    colorScheme="teal"
                       isChecked={formData.show_phone}
                       onChange={(e) => setFormData({ ...formData, show_phone: e.target.checked })}
                     />
@@ -1135,7 +1153,7 @@ export default function ProfilePage() {
                 onUploadComplete={handleHeroImageUpload}
               />
             ) : (
-              <Alert status="info" colorScheme="teal">
+              <Alert status="info">
                 <AlertIcon />
                 <Box>
                   <AlertTitle>Pro Feature</AlertTitle>
@@ -1165,7 +1183,7 @@ export default function ProfilePage() {
             {hasAnalytics ? (
               <Text>Advanced analytics will be displayed here.</Text>
             ) : (
-              <Alert status="info" colorScheme="teal">
+              <Alert status="info">
                 <AlertIcon />
                 <Box>
                   <AlertTitle>Pro Feature</AlertTitle>
@@ -1185,7 +1203,7 @@ export default function ProfilePage() {
         <Flex justify="end">
           <Button
             leftIcon={<Save size={16} />}
-            colorScheme="teal"
+            colorScheme="blue"
             size="lg"
             onClick={handleSave}
             isLoading={saving}

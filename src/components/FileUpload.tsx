@@ -16,6 +16,7 @@ import {
   useToast,
 } from "@chakra-ui/react"
 import { Upload, X, File } from "lucide-react"
+import { uploadFile, type UploadOptions } from "@/utils/supabase/storage"
 
 interface FileUploadProps {
   onUploadComplete?: (url: string) => void
@@ -27,6 +28,7 @@ interface FileUploadProps {
   onDelete?: () => void
   maxSizeBytes?: number
   allowedTypes?: string[]
+  uploadOptions?: UploadOptions
 }
 
 export function FileUpload({
@@ -39,6 +41,7 @@ export function FileUpload({
   onDelete,
   maxSizeBytes = 10 * 1024 * 1024, // 10MB default
   allowedTypes = [],
+  uploadOptions,
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -74,13 +77,25 @@ export function FileUpload({
       return
     }
 
+    if (!uploadOptions) {
+      setError("Upload configuration missing")
+      toast({
+        title: "Configuration error",
+        description: "Upload options not provided",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      })
+      return
+    }
+
     setError(null)
     setUploading(true)
     setUploadProgress(0)
     onUploadStart?.()
 
     try {
-      // Simulate upload progress
+      // Simulate progress for better UX
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
@@ -91,25 +106,35 @@ export function FileUpload({
         })
       }, 200)
 
-      // Here you would implement actual file upload logic
-      // For now, we'll simulate it
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      console.log("Starting upload with options:", uploadOptions)
+      console.log("File details:", { name: file.name, size: file.size, type: file.type })
+
+      // Use the storage utility function
+      const result = await uploadFile(file, {
+        ...uploadOptions,
+        maxSizeBytes,
+        allowedTypes: allowedTypes.length > 0 ? allowedTypes : uploadOptions.allowedTypes,
+      })
 
       clearInterval(progressInterval)
       setUploadProgress(100)
 
-      // Simulate successful upload
-      const mockUrl = URL.createObjectURL(file)
-      onUploadComplete?.(mockUrl)
+      console.log("Upload result:", result)
 
-      toast({
-        title: "Upload successful",
-        description: "File has been uploaded successfully.",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      })
+      if (result.success && result.url) {
+        onUploadComplete?.(result.url)
+        toast({
+          title: "Upload successful",
+          description: "File has been uploaded successfully.",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        })
+      } else {
+        throw new Error(result.error || "Upload failed")
+      }
     } catch (err: any) {
+      console.error("Upload error:", err)
       setError(err.message || "Upload failed")
       toast({
         title: "Upload failed",
@@ -120,7 +145,7 @@ export function FileUpload({
       })
     } finally {
       setUploading(false)
-      setUploadProgress(0)
+      setTimeout(() => setUploadProgress(0), 1000)
     }
   }
 
@@ -218,7 +243,7 @@ export function FileUpload({
           </VStack>
           {uploading && (
             <Box w="100%" maxW="200px">
-              <Progress value={uploadProgress} colorScheme="teal" size="sm" />
+              <Progress value={uploadProgress} colorScheme="blue" size="sm" />
               <Text fontSize="xs" color="gray.500" mt={1}>
                 {uploadProgress}% complete
               </Text>

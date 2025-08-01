@@ -19,7 +19,7 @@ import {
   SimpleGrid,
 } from "@chakra-ui/react"
 import { Upload, X, ImageIcon } from "lucide-react"
-import { uploadMedia } from "@/utils/supabase/storage"
+import { supabase } from "@/utils/supabase/client"
 
 interface PhotoUploadProps {
   onUploadComplete?: () => void
@@ -59,10 +59,59 @@ export function PhotoUpload({
     }
   }
 
+  const savePhotoToDatabase = async (publicUrl: string) => {
+    // Try different combinations based on what might be in the table
+    const possibleInserts = [
+      // Try with just the basic fields
+      { athlete_id: athleteId, photo_url: publicUrl },
+      // Try with caption
+      { athlete_id: athleteId, photo_url: publicUrl, caption: null },
+      // Try with is_public
+      { athlete_id: athleteId, photo_url: publicUrl, is_public: true },
+      // Try with both
+      { athlete_id: athleteId, photo_url: publicUrl, caption: null, is_public: true },
+      // Try with created_at
+      {
+        athlete_id: athleteId,
+        photo_url: publicUrl,
+        caption: null,
+        is_public: true,
+        created_at: new Date().toISOString(),
+      },
+    ]
+
+    let lastError = null
+
+    for (let i = 0; i < possibleInserts.length; i++) {
+      const insertData = possibleInserts[i]
+      try {
+        console.log(`Attempt ${i + 1}: Inserting photo with data:`, insertData)
+        const { data, error: dbError } = await supabase.from("athlete_photos").insert(insertData).select()
+
+        if (!dbError) {
+          console.log("Successfully inserted photo:", data)
+          return data
+        } else {
+          console.log(`Attempt ${i + 1} failed with error:`, dbError)
+          lastError = dbError
+        }
+      } catch (err) {
+        console.log(`Attempt ${i + 1} threw exception:`, err)
+        lastError = err
+        continue
+      }
+    }
+
+    // If all attempts failed, throw the last error
+    console.error("All insert attempts failed. Last error:", lastError)
+    throw lastError || new Error("Could not save photo to database")
+  }
+
   const handleUpload = async (file: File) => {
     setUploading(true)
     setError(null)
     setUploadProgress(0)
+    onUploadStart?.()
 
     try {
       // Validate file size (10MB limit for photos)
@@ -82,36 +131,54 @@ export function PhotoUpload({
         setUploadProgress((prev) => Math.min(prev + 10, 90))
       }, 200)
 
-      // Use athleteId instead of generic userId for the folder structure
-      const result = await uploadMedia(file, athleteId, "photo")
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop()
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+      const filePath = `${athleteId}/${fileName}`
+
+      console.log("Uploading photo to:", filePath)
+
+      // Upload to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage.from("athlete-photos").upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
 
       clearInterval(progressInterval)
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError)
+        throw uploadError
+      }
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("athlete-photos").getPublicUrl(filePath)
+
+      console.log("Photo uploaded successfully, URL:", publicUrl)
+
+      // Save to database
+      await savePhotoToDatabase(publicUrl)
+
       setUploadProgress(100)
 
-      if (result.success) {
-        toast({
-          title: "Photo uploaded successfully",
-          description: "Your photo has been uploaded and is ready to use",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        })
-        onUploadComplete?.()
-      } else {
-        setError(result.error || "Upload failed")
-        toast({
-          title: "Upload failed",
-          description: result.error,
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        })
-      }
+      toast({
+        title: "Photo uploaded successfully",
+        description: "Your photo has been uploaded and saved",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      })
+
+      onUploadComplete?.()
     } catch (err: any) {
-      setError(err.message || "Upload failed")
+      console.error("Upload failed:", err)
+      const errorMessage = err.message || err.code || "Upload failed"
+      setError(errorMessage)
       toast({
         title: "Upload failed",
-        description: err.message,
+        description: errorMessage,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -134,8 +201,41 @@ export function PhotoUpload({
         const baseProgress = (index / files.length) * 100
         setUploadProgress(baseProgress)
 
-        const result = await uploadMedia(file, athleteId, "photo")
-        return result
+        // Validate file
+        const maxSize = 10 * 1024 * 1024
+        if (file.size > maxSize) {
+          throw new Error(`File ${file.name} is too large (max 10MB)`)
+        }
+
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+        if (!allowedTypes.includes(file.type)) {
+          throw new Error(`File ${file.name} is not a valid image type`)
+        }
+
+        // Generate unique filename
+        const fileExt = file.name.split(".").pop()
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+        const filePath = `${athleteId}/${fileName}`
+
+        // Upload to Supabase Storage
+        const { data, error: uploadError } = await supabase.storage.from("athlete-photos").upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        })
+
+        if (uploadError) {
+          throw uploadError
+        }
+
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("athlete-photos").getPublicUrl(filePath)
+
+        // Save to database
+        await savePhotoToDatabase(publicUrl)
+
+        return { success: true, url: publicUrl }
       })
 
       const results = await Promise.all(uploadPromises)
@@ -163,19 +263,16 @@ export function PhotoUpload({
           isClosable: true,
         })
 
-        // Return the first successful result for compatibility
-        const firstSuccess = results.find((r) => r.success)
-        if (firstSuccess) {
-          onUploadComplete?.()
-        }
+        onUploadComplete?.()
       } else {
         throw new Error("All uploads failed")
       }
     } catch (err: any) {
-      setError(err.message || "Upload failed")
+      const errorMessage = err.message || err.code || "Upload failed"
+      setError(errorMessage)
       toast({
         title: "Upload failed",
-        description: err.message,
+        description: errorMessage,
         status: "error",
         duration: 5000,
         isClosable: true,

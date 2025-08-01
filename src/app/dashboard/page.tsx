@@ -62,6 +62,8 @@ interface AthleteProfile {
   school: string
   profile_picture_url: string
   subscription_tier: SubscriptionTier
+  follower_count: number
+  allow_profile_notifications: boolean
 }
 
 export default function DashboardPage() {
@@ -92,7 +94,21 @@ export default function DashboardPage() {
       if (!session) return
 
       // Fetch athlete profile
-      const { data: athleteData } = await supabase.from("athletes").select("*").eq("user_id", session.user.id).single()
+      const { data: athleteData, error: athleteError } = await supabase
+        .from("athletes")
+        .select("*, follower_count, allow_profile_notifications")
+        .eq("user_id", session.user.id)
+        .single()
+
+      console.log("Dashboard - Athlete data:", athleteData)
+      console.log("Dashboard - Athlete error:", athleteError)
+
+      if (athleteError) {
+        console.error("Error fetching athlete profile:", athleteError)
+        // Don't return early, let the component show the create profile message
+        setLoading(false)
+        return
+      }
 
       if (athleteData) {
         setAthlete(athleteData)
@@ -362,7 +378,7 @@ export default function DashboardPage() {
         </Box>
 
         {/* Key Metrics */}
-        <SimpleGrid columns={{ base: 2, md: 6 }} spacing={6}>
+        <SimpleGrid columns={{ base: 2, md: 3, lg: 4, xl:6 }} spacing={6}>
           <Card>
             <CardBody textAlign="center">
               <VStack spacing={2}>
@@ -456,20 +472,19 @@ export default function DashboardPage() {
             </CardBody>
           </Card>
 
-          <Card opacity={hasFeature(athlete.subscription_tier, "schedule") ? 1 : 0.6}>
+          {/* Profile Followers Card */}
+          <Card>
             <CardBody textAlign="center">
               <VStack spacing={2}>
-                <Box color={hasFeature(athlete.subscription_tier, "schedule") ? "red.500" : "gray.400"}>
-                  {hasFeature(athlete.subscription_tier, "schedule") ? <Calendar size={32} /> : <Lock size={32} />}
+                <Box color={athlete.allow_profile_notifications ? "teal.500" : "gray.400"}>
+                  <Users size={32} />
                 </Box>
                 <Stat>
-                  <StatNumber fontSize="2xl">
-                    {hasFeature(athlete.subscription_tier, "schedule") ? stats.totalEvents : "-"}
-                  </StatNumber>
-                  <StatLabel fontSize="sm">Total Events</StatLabel>
+                  <StatNumber fontSize="2xl">{athlete.follower_count || 0}</StatNumber>
+                  <StatLabel fontSize="sm">Followers</StatLabel>
                 </Stat>
                 <Text fontSize="xs" color="gray.500">
-                  {hasFeature(athlete.subscription_tier, "schedule") ? "All scheduled events" : "Pro feature"}
+                  {athlete.allow_profile_notifications ? "People following your updates" : "Notifications disabled"}
                 </Text>
               </VStack>
             </CardBody>

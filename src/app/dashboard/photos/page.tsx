@@ -38,7 +38,7 @@ import {
   SimpleGrid,
 } from "@chakra-ui/react"
 import { Plus, Edit, Trash2, ImageIcon, Eye, Download } from "lucide-react"
-import { FileUpload } from "@/components/FileUpload"
+import { PhotoUpload } from "@/components/PhotoUpload"
 import { getSubscriptionLimits, canUploadMore, getUpgradeMessage, type SubscriptionTier } from "@/utils/subscription"
 import { deleteFile, extractStoragePath, getOptimizedImageUrl } from "@/utils/supabase/storage"
 import Link from "next/link"
@@ -222,10 +222,9 @@ export default function PhotosPage() {
     onClose()
   }
 
-  const handlePhotoUpload = async (result: any) => {
-    if (result.success && result.url) {
-      setFormData({ ...formData, photo_url: result.url })
-    }
+  const handlePhotoUpload = () => {
+    // Refresh data after upload
+    fetchData()
   }
 
   const handleDownload = async (photo: Photo) => {
@@ -265,7 +264,7 @@ export default function PhotosPage() {
         <Heading size="lg">Create Your Profile First</Heading>
         <Text color="gray.600">You need to create your athlete profile before managing photos.</Text>
         <Link href="/dashboard/profile">
-          <Button colorScheme="teal" size="lg">
+          <Button colorScheme="blue" size="lg">
             Create Profile
           </Button>
         </Link>
@@ -298,7 +297,7 @@ export default function PhotosPage() {
           </Box>
           <Button
             leftIcon={<Plus size={20} />}
-            colorScheme="teal"
+            colorScheme="blue"
             onClick={onOpen}
             isDisabled={!canAddMore}
             size={{ base: "sm", md: "md" }}
@@ -348,7 +347,7 @@ export default function PhotosPage() {
                 <Text color="gray.500" maxW="md">
                   Add your first photos to showcase your athletic achievements, team moments, and training sessions.
                 </Text>
-                <Button leftIcon={<Plus size={16} />} colorScheme="teal" onClick={onOpen} isDisabled={!canAddMore}>
+                <Button leftIcon={<Plus size={16} />} colorScheme="blue" onClick={onOpen} isDisabled={!canAddMore}>
                   Add Your First Photo
                 </Button>
               </VStack>
@@ -468,16 +467,10 @@ export default function PhotosPage() {
 
                   <FormControl isRequired>
                     <FormLabel>Photo</FormLabel>
-                    <FileUpload
-                      uploadOptions={{
-                        bucket: "athlete-photos",
-                        folder: athlete.id,
-                        maxSizeBytes: 10 * 1024 * 1024, // 10MB
-                        allowedTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-                      }}
-                      accept="image/*"
+                    <PhotoUpload
                       onUploadComplete={handlePhotoUpload}
-                      currentFileUrl={formData.photo_url}
+                      athleteId={athlete.id}
+                      currentPhotoUrl={formData.photo_url}
                       onDelete={() => setFormData({ ...formData, photo_url: "" })}
                     />
                   </FormControl>
@@ -488,7 +481,7 @@ export default function PhotosPage() {
                     </Button>
                     <Button
                       type="submit"
-                      colorScheme="teal"
+                      colorScheme="blue"
                       isLoading={saving}
                       loadingText={editingPhoto ? "Updating..." : "Adding..."}
                       flex={1}

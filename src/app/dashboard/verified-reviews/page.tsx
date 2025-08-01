@@ -282,10 +282,10 @@ export default function VerifiedReviewsPage() {
         {/* Header */}
         <HStack justify="space-between" wrap="wrap">
           <HStack spacing={2}>
-            <Icon as={Shield} color="green.500" />
+            <Icon as={Shield} color="purple.500" />
             <Heading size="lg">Verified Coach Reviews</Heading>
-            <Badge colorScheme="green" variant="subtle">
-              Pro Feature
+            <Badge colorScheme="purple" variant="subtle">
+              Pro  
             </Badge>
           </HStack>
 
