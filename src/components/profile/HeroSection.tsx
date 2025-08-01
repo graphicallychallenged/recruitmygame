@@ -114,6 +114,7 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
       bgSize="cover"
       bgPosition="center"
       bgRepeat="no-repeat"
+      width='100%'
     >
       {/* Overlay */}
       <Box position="absolute" top={0} left={0} right={0} bottom={0} bg="blackAlpha.600" />
@@ -328,7 +329,7 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
       </Container>
 
       {/* Scroll Down Arrow - positioned lower to avoid overlap */}
-      <Box position="absolute" bottom={4} left="50%" transform="translateX(-50%)" zIndex={100}>
+      <Box position="absolute" bottom={4} left="52%" transform="translateX(-50%)" zIndex={100}>
         <IconButton
           aria-label="Scroll to content"
           icon={<ChevronDown size={24} />}

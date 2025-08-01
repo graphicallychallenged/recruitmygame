@@ -41,7 +41,7 @@ import {
   StatLabel,
   StatNumber,
 } from "@chakra-ui/react"
-import { Lock, Bell, Eye, EyeOff, Shield, Settings, Database, Smartphone, Copy, Check } from "lucide-react"
+import { Lock, Bell, Eye, EyeOff, Shield, Settings, Database, Smartphone, Copy, Check, Share2 } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { ConsentManager } from "@/components/compliance/ConsentManager"
@@ -54,6 +54,7 @@ interface UserProfile {
   username: string
   subscription_tier: string
   created_at: string
+  enable_social_sharing?: boolean
 }
 
 interface MFAFactor {
@@ -110,7 +111,7 @@ export default function SettingsPage() {
       } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: profileData } = await supabase.from("athlete_profiles").select("*").eq("id", user.id).single()
+      const { data: profileData } = await supabase.from("athletes").select("*").eq("user_id", user.id).single()
 
       if (profileData) {
         setProfile({
@@ -119,6 +120,7 @@ export default function SettingsPage() {
           username: profileData.username || "",
           subscription_tier: profileData.subscription_tier || "free",
           created_at: profileData.created_at || "",
+          enable_social_sharing: profileData.enable_social_sharing ?? true,
         })
       }
 
@@ -199,6 +201,49 @@ export default function SettingsPage() {
         description: "Failed to update password",
         status: "error",
         duration: 3000,
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSocialSharingToggle = async (enabled: boolean) => {
+    setSaving(true)
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("No user found")
+
+      const { error } = await supabase
+        .from("athletes")
+        .update({
+          enable_social_sharing: enabled,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id)
+
+      if (error) throw error
+
+      setProfile((prev) => (prev ? { ...prev, enable_social_sharing: enabled } : null))
+
+      await logActivity(enabled ? "social_sharing_enabled" : "social_sharing_disabled")
+
+      toast({
+        title: "Social sharing updated",
+        description: enabled
+          ? "Social sharing buttons are now visible on your profile"
+          : "Social sharing buttons have been hidden from your profile",
+        status: "success",
+        duration: 3000,
+      })
+    } catch (error: any) {
+      console.error("Error updating social sharing:", error)
+      toast({
+        title: "Error updating social sharing",
+        description: error.message,
+        status: "error",
+        duration: 5000,
       })
     } finally {
       setSaving(false)
@@ -362,11 +407,11 @@ export default function SettingsPage() {
         { data: scheduleData },
         { data: reviewsData },
       ] = await Promise.all([
-        supabase.from("athlete_profiles").select("*").eq("id", user.id).single(),
-        supabase.from("athlete_videos").select("*").eq("user_id", user.id),
-        supabase.from("athlete_photos").select("*").eq("user_id", user.id),
-        supabase.from("athlete_awards").select("*").eq("user_id", user.id),
-        supabase.from("athlete_schedule").select("*").eq("user_id", user.id),
+        supabase.from("athletes").select("*").eq("user_id", user.id).single(),
+        supabase.from("athlete_videos").select("*").eq("athlete_id", user.id),
+        supabase.from("athlete_photos").select("*").eq("athlete_id", user.id),
+        supabase.from("athlete_awards").select("*").eq("athlete_id", user.id),
+        supabase.from("athlete_schedule").select("*").eq("athlete_id", user.id),
         supabase.from("athlete_reviews").select("*").eq("athlete_id", user.id),
       ])
 
@@ -452,6 +497,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: "privacy", label: "Privacy", icon: Shield },
     { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "profile", label: "Profile", icon: Share2 },
     { id: "security", label: "Security", icon: Lock },
     { id: "data", label: "Privacy & Data", icon: Database },
   ]
@@ -545,6 +591,20 @@ export default function SettingsPage() {
                     <Switch
                       isChecked={privacy?.show_location || false}
                       onChange={(e) => updatePrivacy({ show_location: e.target.checked })}
+                      isDisabled={settingsSaving}
+                    />
+                  </HStack>
+
+                  <HStack justify="space-between">
+                    <VStack align="start" spacing={0}>
+                      <Text>Show Birth Date</Text>
+                      <Text fontSize="sm" color="gray.600">
+                        Allow age calculation for eligibility verification
+                      </Text>
+                    </VStack>
+                    <Switch
+                      isChecked={privacy?.show_birth_date || false}
+                      onChange={(e) => updatePrivacy({ show_birth_date: e.target.checked })}
                       isDisabled={settingsSaving}
                     />
                   </HStack>
@@ -727,6 +787,81 @@ export default function SettingsPage() {
               </CardBody>
             </Card>
           </VStack>
+        )}
+
+        {/* Profile Settings */}
+        {activeTab === "profile" && (
+          <Card>
+            <CardHeader>
+              <Heading size="md">Profile Settings</Heading>
+              <Text fontSize="sm" color="gray.600">
+                Control how your profile appears and functions for visitors
+              </Text>
+            </CardHeader>
+            <CardBody>
+              <VStack spacing={6} align="stretch">
+                <HStack justify="space-between">
+                  <VStack align="start" spacing={0}>
+                    <HStack spacing={2}>
+                      <Text>Social Sharing Buttons</Text>
+                      {profile?.enable_social_sharing ? (
+                        <Badge colorScheme="green" size="sm">
+                          Enabled
+                        </Badge>
+                      ) : (
+                        <Badge colorScheme="red" size="sm">
+                          Disabled
+                        </Badge>
+                      )}
+                    </HStack>
+                    <Text fontSize="sm" color="gray.600">
+                      Show social media sharing buttons on your public profile to help visitors share your profile
+                    </Text>
+                  </VStack>
+                  <Switch
+                    isChecked={profile?.enable_social_sharing || false}
+                    onChange={(e) => handleSocialSharingToggle(e.target.checked)}
+                    isDisabled={saving}
+                  />
+                </HStack>
+
+                {profile?.enable_social_sharing && (
+                  <Alert status="info" size="sm">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle fontSize="sm">Social sharing is enabled</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        Visitors to your profile can easily share it on Facebook, Twitter, LinkedIn, WhatsApp, and via
+                        email. This helps increase your visibility to coaches and scouts.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                )}
+
+                {profile?.enable_social_sharing === false && (
+                  <Alert status="warning" size="sm">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle fontSize="sm">Social sharing is disabled</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        Social sharing buttons are hidden from your profile. Visitors won't be able to easily share your
+                        profile on social media platforms.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                )}
+
+                <Divider />
+
+                <Box>
+                  <Text fontSize="sm" color="gray.600">
+                    <strong>Supported platforms:</strong> Facebook, Twitter, LinkedIn, WhatsApp, Email, and native
+                    mobile sharing
+                  </Text>
+                </Box>
+              </VStack>
+            </CardBody>
+          </Card>
         )}
 
         {/* Security Settings */}

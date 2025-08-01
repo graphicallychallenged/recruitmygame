@@ -22,7 +22,7 @@ export type Database = {
           gpa: number | null
           sat_score: number | null
           act_score: number | null
-          positions_played: string[] | null
+          positions_played: string | null
           sport_positions: Json | null
           dominant_foot: string | null
           dominant_hand: string | null
@@ -57,6 +57,9 @@ export type Database = {
           profile_visibility: "public" | "private"
           allow_coach_reviews: boolean | null
           show_location: boolean | null
+          allow_profile_notifications: boolean | null
+          follower_count: number | null
+          enable_social_sharing: boolean | null
         }
         Insert: {
           id?: string
@@ -76,7 +79,7 @@ export type Database = {
           gpa?: number | null
           sat_score?: number | null
           act_score?: number | null
-          positions_played?: string[] | null
+          positions_played?: string | null
           sport_positions?: Json | null
           dominant_foot?: string | null
           dominant_hand?: string | null
@@ -111,6 +114,9 @@ export type Database = {
           profile_visibility?: "public" | "private"
           allow_coach_reviews?: boolean | null
           show_location?: boolean | null
+          allow_profile_notifications?: boolean | null
+          follower_count?: number | null
+          enable_social_sharing?: boolean | null
         }
         Update: {
           id?: string
@@ -130,7 +136,7 @@ export type Database = {
           gpa?: number | null
           sat_score?: number | null
           act_score?: number | null
-          positions_played?: string[] | null
+          positions_played?: string | null
           sport_positions?: Json | null
           dominant_foot?: string | null
           dominant_hand?: string | null
@@ -165,6 +171,9 @@ export type Database = {
           profile_visibility?: "public" | "private"
           allow_coach_reviews?: boolean | null
           show_location?: boolean | null
+          allow_profile_notifications?: boolean | null
+          follower_count?: number | null
+          enable_social_sharing?: boolean | null
         }
         Relationships: []
       }
@@ -246,34 +255,37 @@ export type Database = {
           id: string
           athlete_id: string
           video_url: string
-          video_type: "youtube" | "vimeo" | "upload"
+          video_type: string
           title: string
           description: string | null
           thumbnail_url: string | null
           is_featured: boolean
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
           athlete_id: string
           video_url: string
-          video_type: "youtube" | "vimeo" | "upload"
+          video_type: string
           title: string
           description?: string | null
           thumbnail_url?: string | null
           is_featured?: boolean
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
           athlete_id?: string
           video_url?: string
-          video_type?: "youtube" | "vimeo" | "upload"
+          video_type?: string
           title?: string
           description?: string | null
           thumbnail_url?: string | null
           is_featured?: boolean
           created_at?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -346,6 +358,22 @@ export type Database = {
           location: string | null
           created_at: string
           updated_at: string
+          is_verified: boolean | null
+          verification_token: string | null
+          verification_sent_at: string | null
+          verified_at: string | null
+          verification_expires_at: string | null
+          review_date: string | null
+          relationship_duration: string | null
+          can_contact_reviewer: boolean | null
+          athleticism_rating: number | null
+          character_rating: number | null
+          work_ethic_rating: number | null
+          leadership_rating: number | null
+          coachability_rating: number | null
+          teamwork_rating: number | null
+          academic_performance_rating: number | null
+          potential_rating: number | null
         }
         Insert: {
           id?: string
@@ -360,6 +388,22 @@ export type Database = {
           location?: string | null
           created_at?: string
           updated_at?: string
+          is_verified?: boolean | null
+          verification_token?: string | null
+          verification_sent_at?: string | null
+          verified_at?: string | null
+          verification_expires_at?: string | null
+          review_date?: string | null
+          relationship_duration?: string | null
+          can_contact_reviewer?: boolean | null
+          athleticism_rating?: number | null
+          character_rating?: number | null
+          work_ethic_rating?: number | null
+          leadership_rating?: number | null
+          coachability_rating?: number | null
+          teamwork_rating?: number | null
+          academic_performance_rating?: number | null
+          potential_rating?: number | null
         }
         Update: {
           id?: string
@@ -374,6 +418,22 @@ export type Database = {
           location?: string | null
           created_at?: string
           updated_at?: string
+          is_verified?: boolean | null
+          verification_token?: string | null
+          verification_sent_at?: string | null
+          verified_at?: string | null
+          verification_expires_at?: string | null
+          review_date?: string | null
+          relationship_duration?: string | null
+          can_contact_reviewer?: boolean | null
+          athleticism_rating?: number | null
+          character_rating?: number | null
+          work_ethic_rating?: number | null
+          leadership_rating?: number | null
+          coachability_rating?: number | null
+          teamwork_rating?: number | null
+          academic_performance_rating?: number | null
+          potential_rating?: number | null
         }
         Relationships: [
           {
@@ -391,7 +451,7 @@ export type Database = {
           athlete_id: string
           team_name: string
           position: string | null
-          jersey_number: number | null
+          jersey_number: string | null
           season: string | null
           league: string | null
           stats: Json | null
@@ -405,7 +465,7 @@ export type Database = {
           athlete_id: string
           team_name: string
           position?: string | null
-          jersey_number?: number | null
+          jersey_number?: string | null
           season?: string | null
           league?: string | null
           stats?: Json | null
@@ -419,7 +479,7 @@ export type Database = {
           athlete_id?: string
           team_name?: string
           position?: string | null
-          jersey_number?: number | null
+          jersey_number?: string | null
           season?: string | null
           league?: string | null
           stats?: Json | null
@@ -531,7 +591,7 @@ export type Database = {
           subject: string
           message: string
           status: "open" | "in_progress" | "resolved" | "closed"
-          priority: "low" | "medium" | "high"
+          priority: "low" | "medium" | "high" | "urgent"
           created_at: string
           updated_at: string
         }
@@ -541,7 +601,7 @@ export type Database = {
           subject: string
           message: string
           status?: "open" | "in_progress" | "resolved" | "closed"
-          priority?: "low" | "medium" | "high"
+          priority?: "low" | "medium" | "high" | "urgent"
           created_at?: string
           updated_at?: string
         }
@@ -551,7 +611,7 @@ export type Database = {
           subject?: string
           message?: string
           status?: "open" | "in_progress" | "resolved" | "closed"
-          priority?: "low" | "medium" | "high"
+          priority?: "low" | "medium" | "high" | "urgent"
           created_at?: string
           updated_at?: string
         }
@@ -576,7 +636,7 @@ export type Database = {
           profile_visibility?: "public" | "private"
           theme_preference?: "light" | "dark" | "system"
           created_at?: string
-          updated_at: string
+          updated_at?: string
         }
         Update: {
           id?: string
@@ -650,72 +710,62 @@ export interface AthleteProfile {
   user_id: string
   athlete_name: string
   username: string
-  subdomain?: string | null
   sport: string
-  sports?: string[] | null
-  grade?: string | null
-  graduation_year?: number | null
-  school?: string | null
-  location?: string | null
-  bio?: string | null
-  height?: string | null
-  weight?: string | null
-  gpa?: number | null
-  sat_score?: number | null
-  act_score?: number | null
-  positions_played?: string[] | null
-  sport_positions?: Record<string, string[]> | null
-  dominant_foot?: string | null
-  dominant_hand?: string | null
-  profile_picture_url?: string | null
-  hero_image_url?: string | null
-  default_hero_gender?: string | null
-  primary_color?: string | null
-  secondary_color?: string | null
-  subscription_tier?: string | null
-  subscription_status?: string | null
-  stripe_customer_id?: string | null
-  stripe_subscription_id?: string | null
-  is_profile_public?: boolean | null
-  content_order?: string[] | null
-  email?: string | null
-  phone?: string | null
-  show_email?: boolean | null
-  show_phone?: boolean | null
-  theme_mode?: string | null
+  sports?: string[]
+  sport_positions?: string[]
+  grade?: string
+  graduation_year?: number
+  school?: string
+  location?: string
+  bio?: string
+  height?: string
+  weight?: string
+  gpa?: number
+  sat_score?: number
+  act_score?: number
+  positions_played?: string
+  dominant_foot?: string
+  dominant_hand?: string
+  profile_picture_url?: string
+  primary_color?: string
+  secondary_color?: string
+  subscription_tier?: string
+  subscription_status?: string
+  stripe_customer_id?: string
+  stripe_subscription_id?: string
+  is_profile_public: boolean
+  content_order?: string[]
+  email?: string
+  phone?: string
+  show_email?: boolean
+  show_phone?: boolean
+  theme_mode?: string
   created_at: string
   updated_at: string
-  instagram?: string | null
-  twitter?: string | null
-  tiktok?: string | null
-  facebook?: string | null
-  youtube?: string | null
-  linkedin?: string | null
-  website?: string | null
-  maxpreps_url?: string | null
-  ncsa_url?: string | null
-  other_recruiting_profiles?: RecruitingProfile[] | null
-  profile_visibility?: "public" | "private" | null
-  allow_coach_reviews?: boolean | null
-  show_location?: boolean | null
-}
-
-export interface RecruitingProfile {
-  name: string
-  url: string
-}
-
-export interface ProfileVisibility {
-  show_stats: boolean
-  show_contact: boolean
-  show_social: boolean
+  hero_image_url?: string
+  default_hero_gender?: string
+  instagram?: string
+  twitter?: string
+  tiktok?: string
+  facebook?: string
+  youtube?: string
+  linkedin?: string
+  website?: string
+  maxpreps_url?: string
+  ncsa_url?: string
+  other_recruiting_profiles?: string[]
+  profile_visibility?: string
+  allow_coach_reviews?: boolean
+  show_location?: boolean
+  subdomain?: string
+  enable_social_sharing?: boolean
 }
 
 export interface AthletePhoto {
   id: string
   athlete_id: string
   photo_url: string
-  caption?: string | null
+  caption?: string
   is_public: boolean
   created_at: string
 }
@@ -724,11 +774,12 @@ export interface AthleteVideo {
   id: string
   athlete_id: string
   title: string
-  description?: string | null
+  description?: string
   video_url: string
-  video_type: "youtube" | "vimeo" | "upload"
-  thumbnail_url?: string | null
+  video_type: string
+  thumbnail_url?: string
   is_public: boolean
+  is_featured?: boolean
   created_at: string
   updated_at: string
 }
@@ -737,11 +788,11 @@ export interface AthleteAward {
   id: string
   athlete_id: string
   title: string
-  organization?: string | null
-  award_date: string
-  award_type?: string | null
-  level?: string | null
-  description?: string | null
+  organization?: string
+  award_date?: string
+  award_type?: string
+  level?: string
+  description?: string
   is_public: boolean
   created_at: string
 }
@@ -751,10 +802,10 @@ export interface AthleteSchedule {
   athlete_id: string
   event_name: string
   event_date: string
-  event_time?: string | null
-  location?: string | null
-  event_type?: string | null
-  description?: string | null
+  event_time?: string
+  location?: string
+  event_type?: string
+  description?: string
   is_public: boolean
   created_at: string
   updated_at: string
@@ -764,40 +815,33 @@ export interface AthleteReview {
   id: string
   athlete_id: string
   reviewer_name: string
-  reviewer_title?: string | null
-  reviewer_organization?: string | null
-  reviewer_email?: string | null
-  reviewer_phone?: string | null
-  reviewer_image_url?: string | null
+  reviewer_title?: string
+  reviewer_organization?: string
+  reviewer_email?: string
+  reviewer_phone?: string
+  reviewer_image_url?: string
   review_text: string
-  review_type?: string | null
-  rating?: number | null
-  relationship_duration?: string | null
-  can_contact_reviewer?: boolean | null
+  review_type?: string
+  rating?: number
+  relationship_duration?: string
+  can_contact_reviewer?: boolean
   created_at: string
   updated_at: string
-  athleticism?: number | null
-  character?: number | null
-  work_ethic?: number | null
-  leadership?:number | null
-  coachability?:number | null
-  teamwork?: number | null
-  years_known?:string | null
-  relationship?:string |null
-  would_recommend?:string | null
+  is_verified?: boolean
+  verified_at?: string
 }
 
 export interface AthleteTeam {
   id: string
   athlete_id: string
   team_name: string
-  position?: string | null
-  jersey_number?: number | null
-  season?: string | null
-  league?: string | null
-  stats?: Record<string, any> | null
-  is_current?: boolean | null
-  is_public?: boolean | null
+  position?: string
+  jersey_number?: string
+  season?: string
+  league?: string
+  stats?: Record<string, any>
+  is_current: boolean
+  is_public: boolean
   created_at: string
   updated_at: string
 }

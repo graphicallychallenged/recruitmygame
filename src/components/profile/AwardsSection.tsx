@@ -132,8 +132,8 @@ export function AwardsSection({
                 <Box
                   p={2}
                   borderRadius="lg"
-                  bg={isDarkTheme ? "gray.700" : "gray.100"}
-                  color={secondaryColor}
+                  bg={secondaryColor}
+                  color={"white"}
                   flexShrink={0}
                 >
                   <Icon as={typeInfo.icon} size={20} />

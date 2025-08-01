@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import PublicProfileClient from "./PublicProfileClient"
 import type { AthleteProfile } from "@/types/database"
+import type { Metadata } from "next"
 
 interface PageProps {
   params: {
@@ -172,7 +173,7 @@ export default async function AthletePage({ params }: PageProps) {
   }
 }
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { athleteName } = params
   const cookieStore = cookies()
 
@@ -189,53 +190,157 @@ export async function generateMetadata({ params }: PageProps) {
   )
 
   try {
+    let athleteData = null
+    const profileUrl = `https://recruitmygame.com/${athleteName}`
+
     // Try custom subdomain first
     const { data: customSubdomainData } = await supabase
       .from("athletes")
-      .select("athlete_name, sport, school, bio")
+      .select(
+        "athlete_name, sport, school, bio, location, graduation_year, profile_picture_url, hero_image_url, grade, positions_played",
+      )
       .eq("subdomain", athleteName)
       .eq("is_profile_public", true)
       .single()
 
     if (customSubdomainData) {
-      return {
-        title: `${customSubdomainData.athlete_name} - ${customSubdomainData.sport} | RecruitMyGame`,
-        description:
-          customSubdomainData.bio ||
-          `${customSubdomainData.athlete_name} is a ${customSubdomainData.sport} athlete${customSubdomainData.school ? ` at ${customSubdomainData.school}` : ""}.`,
-      }
-    }
+      athleteData = customSubdomainData
+    } else {
+      // Try username, but check if they have a custom subdomain
+      const { data: usernameData } = await supabase
+        .from("athletes")
+        .select(
+          "athlete_name, sport, school, bio, location, graduation_year, profile_picture_url, hero_image_url, grade, positions_played, subdomain",
+        )
+        .eq("username", athleteName)
+        .eq("is_profile_public", true)
+        .single()
 
-    // Try username, but check if they have a custom subdomain
-    const { data: usernameData } = await supabase
-      .from("athletes")
-      .select("athlete_name, sport, school, bio, subdomain")
-      .eq("username", athleteName)
-      .eq("is_profile_public", true)
-      .single()
-
-    if (usernameData) {
-      // If they have a custom subdomain, don't generate metadata for username access
-      if (usernameData.subdomain && usernameData.subdomain !== athleteName) {
-        return {
-          title: "Athlete Not Found",
+      if (usernameData) {
+        // If they have a custom subdomain, don't generate metadata for username access
+        if (usernameData.subdomain && usernameData.subdomain !== athleteName) {
+          return {
+            title: "Athlete Not Found",
+            robots: {
+              index: false,
+              follow: false,
+            },
+          }
         }
-      }
-
-      return {
-        title: `${usernameData.athlete_name} - ${usernameData.sport} | RecruitMyGame`,
-        description:
-          usernameData.bio ||
-          `${usernameData.athlete_name} is a ${usernameData.sport} athlete${usernameData.school ? ` at ${usernameData.school}` : ""}.`,
+        athleteData = usernameData
       }
     }
+
+    if (!athleteData) {
+      return {
+        title: "Athlete Not Found | RecruitMyGame",
+        description: "The athlete profile you're looking for could not be found.",
+        robots: {
+          index: false,
+          follow: false,
+        },
+      }
+    }
+
+    // Create rich description
+    const gradeText = athleteData.grade ? `${athleteData.grade} ` : ""
+    const schoolText = athleteData.school ? ` at ${athleteData.school}` : ""
+    const locationText = athleteData.location ? ` from ${athleteData.location}` : ""
+    const graduationText = athleteData.graduation_year ? ` (Class of ${athleteData.graduation_year})` : ""
+    const positionsText = athleteData.positions_played ? ` playing ${athleteData.positions_played}` : ""
+
+    const description =
+      athleteData.bio ||
+      `${athleteData.athlete_name} is a ${gradeText}${athleteData.sport} athlete${schoolText}${locationText}${graduationText}${positionsText}. View their athletic profile, stats, and recruiting information.`
+
+    // Determine the best image for social sharing
+    const socialImage = athleteData.hero_image_url || athleteData.profile_picture_url || "/logo-horizontal.png"
+
+    // Create structured title
+    const title = `${athleteData.athlete_name} - ${athleteData.sport} Athlete | RecruitMyGame`
 
     return {
-      title: "Athlete Not Found",
+      title,
+      description,
+      keywords: [
+        athleteData.athlete_name,
+        athleteData.sport,
+        "athlete",
+        "recruiting",
+        "college recruiting",
+        "sports profile",
+        athleteData.school,
+        athleteData.location,
+        "athletic recruiting",
+        "student athlete",
+      ]
+        .filter(Boolean)
+        .join(", "),
+      authors: [{ name: athleteData.athlete_name }],
+      creator: athleteData.athlete_name,
+      publisher: "RecruitMyGame",
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-video-preview": -1,
+          "max-image-preview": "large",
+          "max-snippet": -1,
+        },
+      },
+      openGraph: {
+        type: "profile",
+        title,
+        description,
+        url: profileUrl,
+        siteName: "RecruitMyGame",
+        images: [
+          {
+            url: socialImage,
+            width: 1200,
+            height: 630,
+            alt: `${athleteData.athlete_name} - ${athleteData.sport} Athlete Profile`,
+          },
+          {
+            url: socialImage,
+            width: 1080,
+            height: 1080,
+            alt: `${athleteData.athlete_name} - ${athleteData.sport} Athlete Profile`,
+          },
+        ],
+        locale: "en_US",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [socialImage],
+        creator: athleteData.twitter ? `@${athleteData.twitter}` : "@RecruitMyGame",
+        site: "@RecruitMyGame",
+      },
+      alternates: {
+        canonical: profileUrl,
+      },
+      other: {
+        "profile:first_name": athleteData.athlete_name.split(" ")[0],
+        "profile:last_name": athleteData.athlete_name.split(" ").slice(1).join(" "),
+        "profile:username": athleteName,
+        "article:author": athleteData.athlete_name,
+        "article:section": "Sports",
+        "article:tag": [athleteData.sport, "athlete", "recruiting"].join(","),
+      },
     }
   } catch (error) {
+    console.error("Error generating metadata:", error)
     return {
-      title: "Athlete Profile",
+      title: "Athlete Profile | RecruitMyGame",
+      description: "View athlete profiles and recruiting information on RecruitMyGame.",
+      robots: {
+        index: false,
+        follow: true,
+      },
     }
   }
 }
