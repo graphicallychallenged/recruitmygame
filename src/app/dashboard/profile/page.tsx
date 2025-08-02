@@ -549,7 +549,7 @@ export default function ProfilePage() {
     return (
       <Container maxW="4xl" py={8}>
         <Flex justify="center" align="center" h="400px">
-          <Spinner size="xl" color="blue.500" />
+          <Spinner size="xl" color="teal.500" />
         </Flex>
       </Container>
     )
@@ -575,7 +575,7 @@ export default function ProfilePage() {
         <Box>
           <Heading size="lg" mb={2}>
             <HStack spacing={2}>
-              <Icon as={User} color="blue.500" />
+              <Icon as={User} color="teal.500" />
               <Text>Profile Settings</Text>
               <Badge colorScheme={getTierColor(currentTier)} variant="subtle">
                 {getTierDisplayName(currentTier)}
@@ -598,7 +598,7 @@ export default function ProfilePage() {
                 <AlertTitle>Demo Account - Read Only</AlertTitle>
                 <AlertDescription>
                   This is a demo account for showcase purposes. Most fields are read-only.
-                  <Link href="/login" style={{ color: "blue", textDecoration: "underline", marginLeft: "4px" }}>
+                  <Link href="/login" style={{ color: "teal", textDecoration: "underline", marginLeft: "4px" }}>
                     Create your own account
                   </Link>{" "}
                   to make changes.
@@ -713,8 +713,8 @@ export default function ProfilePage() {
                         Read-only for demo accounts
                       </Text>
                     ) : (
-                      <Text fontSize="xs" color="blue.600" mt={2}>
-                        💡 Setting a custom subdomain will update your profile URL and username
+                      <Text fontSize="xs" color="teal.600" mt={2}>
+                        💡 Setting a custom subdomain will update your profile URL and username. You can only change this ONCE!
                       </Text>
                     )}
                   </FormControl>
@@ -968,7 +968,7 @@ export default function ProfilePage() {
                       <Button
                         size="sm"
                         variant={formData.sports.includes(sport) ? "solid" : "outline"}
-                        colorScheme={formData.sports.includes(sport) ? "blue" : "gray"}
+                        colorScheme={formData.sports.includes(sport) ? "teal" : "gray"}
                         onClick={() => handleSportToggle(sport)}
                         w="full"
                         isDisabled={isDemoAccount}
@@ -980,13 +980,13 @@ export default function ProfilePage() {
                   ))}
                 </Grid>
               ) : (
-                <Alert status="info">
+                <Alert status="info" colorScheme="teal">
                   <AlertIcon />
                   <Box>
                     <AlertTitle>Pro Feature</AlertTitle>
                     <AlertDescription>
                       Upgrade to Pro to add multiple sports to your profile.{" "}
-                      <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                      <Button as={Link} href="/subscription" size="sm" colorScheme="teal" variant="link">
                         Upgrade Now
                       </Button>
                     </AlertDescription>
@@ -1016,7 +1016,7 @@ export default function ProfilePage() {
                       <Button
                         size="sm"
                         variant={formData.positions_played.includes(position) ? "solid" : "outline"}
-                        colorScheme={formData.positions_played.includes(position) ? "green" : "gray"}
+                        colorScheme={formData.positions_played.includes(position) ? "teal" : "gray"}
                         onClick={() => handlePositionToggle(position)}
                         w="full"
                         isDisabled={isDemoAccount}
@@ -1247,7 +1247,7 @@ export default function ProfilePage() {
                 <Text fontWeight="medium">Other Recruiting Profiles</Text>
                 <Button
                   size="sm"
-                  colorScheme="blue"
+                  colorScheme="teal"
                   variant="outline"
                   onClick={addRecruitingProfile}
                   isDisabled={isDemoAccount}
@@ -1413,13 +1413,13 @@ export default function ProfilePage() {
                 )}
               </>
             ) : (
-              <Alert status="info">
+              <Alert status="info" colorScheme="teal">
                 <AlertIcon />
                 <Box>
                   <AlertTitle>Premium Feature</AlertTitle>
                   <AlertDescription>
                     Customize your profile colors and theme with Premium or Pro plans.{" "}
-                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                    <Button as={Link} href="/subscription" size="sm" colorScheme="teal" variant="link">
                       Upgrade Now
                     </Button>
                   </AlertDescription>
@@ -1453,7 +1453,7 @@ export default function ProfilePage() {
                       <AlertTitle>Demo Account Restriction</AlertTitle>
                       <AlertDescription>
                         Hero image uploads are disabled for demo accounts.
-                        <Link href="/login" style={{ color: "blue", textDecoration: "underline", marginLeft: "4px" }}>
+                        <Link href="/login" style={{ color: "teal", textDecoration: "underline", marginLeft: "4px" }}>
                           Create your own account
                         </Link>{" "}
                         to upload custom hero images.
@@ -1469,13 +1469,13 @@ export default function ProfilePage() {
                 )}
               </>
             ) : (
-              <Alert status="info">
+              <Alert status="info" colorScheme="teal">
                 <AlertIcon />
                 <Box>
                   <AlertTitle>Pro Feature</AlertTitle>
                   <AlertDescription>
                     Upload a custom hero image for your profile with Pro plan.{" "}
-                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                    <Button as={Link} href="/subscription" size="sm" colorScheme="teal" variant="link">
                       Upgrade to Pro
                     </Button>
                   </AlertDescription>
@@ -1489,7 +1489,7 @@ export default function ProfilePage() {
         <Flex justify="end">
           <Button
             leftIcon={<Save size={16} />}
-            colorScheme="blue"
+            colorScheme="teal"
             size="lg"
             onClick={handleSave}
             isLoading={saving}
@@ -1502,15 +1502,15 @@ export default function ProfilePage() {
 
         {/* Public Profile Link */}
         {(athlete.subdomain || athlete.username) && (
-          <Card bg="blue.50" borderColor="blue.200">
+          <Card bg="teal.50" borderColor="teal.200">
             <CardBody>
               <HStack spacing={2} mb={2}>
-                <Icon as={Eye} color="blue.500" />
-                <Text fontWeight="semibold" color="blue.700">
+                <Icon as={Eye} color="teal.500" />
+                <Text fontWeight="semibold" color="teal.700">
                   Your Public Profile
                 </Text>
               </HStack>
-              <Text fontSize="sm" color="blue.600" mb={3}>
+              <Text fontSize="sm" color="teal.600" mb={3}>
                 Your profile is available at:
                 <Text as="span" fontWeight="medium" ml={1}>
                   {getPublicProfileUrl()}
@@ -1521,7 +1521,7 @@ export default function ProfilePage() {
                 href={getPublicProfileUrl()}
                 target="_blank"
                 size="sm"
-                colorScheme="blue"
+                colorScheme="teal"
                 variant="outline"
               >
                 View Public Profile

@@ -40,6 +40,7 @@ interface DashboardStats {
   averageRating: number
   upcomingEvents: number
   profileViews: number
+  totalFollowers:number
 }
 
 interface Review {
@@ -80,6 +81,7 @@ export default function DashboardPage() {
     averageRating: 0,
     upcomingEvents: 0,
     profileViews: 0,
+    totalFollowers:0
   })
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
@@ -148,6 +150,13 @@ export default function DashboardPage() {
           console.log("Analytics not available yet, using 0 for profile views")
         }
 
+         const { data: followersData } = await supabase
+        .from("profile_update_subscriptions")
+        .select("id")
+        .eq("athlete_id", athleteData.id)
+        .eq("is_verified", true)
+        .eq("is_active", true)
+
         // Fetch all stats in parallel using correct table names
         const [
           awardsResult,
@@ -214,6 +223,7 @@ export default function DashboardPage() {
           averageRating: Math.round(averageRating * 10) / 10,
           upcomingEvents: upcomingEventsResult.data?.length || 0,
           profileViews: profileViews,
+          totalFollowers: followersData?.length || 0,
         })
 
         setReviews(reviewData)
@@ -516,7 +526,7 @@ export default function DashboardPage() {
                   <Users size={32} />
                 </Box>
                 <Stat>
-                  <StatNumber fontSize="2xl">{athlete.follower_count || 0}</StatNumber>
+                  <StatNumber fontSize="2xl">{stats.totalFollowers || 0} </StatNumber>
                   <StatLabel fontSize="sm">Followers</StatLabel>
                 </Stat>
                 <Text fontSize="xs" color="gray.500">

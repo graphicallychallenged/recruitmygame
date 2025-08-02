@@ -416,13 +416,13 @@ export function VideoUpload({
         w="full"
         p={8}
         border="2px dashed"
-        borderColor={dragActive ? "blue.400" : "gray.300"}
+        borderColor={dragActive ? "teal.400" : "gray.300"}
         borderRadius="lg"
-        bg={dragActive ? "blue.50" : "gray.50"}
+        bg={dragActive ? "teal.50" : "gray.50"}
         textAlign="center"
         cursor="pointer"
         transition="all 0.2s"
-        _hover={{ borderColor: "blue.400", bg: "blue.50" }}
+        _hover={{ borderColor: "teal.400", bg: "teal.50" }}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -430,16 +430,16 @@ export function VideoUpload({
         onClick={() => fileInputRef.current?.click()}
       >
         <VStack spacing={3}>
-          <Box color={dragActive ? "blue.500" : "gray.400"}>
+          <Box color={dragActive ? "teal.500" : "gray.400"}>
             {uploading ? <Upload size={32} /> : <Video size={32} />}
           </Box>
 
           {uploading ? (
             <VStack spacing={2} w="full">
-              <Text fontSize="sm" color="blue.600">
+              <Text fontSize="sm" color="teal.600">
                 {generatingThumbnail ? "Generating thumbnail..." : "Uploading video..."}
               </Text>
-              <Progress value={uploadProgress} colorScheme="blue" w="full" />
+              <Progress value={uploadProgress} colorScheme="teal" w="full" />
               <Text fontSize="xs" color="gray.500">
                 {uploadProgress}%
               </Text>
@@ -450,10 +450,10 @@ export function VideoUpload({
                 Drop your video here, or click to browse
               </Text>
               <HStack spacing={2} wrap="wrap" justify="center">
-                <Badge colorScheme="blue">MP4</Badge>
-                <Badge colorScheme="blue">WebM</Badge>
-                <Badge colorScheme="blue">MOV</Badge>
-                <Badge colorScheme="blue">AVI</Badge>
+                <Badge colorScheme="teal">MP4</Badge>
+                <Badge colorScheme="teal">WebM</Badge>
+                <Badge colorScheme="teal">MOV</Badge>
+                <Badge colorScheme="teal">AVI</Badge>
               </HStack>
               <Text fontSize="sm" color="gray.500">
                 Maximum file size: 100MB • Thumbnail auto-generated

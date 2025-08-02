@@ -54,6 +54,28 @@ interface ContactNotificationData {
   athleteUsername: string
 }
 
+interface EmailOptions {
+  to: string
+  subject: string
+  html: string
+  from?: string
+}
+
+// Base email sending function (you'll need to implement with your email service)
+async function sendEmail(options: EmailOptions): Promise<boolean> {
+  try {
+    // This is a placeholder - implement with your email service (SendGrid, AWS SES, etc.)
+    console.log("Sending email:", options)
+
+    // For now, just log the email content
+    // In production, replace this with actual email service integration
+    return true
+  } catch (error) {
+    console.error("Failed to send email:", error)
+    return false
+  }
+}
+
 export async function sendReviewRequestEmail(data: ReviewRequestEmailData) {
   const htmlContent = `
     <!DOCTYPE html>
@@ -63,21 +85,94 @@ export async function sendReviewRequestEmail(data: ReviewRequestEmailData) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Review Request from ${data.athleteName}</title>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #84cc16 0%, #14b8a6 50%, #0d9488 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
-        .athlete-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .message-box { background: #e3f2fd; padding: 20px; border-left: 4px solid #2196f3; margin: 20px 0; }
-        .cta-button { display: inline-block; background: #22c55e; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
-        .verified-badge { background: #22c55e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-        .expiry-notice { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          line-height: 1.6; 
+          color: #2d3748; 
+          margin: 0; 
+          padding: 0; 
+          background-color: #f7fafc;
+        }
+        .email-container { 
+          max-width: 600px; 
+          margin: 0 auto; 
+          background-color: #ffffff;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 40px 30px; 
+          text-align: center; 
+        }
+        .logo { 
+          max-width: 200px; 
+          height: auto; 
+          margin-bottom: 20px; 
+        }
+        .content { 
+          padding: 40px 30px; 
+          background: #ffffff; 
+        }
+        .info-box { 
+          background: #f0fdfa; 
+          border: 1px solid #14b8a6; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
+        .highlight-box { 
+          background: #ecfdf5; 
+          border-left: 4px solid #84cc16; 
+          padding: 20px; 
+          margin: 20px 0; 
+        }
+        .cta-button { 
+          display: inline-block; 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 16px 32px; 
+          text-decoration: none; 
+          border-radius: 8px; 
+          font-weight: 600; 
+          font-size: 16px;
+          margin: 20px 0; 
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .footer { 
+          background: #1f2937; 
+          color: #d1d5db; 
+          padding: 30px; 
+          text-align: center; 
+          font-size: 14px; 
+          line-height: 1.8;
+        }
+        .footer a { 
+          color: #84cc16; 
+          text-decoration: none; 
+        }
+        .verified-badge { 
+          background: #84cc16; 
+          color: white; 
+          padding: 6px 16px; 
+          border-radius: 20px; 
+          font-size: 12px; 
+          font-weight: bold; 
+          display: inline-block;
+        }
+        .warning-box { 
+          background: #fef3c7; 
+          border: 1px solid #f59e0b; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class="email-container">
         <div class="header">
+          <img src="https://recruitmygame.com/logo-h.png" alt="Recruit My Game" class="logo">
           <h1>🏆 Verified Review Request</h1>
           <p>You've been asked to provide a verified review for a student-athlete</p>
         </div>
@@ -87,13 +182,13 @@ export async function sendReviewRequestEmail(data: ReviewRequestEmailData) {
           
           <p>You have received a request to provide a <span class="verified-badge">✓ VERIFIED REVIEW</span> for the following student-athlete:</p>
           
-          <div class="athlete-info">
+          <div class="info-box">
             <h3>${data.athleteName}</h3>
             <p><strong>Sport:</strong> ${data.athleteSport}</p>
             <p><strong>School:</strong> ${data.athleteSchool}</p>
           </div>
           
-          <div class="message-box">
+          <div class="highlight-box">
             <h4>Personal Message from ${data.athleteName}:</h4>
             <p><em>"${data.requestMessage}"</em></p>
           </div>
@@ -104,7 +199,7 @@ export async function sendReviewRequestEmail(data: ReviewRequestEmailData) {
             <a href="${data.verificationLink}" class="cta-button">Write Verified Review</a>
           </div>
           
-          <div class="expiry-notice">
+          <div class="warning-box">
             <strong>⏰ Important:</strong> This verification link will expire on ${data.expiryDate}. Please complete your review before this date.
           </div>
           
@@ -124,9 +219,14 @@ export async function sendReviewRequestEmail(data: ReviewRequestEmailData) {
         </div>
         
         <div class="footer">
-          <p>This email was sent by RecruitMyGame on behalf of ${data.athleteName}</p>
-          <p>If you did not expect this email, you can safely ignore it.</p>
-          <p>© 2024 RecruitMyGame. All rights reserved.</p>
+          <p><strong>Join our community!</strong><br>
+          Connect with other student-athletes and parents in our <a href="https://www.facebook.com/groups/recruitmygamecommunity/">Facebook Community Group</a></p>
+          
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #374151;">
+            © 2025 Recruit My Game, Inc. All rights reserved.<br>
+            Built for student-athletes by student-athlete parents who want to help their kid showcase their complete story.<br>
+            Yes, we are a US-based, family run business!
+          </p>
         </div>
       </div>
     </body>
@@ -182,18 +282,96 @@ export async function sendCancellationEmail(data: CancellationEmailData) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Review Request Cancelled</title>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #f56565; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
-        .athlete-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          line-height: 1.6; 
+          color: #2d3748; 
+          margin: 0; 
+          padding: 0; 
+          background-color: #f7fafc;
+        }
+        .email-container { 
+          max-width: 600px; 
+          margin: 0 auto; 
+          background-color: #ffffff;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 40px 30px; 
+          text-align: center; 
+        }
+        .logo { 
+          max-width: 200px; 
+          height: auto; 
+          margin-bottom: 20px; 
+        }
+        .content { 
+          padding: 40px 30px; 
+          background: #ffffff; 
+        }
+        .info-box { 
+          background: #f0fdfa; 
+          border: 1px solid #14b8a6; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
+        .highlight-box { 
+          background: #ecfdf5; 
+          border-left: 4px solid #84cc16; 
+          padding: 20px; 
+          margin: 20px 0; 
+        }
+        .cta-button { 
+          display: inline-block; 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 16px 32px; 
+          text-decoration: none; 
+          border-radius: 8px; 
+          font-weight: 600; 
+          font-size: 16px;
+          margin: 20px 0; 
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .footer { 
+          background: #1f2937; 
+          color: #d1d5db; 
+          padding: 30px; 
+          text-align: center; 
+          font-size: 14px; 
+          line-height: 1.8;
+        }
+        .footer a { 
+          color: #84cc16; 
+          text-decoration: none; 
+        }
+        .verified-badge { 
+          background: #84cc16; 
+          color: white; 
+          padding: 6px 16px; 
+          border-radius: 20px; 
+          font-size: 12px; 
+          font-weight: bold; 
+          display: inline-block;
+        }
+        .warning-box { 
+          background: #fef3c7; 
+          border: 1px solid #f59e0b; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class="email-container">
         <div class="header">
+          <img src="https://recruitmygame.com/logo-h.png" alt="Recruit My Game" class="logo">
           <h1>Review Request Cancelled</h1>
+          <p></p>
         </div>
         
         <div class="content">
@@ -201,7 +379,7 @@ export async function sendCancellationEmail(data: CancellationEmailData) {
           
           <p>The verified review request from the following student-athlete has been cancelled:</p>
           
-          <div class="athlete-info">
+          <div class="info-box">
             <h3>${data.athleteName}</h3>
             <p><strong>Sport:</strong> ${data.athleteSport}</p>
             <p><strong>School:</strong> ${data.athleteSchool}</p>
@@ -213,7 +391,14 @@ export async function sendCancellationEmail(data: CancellationEmailData) {
         </div>
         
         <div class="footer">
-          <p>© 2024 RecruitMyGame. All rights reserved.</p>
+          <p><strong>Join our community!</strong><br>
+          Connect with other student-athletes and parents in our <a href="https://www.facebook.com/groups/recruitmygamecommunity/">Facebook Community Group</a></p>
+          
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #374151;">
+            © 2025 Recruit My Game, Inc. All rights reserved.<br>
+            Built for student-athletes by student-athlete parents who want to help their kid showcase their complete story.<br>
+            Yes, we are a US-based, family run business!
+          </p>
         </div>
       </div>
     </body>
@@ -258,6 +443,7 @@ export async function sendSubscriptionVerificationEmail(data: SubscriptionVerifi
     new_video: "New Videos",
     new_photos: "New Photos",
     schedule_updated: "Schedule Updates",
+    schedule_updates: "Schedule Updates",
     new_award: "New Awards",
   }
 
@@ -273,19 +459,94 @@ export async function sendSubscriptionVerificationEmail(data: SubscriptionVerifi
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Verify Your Subscription to ${data.athleteName}'s Updates</title>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
-        .athlete-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .notification-list { background: #e3f2fd; padding: 20px; border-left: 4px solid #2196f3; margin: 20px 0; }
-        .cta-button { display: inline-block; background: #14b8a6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          line-height: 1.6; 
+          color: #2d3748; 
+          margin: 0; 
+          padding: 0; 
+          background-color: #f7fafc;
+        }
+        .email-container { 
+          max-width: 600px; 
+          margin: 0 auto; 
+          background-color: #ffffff;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 40px 30px; 
+          text-align: center; 
+        }
+        .logo { 
+          max-width: 200px; 
+          height: auto; 
+          margin-bottom: 20px; 
+        }
+        .content { 
+          padding: 40px 30px; 
+          background: #ffffff; 
+        }
+        .info-box { 
+          background: #f0fdfa; 
+          border: 1px solid #14b8a6; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
+        .highlight-box { 
+          background: #ecfdf5; 
+          border-left: 4px solid #84cc16; 
+          padding: 20px; 
+          margin: 20px 0; 
+        }
+        .cta-button { 
+          display: inline-block; 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 16px 32px; 
+          text-decoration: none; 
+          border-radius: 8px; 
+          font-weight: 600; 
+          font-size: 16px;
+          margin: 20px 0; 
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .footer { 
+          background: #1f2937; 
+          color: #d1d5db; 
+          padding: 30px; 
+          text-align: center; 
+          font-size: 14px; 
+          line-height: 1.8;
+        }
+        .footer a { 
+          color: #84cc16; 
+          text-decoration: none; 
+        }
+        .verified-badge { 
+          background: #84cc16; 
+          color: white; 
+          padding: 6px 16px; 
+          border-radius: 20px; 
+          font-size: 12px; 
+          font-weight: bold; 
+          display: inline-block;
+        }
+        .warning-box { 
+          background: #fef3c7; 
+          border: 1px solid #f59e0b; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class="email-container">
         <div class="header">
+          <img src="https://recruitmygame.com/logo-h.png" alt="Recruit My Game" class="logo">
           <h1>🔔 Verify Your Subscription</h1>
           <p>Confirm your subscription to ${data.athleteName}'s profile updates</p>
         </div>
@@ -295,13 +556,13 @@ export async function sendSubscriptionVerificationEmail(data: SubscriptionVerifi
           
           <p>Thank you for subscribing to updates from <strong>${data.athleteName}</strong>! To start receiving notifications, please verify your email address by clicking the button below.</p>
           
-          <div class="athlete-info">
+          <div class="info-box">
             <h3>You're subscribed to updates from:</h3>
             <p><strong>${data.athleteName}</strong></p>
-            <p>Profile: <a href="${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}">${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}</a></p>
+            <p>Profile: <a href="https://${data.athleteUsername}.recruitmygame.com">https://${data.athleteUsername}.recruitmygame.com</a></p>
           </div>
           
-          <div class="notification-list">
+          <div class="info-box">
             <h4>You'll receive notifications for:</h4>
             <p>${selectedNotifications}</p>
           </div>
@@ -318,8 +579,14 @@ export async function sendSubscriptionVerificationEmail(data: SubscriptionVerifi
         </div>
         
         <div class="footer">
-          <p>This verification link will expire in 24 hours.</p>
-          <p>© 2024 RecruitMyGame. All rights reserved.</p>
+          <p><strong>Join our community!</strong><br>
+          Connect with other student-athletes and parents in our <a href="https://www.facebook.com/groups/recruitmygamecommunity/">Facebook Community Group</a></p>
+          
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #374151;">
+            © 2025 Recruit My Game, Inc. All rights reserved.<br>
+            Built for student-athletes by student-athlete parents who want to help their kid showcase their complete story.<br>
+            Yes, we are a US-based, family run business!
+          </p>
         </div>
       </div>
     </body>
@@ -337,7 +604,7 @@ You're subscribed to: ${selectedNotifications}
 
 Verify your email: ${verificationUrl}
 
-Profile: ${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}
+Profile: https://${data.athleteUsername}.recruitmygame.com
 
 Once verified, you'll receive email notifications whenever ${data.athleteName} updates their profile.
 
@@ -364,7 +631,7 @@ RecruitMyGame Team
 
 export async function sendProfileUpdateNotification(data: ProfileUpdateNotificationData) {
   const unsubscribeUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/notifications/unsubscribe/${data.unsubscribeToken}`
-  const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}`
+  const profileUrl = `https://${data.athleteUsername}.recruitmygame.com`
 
   let updateMessage = ""
   let updateDetails = ""
@@ -373,7 +640,7 @@ export async function sendProfileUpdateNotification(data: ProfileUpdateNotificat
     case "new_video":
       updateMessage = `${data.athleteName} uploaded a new video`
       updateDetails = `
-        <div class="update-details">
+        <div class="info-box">
           <h4>New Video: ${data.updateContent?.video_title || "Untitled"}</h4>
           ${data.updateContent?.video_description ? `<p>${data.updateContent.video_description}</p>` : ""}
           <p><strong>Type:</strong> ${data.updateContent?.video_type || "Video"}</p>
@@ -383,7 +650,7 @@ export async function sendProfileUpdateNotification(data: ProfileUpdateNotificat
     case "new_photos":
       updateMessage = `${data.athleteName} uploaded new photos`
       updateDetails = `
-        <div class="update-details">
+        <div class="info-box">
           <h4>New Photos Added</h4>
           ${data.updateContent?.photo_caption ? `<p>${data.updateContent.photo_caption}</p>` : ""}
         </div>
@@ -392,7 +659,7 @@ export async function sendProfileUpdateNotification(data: ProfileUpdateNotificat
     case "schedule_updated":
       updateMessage = `${data.athleteName} added a new event to their schedule`
       updateDetails = `
-        <div class="update-details">
+        <div class="info-box">
           <h4>${data.updateContent?.event_name || "New Event"}</h4>
           <p><strong>Date:</strong> ${data.updateContent?.event_date ? new Date(data.updateContent.event_date).toLocaleDateString() : "TBD"}</p>
           <p><strong>Type:</strong> ${data.updateContent?.event_type || "Event"}</p>
@@ -403,7 +670,7 @@ export async function sendProfileUpdateNotification(data: ProfileUpdateNotificat
     case "new_award":
       updateMessage = `${data.athleteName} received a new award`
       updateDetails = `
-        <div class="update-details">
+        <div class="info-box">
           <h4>${data.updateContent?.award_title || "New Award"}</h4>
           ${data.updateContent?.organization ? `<p><strong>From:</strong> ${data.updateContent.organization}</p>` : ""}
           <p><strong>Date:</strong> ${data.updateContent?.award_date ? new Date(data.updateContent.award_date).toLocaleDateString() : "Recently"}</p>
@@ -423,7 +690,7 @@ export async function sendProfileUpdateNotification(data: ProfileUpdateNotificat
       if (changes?.act_score_updated) changesList.push("ACT score")
 
       updateDetails = `
-        <div class="update-details">
+        <div class="info-box">
           <h4>Profile Updates</h4>
           <p>Updated: ${changesList.length > 0 ? changesList.join(", ") : "Various profile information"}</p>
         </div>
@@ -431,7 +698,7 @@ export async function sendProfileUpdateNotification(data: ProfileUpdateNotificat
       break
     default:
       updateMessage = `${data.athleteName} updated their profile`
-      updateDetails = `<div class="update-details"><p>${data.updateDescription || "Check out the latest updates!"}</p></div>`
+      updateDetails = `<div class="info-box"><p>${data.updateDescription || "Check out the latest updates!"}</p></div>`
   }
 
   const htmlContent = `
@@ -442,19 +709,94 @@ export async function sendProfileUpdateNotification(data: ProfileUpdateNotificat
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${updateMessage}</title>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
-        .update-details { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #14b8a6; }
-        .cta-button { display: inline-block; background: #14b8a6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
-        .unsubscribe { font-size: 12px; color: #999; }
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          line-height: 1.6; 
+          color: #2d3748; 
+          margin: 0; 
+          padding: 0; 
+          background-color: #f7fafc;
+        }
+        .email-container { 
+          max-width: 600px; 
+          margin: 0 auto; 
+          background-color: #ffffff;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 40px 30px; 
+          text-align: center; 
+        }
+        .logo { 
+          max-width: 200px; 
+          height: auto; 
+          margin-bottom: 20px; 
+        }
+        .content { 
+          padding: 40px 30px; 
+          background: #ffffff; 
+        }
+        .info-box { 
+          background: #f0fdfa; 
+          border: 1px solid #14b8a6; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
+        .highlight-box { 
+          background: #ecfdf5; 
+          border-left: 4px solid #84cc16; 
+          padding: 20px; 
+          margin: 20px 0; 
+        }
+        .cta-button { 
+          display: inline-block; 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 16px 32px; 
+          text-decoration: none; 
+          border-radius: 8px; 
+          font-weight: 600; 
+          font-size: 16px;
+          margin: 20px 0; 
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .footer { 
+          background: #1f2937; 
+          color: #d1d5db; 
+          padding: 30px; 
+          text-align: center; 
+          font-size: 14px; 
+          line-height: 1.8;
+        }
+        .footer a { 
+          color: #84cc16; 
+          text-decoration: none; 
+        }
+        .verified-badge { 
+          background: #84cc16; 
+          color: white; 
+          padding: 6px 16px; 
+          border-radius: 20px; 
+          font-size: 12px; 
+          font-weight: bold; 
+          display: inline-block;
+        }
+        .warning-box { 
+          background: #fef3c7; 
+          border: 1px solid #f59e0b; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class="email-container">
         <div class="header">
+          <img src="https://recruitmygame.com/logo-h.png" alt="Recruit My Game" class="logo">
           <h1>🚀 ${updateMessage}</h1>
           <p>New update from an athlete you're following</p>
         </div>
@@ -474,11 +816,14 @@ export async function sendProfileUpdateNotification(data: ProfileUpdateNotificat
         </div>
         
         <div class="footer">
-          <p>You're receiving this because you subscribed to updates from ${data.athleteName}.</p>
-          <p class="unsubscribe">
-            <a href="${unsubscribeUrl}">Unsubscribe from these notifications</a>
+          <p><strong>Join our community!</strong><br>
+          Connect with other student-athletes and parents in our <a href="https://www.facebook.com/groups/recruitmygamecommunity/">Facebook Community Group</a></p>
+          
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #374151;">
+            © 2025 Recruit My Game, Inc. All rights reserved.<br>
+            Built for student-athletes by student-athlete parents who want to help their kid showcase their complete story.<br>
+            Yes, we are a US-based, family run business!
           </p>
-          <p>© 2024 RecruitMyGame. All rights reserved.</p>
         </div>
       </div>
     </body>
@@ -520,125 +865,312 @@ RecruitMyGame Team
   }
 }
 
-export async function sendContactNotificationEmail(data: ContactNotificationData) {
-  const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}`
+export async function sendContactNotificationEmail(
+  athleteEmail: string,
+  athleteName: string,
+  contactData: {
+    name: string
+    email: string
+    organization?: string
+    message: string
+  },
+): Promise<boolean> {
+  const subject = `New Contact Message - ${contactData.name}`
 
-  const htmlContent = `
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>New Contact Message from Your Profile</title>
+      <title>New Contact Message</title>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
-        .contact-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .message-box { background: #e3f2fd; padding: 20px; border-left: 4px solid #2196f3; margin: 20px 0; }
-        .cta-button { display: inline-block; background: #3182ce; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          line-height: 1.6; 
+          color: #2d3748; 
+          margin: 0; 
+          padding: 0; 
+          background-color: #f7fafc;
+        }
+        .email-container { 
+          max-width: 600px; 
+          margin: 0 auto; 
+          background-color: #ffffff;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 40px 30px; 
+          text-align: center; 
+        }
+        .logo { 
+          max-width: 200px; 
+          height: auto; 
+          margin-bottom: 20px; 
+        }
+        .content { 
+          padding: 40px 30px; 
+          background: #ffffff; 
+        }
+        .info-box { 
+          background: #f0fdfa; 
+          border: 1px solid #14b8a6; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
+        .highlight-box { 
+          background: #ecfdf5; 
+          border-left: 4px solid #84cc16; 
+          padding: 20px; 
+          margin: 20px 0; 
+        }
+        .cta-button { 
+          display: inline-block; 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 16px 32px; 
+          text-decoration: none; 
+          border-radius: 8px; 
+          font-weight: 600; 
+          font-size: 16px;
+          margin: 20px 0; 
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .footer { 
+          background: #1f2937; 
+          color: #d1d5db; 
+          padding: 30px; 
+          text-align: center; 
+          font-size: 14px; 
+          line-height: 1.8;
+        }
+        .footer a { 
+          color: #84cc16; 
+          text-decoration: none; 
+        }
+        .verified-badge { 
+          background: #84cc16; 
+          color: white; 
+          padding: 6px 16px; 
+          border-radius: 20px; 
+          font-size: 12px; 
+          font-weight: bold; 
+          display: inline-block;
+        }
+        .warning-box { 
+          background: #fef3c7; 
+          border: 1px solid #f59e0b; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class="email-container">
         <div class="header">
-          <h1>📧 New Contact Message</h1>
-          <p>Someone contacted you through your RecruitMyGame profile</p>
+          <img src="https://recruitmygame.com/logo-h.png" alt="Recruit My Game" class="logo">
+          <h2>New Contact Message</h2>
+          <p>Someone is interested in connecting with you!</p>
         </div>
-        
+      
         <div class="content">
-          <p>Hello ${data.athleteName},</p>
-          
-          <p>You have received a new message through your RecruitMyGame profile contact form!</p>
-          
-          <div class="contact-info">
-            <h3>Contact Information:</h3>
-            <p><strong>Name:</strong> ${data.contactorName}</p>
-            <p><strong>Email:</strong> ${data.contactorEmail}</p>
-            ${data.contactorOrganization ? `<p><strong>Organization:</strong> ${data.contactorOrganization}</p>` : ""}
-          </div>
-          
-          <div class="message-box">
-            <h4>Message:</h4>
-            <p>${data.message.replace(/\n/g, "<br>")}</p>
-          </div>
-          
-          <p>This could be a coach, recruiter, or someone interested in learning more about your athletic journey. We recommend responding promptly to maintain good relationships with potential opportunities.</p>
-          
-          <div style="text-align: center;">
-            <a href="mailto:${data.contactorEmail}?subject=Re: Contact from RecruitMyGame Profile" class="cta-button">Reply to ${data.contactorName}</a>
-          </div>
-          
-          <div style="text-align: center; margin-top: 20px;">
-            <a href="${profileUrl}" style="color: #3182ce; text-decoration: none;">View Your Profile</a>
-          </div>
-          
-          <p><strong>Tips for responding:</strong></p>
-          <ul>
-            <li>Respond within 24-48 hours when possible</li>
-            <li>Be professional and courteous</li>
-            <li>Include relevant information about your athletic achievements</li>
-            <li>Ask questions about their program or organization</li>
-          </ul>
-          
-          <p>Good luck with your recruitment journey!</p>
-        </div>
+          <h3 style="color: #2d3748; margin-top: 0;">Contact Details</h3>
+          <p><strong>Name:</strong> ${contactData.name}</p>
+          <p><strong>Email:</strong> ${contactData.email}</p>
+          ${contactData.organization ? `<p><strong>Organization:</strong> ${contactData.organization}</p>` : ""}
         
+          <h3 style="color: #2d3748; margin-top: 20px;">Message</h3>
+          <div class="highlight-box">
+            <p style="margin: 0; line-height: 1.6;">${contactData.message}</p>
+          </div>
+        </div>
+      
+        <div class="content">
+          <h3 style="color: #2b6cb0; margin-top: 0;">💡 Response Tips</h3>
+          <ul style="color: #2c5282; margin: 10px 0;">
+            <li>Respond within 24-48 hours for best results</li>
+            <li>Be professional and highlight your achievements</li>
+            <li>Ask about their program and what they're looking for</li>
+            <li>Include links to your game film or highlights</li>
+          </ul>
+        </div>
+      
         <div class="footer">
-          <p>This message was sent through your RecruitMyGame profile contact form.</p>
-          <p>© 2024 RecruitMyGame. All rights reserved.</p>
+          <p><strong>Join our community!</strong><br>
+          Connect with other student-athletes and parents in our <a href="https://www.facebook.com/groups/recruitmygamecommunity/">Facebook Community Group</a></p>
+        
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #374151;">
+            © 2025 Recruit My Game, Inc. All rights reserved.<br>
+            Built for student-athletes by student-athlete parents who want to help their kid showcase their complete story.<br>
+            Yes, we are a US-based, family run business!
+          </p>
         </div>
       </div>
     </body>
     </html>
   `
 
-  const textContent = `
-New Contact Message from Your Profile
+  return await sendEmail({
+    to: athleteEmail,
+    subject,
+    html,
+    from: "RecruitMyGame <noreply@recruitmygame.com>",
+  })
+}
 
-Hello ${data.athleteName},
+export async function sendReviewVerificationEmail(
+  reviewerEmail: string,
+  reviewerName: string,
+  athleteName: string,
+  verificationToken: string,
+): Promise<boolean> {
+  const verificationUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/verify-review/${verificationToken}`
 
-You have received a new message through your RecruitMyGame profile contact form!
+  const subject = `Verify Your Review for ${athleteName}`
 
-Contact Information:
-- Name: ${data.contactorName}
-- Email: ${data.contactorEmail}
-${data.contactorOrganization ? `- Organization: ${data.contactorOrganization}` : ""}
-
-Message:
-${data.message}
-
-This could be a coach, recruiter, or someone interested in learning more about your athletic journey. We recommend responding promptly to maintain good relationships with potential opportunities.
-
-Reply to: ${data.contactorEmail}
-Your Profile: ${profileUrl}
-
-Tips for responding:
-- Respond within 24-48 hours when possible
-- Be professional and courteous
-- Include relevant information about your athletic achievements
-- Ask questions about their program or organization
-
-Good luck with your recruitment journey!
-
-RecruitMyGame Team
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Verify Your Review</title>
+      <style>
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          line-height: 1.6; 
+          color: #2d3748; 
+          margin: 0; 
+          padding: 0; 
+          background-color: #f7fafc;
+        }
+        .email-container { 
+          max-width: 600px; 
+          margin: 0 auto; 
+          background-color: #ffffff;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 40px 30px; 
+          text-align: center; 
+        }
+        .logo { 
+          max-width: 200px; 
+          height: auto; 
+          margin-bottom: 20px; 
+        }
+        .content { 
+          padding: 40px 30px; 
+          background: #ffffff; 
+        }
+        .info-box { 
+          background: #f0fdfa; 
+          border: 1px solid #14b8a6; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
+        .highlight-box { 
+          background: #ecfdf5; 
+          border-left: 4px solid #84cc16; 
+          padding: 20px; 
+          margin: 20px 0; 
+        }
+        .cta-button { 
+          display: inline-block; 
+          background: linear-gradient(135deg, #14b8a6 0%, #84cc16 100%); 
+          color: white; 
+          padding: 16px 32px; 
+          text-decoration: none; 
+          border-radius: 8px; 
+          font-weight: 600; 
+          font-size: 16px;
+          margin: 20px 0; 
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .footer { 
+          background: #1f2937; 
+          color: #d1d5db; 
+          padding: 30px; 
+          text-align: center; 
+          font-size: 14px; 
+          line-height: 1.8;
+        }
+        .footer a { 
+          color: #84cc16; 
+          text-decoration: none; 
+        }
+        .verified-badge { 
+          background: #84cc16; 
+          color: white; 
+          padding: 6px 16px; 
+          border-radius: 20px; 
+          font-size: 12px; 
+          font-weight: bold; 
+          display: inline-block;
+        }
+        .warning-box { 
+          background: #fef3c7; 
+          border: 1px solid #f59e0b; 
+          padding: 20px; 
+          border-radius: 8px; 
+          margin: 20px 0; 
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="header">
+          <img src="https://recruitmygame.com/logo-h.png" alt="Recruit My Game" class="logo">
+          <h2>Verify Your Review</h2>
+          <p>Please verify your review for ${athleteName}</p>
+        </div>
+      
+        <div class="content">
+          <p>Hi ${reviewerName},</p>
+          <p>Thank you for submitting a review for ${athleteName}. To ensure the authenticity of reviews on our platform, please verify your review by clicking the button below.</p>
+        
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${verificationUrl}" class="cta-button">
+              Verify Review
+            </a>
+          </div>
+        
+          <p style="color: #718096; font-size: 14px;">
+            If the button doesn't work, copy and paste this link into your browser:<br>
+            <a href="${verificationUrl}" style="color: #3182ce;">${verificationUrl}</a>
+          </p>
+        
+          <p style="color: #718096; font-size: 14px;">
+            This verification link will expire in 7 days. If you didn't submit this review, please ignore this email.
+          </p>
+        </div>
+      
+        <div class="footer">
+          <p><strong>Join our community!</strong><br>
+          Connect with other student-athletes and parents in our <a href="https://www.facebook.com/groups/recruitmygamecommunity/">Facebook Community Group</a></p>
+        
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #374151;">
+            © 2025 Recruit My Game, Inc. All rights reserved.<br>
+            Built for student-athletes by student-athlete parents who want to help their kid showcase their complete story.<br>
+            Yes, we are a US-based, family run business!
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
   `
 
-  try {
-    const result = await resend.emails.send({
-      from: "RecruitMyGame <notifications@recruitmygame.com>",
-      to: [data.athleteEmail],
-      replyTo: data.contactorEmail,
-      subject: `New contact message from ${data.contactorName}`,
-      html: htmlContent,
-      text: textContent,
-    })
-
-    return result
-  } catch (error) {
-    console.error("Failed to send contact notification email:", error)
-    throw error
-  }
+  return await sendEmail({
+    to: reviewerEmail,
+    subject,
+    html,
+    from: "RecruitMyGame <noreply@recruitmygame.com>",
+  })
 }

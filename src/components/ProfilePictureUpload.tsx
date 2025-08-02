@@ -186,7 +186,7 @@ export function ProfilePictureUpload({
           size={size}
           src={currentImageUrl || undefined}
           name={athleteName}
-          bg="blue.500"
+          bg="teal.500"
           color="white"
           border="4px solid"
           borderColor="white"
@@ -197,12 +197,12 @@ export function ProfilePictureUpload({
             position="absolute"
             bottom={0}
             right={0}
-            bg="blue.500"
+            bg="teal.500"
             borderRadius="full"
             p={2}
             border="2px solid white"
             cursor="pointer"
-            _hover={{ bg: "blue.600" }}
+            _hover={{ bg: "teal.600" }}
             onClick={() => fileInputRef.current?.click()}
           >
             <Camera size={16} color="white" />
@@ -217,13 +217,13 @@ export function ProfilePictureUpload({
           maxW="300px"
           p={4}
           border="2px dashed"
-          borderColor={dragActive ? "blue.400" : "gray.300"}
+          borderColor={dragActive ? "teal.400" : "gray.300"}
           borderRadius="lg"
-          bg={dragActive ? "blue.50" : "gray.50"}
+          bg={dragActive ? "teal.50" : "gray.50"}
           textAlign="center"
           cursor="pointer"
           transition="all 0.2s"
-          _hover={{ borderColor: "blue.400", bg: "blue.50" }}
+          _hover={{ borderColor: "teal.400", bg: "teal.50" }}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
@@ -233,11 +233,11 @@ export function ProfilePictureUpload({
           <VStack spacing={2}>
             {uploading ? (
               <>
-                <Upload size={24} color="blue" />
-                <Text fontSize="sm" color="blue.600">
+                <Upload size={24} color="teal" />
+                <Text fontSize="sm" color="teal.600">
                   Uploading...
                 </Text>
-                <Progress value={uploadProgress} colorScheme="blue" w="full" size="sm" />
+                <Progress value={uploadProgress} colorScheme="teal" w="full" size="sm" />
                 <Text fontSize="xs" color="gray.500">
                   {uploadProgress}%
                 </Text>
@@ -249,13 +249,13 @@ export function ProfilePictureUpload({
                   Drop photo here or click to browse
                 </Text>
                 <HStack spacing={1}>
-                  <Badge colorScheme="blue" size="sm">
+                  <Badge colorScheme="teal" size="sm">
                     JPEG
                   </Badge>
-                  <Badge colorScheme="blue" size="sm">
+                  <Badge colorScheme="teal" size="sm">
                     PNG
                   </Badge>
-                  <Badge colorScheme="blue" size="sm">
+                  <Badge colorScheme="teal" size="sm">
                     WebP
                   </Badge>
                 </HStack>
@@ -293,7 +293,7 @@ export function ProfilePictureUpload({
           onClick={() => fileInputRef.current?.click()}
           variant="outline"
           size="sm"
-          colorScheme="blue"
+          colorScheme="teal"
         >
           Change Photo
         </Button>

@@ -510,7 +510,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
         showLocation={athlete.show_location !== false}
       />
 
-      <Container maxW="6xl" py={8}>
+    <Container maxW="6xl" py={8}>
         <VStack spacing={10} align="stretch">
           {/* Videos Section - only show if tier allows */}
           {tierFeatures.videos > 0 && videos.length > 0 && (
@@ -541,8 +541,9 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             cardBgColor={cardBgColor}
           />
 
-          {/* Awards and Photos Side by Side - but full width photos for free accounts */}
-          {tierFeatures.awards && awards.length > 0 ? (
+          {/* Awards and Photos - conditional layout based on content */}
+          {tierFeatures.awards && awards.length > 0 && photos.length > 0 ? (
+            // Both awards and photos exist - show side by side
             <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8}>
               <GridItem>
                 <AwardsSection
@@ -570,17 +571,33 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
               </GridItem>
             </Grid>
           ) : (
-            // Full width photos for free accounts (no awards section)
-            <PhotoGallerySection
-              photos={photos}
-              showAllPhotos={showAllPhotos}
-              onToggleShowAll={() => setShowAllPhotos(!showAllPhotos)}
-              onPhotoClick={handlePhotoClick}
-              primaryColor={primaryColor}
-              textColor={textColor}
-              cardBgColor={cardBgColor}
-              borderColor={borderColor}
-            />
+            // Show individual sections full width
+            <VStack spacing={8} align="stretch">
+              {tierFeatures.awards && awards.length > 0 && (
+                <AwardsSection
+                  awards={awards}
+                  primaryColor={primaryColor}
+                  secondaryColor={secondaryColor}
+                  textColor={textColor}
+                  mutedTextColor={mutedTextColor}
+                  cardBgColor={cardBgColor}
+                  borderColor={borderColor}
+                  isDarkTheme={isDarkTheme}
+                />
+              )}
+              {photos.length > 0 && (
+                <PhotoGallerySection
+                  photos={photos}
+                  showAllPhotos={showAllPhotos}
+                  onToggleShowAll={() => setShowAllPhotos(!showAllPhotos)}
+                  onPhotoClick={handlePhotoClick}
+                  primaryColor={primaryColor}
+                  textColor={textColor}
+                  cardBgColor={cardBgColor}
+                  borderColor={borderColor}
+                />
+              )}
+            </VStack>
           )}
           {/* Teams Section */}
           {teams.length > 0 && (

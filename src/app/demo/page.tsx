@@ -46,9 +46,9 @@ export default function DemoPage() {
       position: "Point Guard", // Update with actual data
       school: "Central High School", // Update with actual data
       location: "Sacramento, CA", // Update with actual data
-      classOf: "2025", // Update with actual data
-      image: "/placeholder.svg?height=120&width=120&text=AJ",
-      profileUrl: "/alexjohnson",
+      classOf: "2027", // Update with actual data
+      image: "https://fuvapddevwtiftgysikn.supabase.co/storage/v1/object/public/profile-pictures/c60a57b2-ca32-4b53-805a-45a6ff649062/profile_1754158634224.png",
+      profileUrl: "http://alexjohnson.recruitmygame.com",
       loginEmail: "alexjohnson@test.com",
       loginPassword: "TestPassword123!",
       stats: {
@@ -66,7 +66,7 @@ export default function DemoPage() {
         "Available for Testing Platform Features",
         "Sample Profile for Coach Review",
       ],
-      featuredTools: ["Profile Management", "Photo Gallery", "Video Showcase"],
+      featuredTools: ["Basic Profile Management", "Photo Gallery", "Social Share", "Teams"],
     },
     {
       name: "Maria Rodriguez", // Update with actual data from query
@@ -74,17 +74,17 @@ export default function DemoPage() {
       position: "Midfielder", // Update with actual data
       school: "Valley High School", // Update with actual data
       location: "Fresno, CA", // Update with actual data
-      classOf: "2024", // Update with actual data
-      image: "/placeholder.svg?height=120&width=120&text=MR",
-      profileUrl: "/mariarodriguez",
+      classOf: "2026", // Update with actual data
+      image: "https://fuvapddevwtiftgysikn.supabase.co/storage/v1/object/public/profile-pictures/a1ebdabd-2a9c-4d8a-95f0-a74ef6e91fdb/profile_1754156923655.png",
+      profileUrl: "http://mariarodriguez.recruitmygame.com",
       loginEmail: "mariarodriguez@test.com",
       loginPassword: "TestPassword123!",
       stats: {
-        videos: 0, // Update from query results
+        videos: 3, // Update from query results
         photos: 0, // Update from query results
-        awards: 0, // Update from query results
+        awards: 2, // Update from query results
         events: 0, // Update from query results
-        reviews: 0, // Update from query results
+        reviews: 1, // Update from query results
         avgRating: 0, // Update from query results
       },
       subscriptionTier: "premium", // Update from query results
@@ -94,7 +94,7 @@ export default function DemoPage() {
         "Available for Testing Platform Features",
         "Sample Profile for Coach Review",
       ],
-      featuredTools: ["Schedule Management", "Awards Timeline", "Social Sharing"],
+      featuredTools: ["Schedule Management", "Awards Timeline", "Video Showcase", "Standard Reviews"],
     },
     {
       name: "Marcus Thompson", // Update with actual data from query
@@ -122,7 +122,7 @@ export default function DemoPage() {
         "Available for Testing Platform Features",
         "Sample Profile for Coach Reviews",
       ],
-      featuredTools: ["Analytics Dashboard", "Coach Reviews", "Business Cards", "Multiple Sports"],
+      featuredTools: ["Analytics Dashboard", "Verified Reviews", "Business Cards", "Multiple Sports", "Schedule Management", "Custom Domain"],
     },
   ]
 

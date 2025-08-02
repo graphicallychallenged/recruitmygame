@@ -330,7 +330,7 @@ export default function VideosPage() {
   if (loading) {
     return (
       <Center h="400px">
-        <Spinner size="xl" color="blue.500" />
+        <Spinner size="xl" color="teal.500" />
       </Center>
     )
   }
@@ -341,7 +341,7 @@ export default function VideosPage() {
         <Heading size="lg">Create Your Profile First</Heading>
         <Text color="gray.600">You need to create your athlete profile before managing videos.</Text>
         <Link href="/dashboard/profile">
-          <Button colorScheme="blue" size="lg">
+          <Button colorScheme="teal" size="lg">
             Create Profile
           </Button>
         </Link>
@@ -366,7 +366,7 @@ export default function VideosPage() {
                 {videos.length} of {limits.videos} videos used
               </Text>
               <Badge
-                colorScheme={subscriptionTier === "free" ? "gray" : subscriptionTier === "premium" ? "blue" : "purple"}
+                colorScheme={subscriptionTier === "free" ? "gray" : subscriptionTier === "premium" ? "teal" : "purple"}
               >
                 {subscriptionTier.toUpperCase()}
               </Badge>
@@ -374,7 +374,7 @@ export default function VideosPage() {
           </Box>
           <Button
             leftIcon={<Plus size={20} />}
-            colorScheme="blue"
+            colorScheme="teal"
             onClick={onOpen}
             isDisabled={!canAddMore}
             size={{ base: "sm", md: "md" }}
@@ -397,7 +397,7 @@ export default function VideosPage() {
               </Flex>
               <Progress
                 value={(videos.length / limits.videos) * 100}
-                colorScheme={videos.length >= limits.videos ? "red" : "blue"}
+                colorScheme={videos.length >= limits.videos ? "red" : "teal"}
                 size="sm"
               />
               {!canAddMore && (
@@ -424,7 +424,7 @@ export default function VideosPage() {
                 <Text color="gray.500" maxW="md">
                   Add your first game film or highlight video to showcase your skills to college coaches.
                 </Text>
-                <Button leftIcon={<Plus size={16} />} colorScheme="blue" onClick={onOpen} isDisabled={!canAddMore}>
+                <Button leftIcon={<Plus size={16} />} colorScheme="teal" onClick={onOpen} isDisabled={!canAddMore}>
                   Add Your First Video
                 </Button>
               </VStack>
@@ -676,7 +676,7 @@ export default function VideosPage() {
                     </Button>
                     <Button
                       type="submit"
-                      colorScheme="blue"
+                      colorScheme="teal"
                       isLoading={saving}
                       loadingText={editingVideo ? "Updating..." : "Adding..."}
                       flex={1}
