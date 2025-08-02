@@ -16,7 +16,19 @@ import {
   ListItem,
   Divider,
 } from "@chakra-ui/react"
-import { UserPlus, Upload, Calendar, Award, Share2, CheckCircle, Camera, Video, Star, QrCode } from "lucide-react"
+import {
+  UserPlus,
+  Upload,
+  Calendar,
+  Award,
+  Share2,
+  CheckCircle,
+  Camera,
+  Video,
+  Star,
+  QrCode,
+  Facebook,
+} from "lucide-react"
 import Link from "next/link"
 import { SiteHeader } from "@/components/SiteHeader"
 import { SiteFooter } from "@/components/SiteFooter"
@@ -64,6 +76,13 @@ export default function GettingStarted() {
       description: "Create QR codes and digital business cards for networking",
       time: "1 minute",
       color: "pink",
+    },
+    {
+      icon: Facebook,
+      title: "Join Our Community",
+      description: "Connect with other athletes and get tips from coaches in our Facebook group",
+      time: "1 minute",
+      color: "blue",
     },
   ]
 

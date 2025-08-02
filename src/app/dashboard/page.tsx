@@ -22,8 +22,9 @@ import {
   SimpleGrid,
   Avatar,
   Progress,
+  Flex
 } from "@chakra-ui/react"
-import { Trophy, Calendar, ImageIcon, Video, Star, User, TrendingUp, Lock, Zap, Eye, Users } from "lucide-react"
+import { Trophy, Calendar, ImageIcon, Video, Star, User, TrendingUp, Lock, Zap, Eye, Users, Facebook } from "lucide-react"
 import Link from "next/link"
 import { ReviewsSummary } from "@/components/ReviewsSummary"
 import { getSubscriptionLimits, type SubscriptionTier } from "@/utils/subscription"
@@ -413,7 +414,7 @@ export default function DashboardPage() {
         </Box>
 
         {/* Key Metrics */}
-        <SimpleGrid columns={{ base: 2, md: 6 }} spacing={6}>
+        <SimpleGrid columns={{ base: 2, xl: 6, lg: 4, md:3, sm: 2}} spacing={6}>
           <Card>
             <CardBody textAlign="center">
               <VStack spacing={2}>
@@ -689,6 +690,7 @@ export default function DashboardPage() {
                   </HStack>
                 </CardBody>
               </Card>
+              
             ))}
           </SimpleGrid>
         </Box>
@@ -697,6 +699,29 @@ export default function DashboardPage() {
         {hasFeature(athlete.subscription_tier, "reviews") && stats.totalReviews > 0 && (
           <ReviewsSummary reviews={reviews} maxDisplay={3} />
         )}
+         {/* Facebook Community */}
+        <Card>
+          <CardBody>
+            <Flex justify="space-between" align="center" wrap="wrap" gap={4}>
+              <Box>
+                <Heading size="md" mb={1}>
+                  Join Our Community
+                </Heading>
+                <Text color="gray.600">Connect with other athletes and get recruiting tips from coaches</Text>
+              </Box>
+              <Button
+                as="a"
+                href="https://www.facebook.com/groups/recruitmygamecommunity/"
+                target="_blank"
+                rel="noopener noreferrer"
+                leftIcon={<Facebook size={16} />}
+                colorScheme="teal"
+              >
+                Join Facebook Group
+              </Button>
+            </Flex>
+          </CardBody>
+        </Card>
       </VStack>
     </Container>
   )
