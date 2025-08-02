@@ -311,23 +311,7 @@ export default function LoginPage() {
                 </Link>
               </Box>
 
-              {/* Development helper - remove in production */}
-              <Box mt={{ base: 6, md: 8 }}>
-                <Divider />
-                <Text textAlign="center" fontSize="xs" color={mutedColor} mt={3} mb={3}>
-                  Development Only
-                </Text>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  width="full"
-                  onClick={handleQuickSignIn}
-                  isLoading={loading}
-                  borderRadius="lg"
-                >
-                  Quick Test Sign In
-                </Button>
-              </Box>
+            
             </CardBody>
           </Card>
         </Container>
