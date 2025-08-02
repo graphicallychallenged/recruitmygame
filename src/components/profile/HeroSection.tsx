@@ -216,7 +216,7 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
             {athlete.sports && athlete.sports.filter((sport) => sport !== athlete.sport).length > 0 && (
               <VStack spacing={3}>
                 <Text fontSize="sm" color="white" fontWeight="medium" opacity={0.9}>
-                  Also plays:
+                  Additonal Sports:
                 </Text>
                 <Wrap justify="center" spacing={3}>
                   {athlete.sports
