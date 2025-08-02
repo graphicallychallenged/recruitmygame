@@ -29,7 +29,6 @@ import { AwardsSection } from "@/components/profile/AwardsSection"
 import { ContactModal } from "@/components/profile/ContactModal"
 import { SocialMediaSection } from "@/components/profile/SocialMediaSection"
 import { TeamsSection } from "@/components/profile/TeamsSection"
-import { SocialShareButtons } from "@/components/SocialShareButtons"
 import type {
   AthleteProfile,
   AthletePhoto,
@@ -42,6 +41,7 @@ import type {
 import { ReviewsSection } from "@/components/profile/ReviewsSection"
 import { ScheduleSection } from "@/components/profile/ScheduleSection"
 import { getSubscriptionLimits, type SubscriptionTier } from "@/utils/tierFeatures"
+import { SocialShareButtons } from "@/components/SocialShareButtons"
 
 interface PublicProfileClientProps {
   athlete: AthleteProfile
@@ -117,19 +117,17 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
   const cardBgColor = isDarkTheme ? "gray.800" : "white"
   const borderColor = isDarkTheme ? "gray.600" : "gray.200"
   const mutedTextColor = isDarkTheme ? "gray.300" : "gray.600"
-
-  // Get current URL for sharing
-  const currentUrl = typeof window !== "undefined" ? window.location.href : ""
+  // Generate a unique session ID for this visitor
 
   useEffect(() => {
     const fetchFreshData = async () => {
       try {
         console.log("Fetching data for athlete:", initialAthlete.username)
 
-        // Fetch fresh athlete data with privacy settings
+        // Fetch fresh athlete data
         const { data: athleteData, error: athleteError } = await supabase
           .from("athletes")
-          .select("*, profile_visibility, allow_coach_reviews, show_location, enable_social_sharing")
+          .select("*")
           .eq("username", initialAthlete.username)
           .eq("is_profile_public", true)
           .single()
@@ -140,18 +138,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
         }
 
         console.log("Found athlete:", athleteData)
-        console.log("Privacy settings:", {
-          profile_visibility: athleteData.profile_visibility,
-          allow_coach_reviews: athleteData.allow_coach_reviews,
-          show_location: athleteData.show_location,
-          enable_social_sharing: athleteData.enable_social_sharing,
-        })
-
-        // Check if profile is private before proceeding
-        if (athleteData.profile_visibility === "private") {
-          setLoading(false)
-          return
-        }
+        console.log("Sport positions data:", athleteData.sport_positions)
 
         // Transform athlete data
         const transformedAthlete: AthleteProfile = {
@@ -204,8 +191,6 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           ncsa_url: athleteData.ncsa_url,
           other_recruiting_profiles: athleteData.other_recruiting_profiles,
           profile_visibility: athleteData.profile_visibility,
-          allow_coach_reviews: athleteData.allow_coach_reviews,
-          show_location: athleteData.show_location,
           enable_social_sharing: athleteData.enable_social_sharing,
         }
 
@@ -262,8 +247,8 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
                 .order("award_date", { ascending: false })
             : Promise.resolve({ data: [] }),
 
-          // Reviews - only if tier allows and privacy allows
-          tierFeatures.reviews && athleteData.allow_coach_reviews !== false
+          // Reviews - only if tier allows, now including verification status
+          tierFeatures.reviews
             ? supabase
                 .from("athlete_reviews")
                 .select("*, is_verified, verified_at")
@@ -362,6 +347,15 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
             // Include verification fields
             is_verified: review.is_verified,
             verified_at: review.verified_at,
+            athleticism: review.athleticism,
+            character: review.character,
+            work_ethic: review.work_ethic,
+            leadership: review.leadership,
+            coachability: review.coachability,
+            teamwork: review.teamwork,
+            years_known: review.years_known,
+            relationship: review.relationship,
+            would_recommend: review.would_recommend,
           })) || [],
         )
         setTeams(
@@ -389,6 +383,51 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
 
     fetchFreshData()
   }, [initialAthlete.username])
+
+  // Analytics tracking - add this after the existing fetchFreshData useEffect
+  useEffect(() => {
+    if (typeof window === "undefined" || !athlete.id) return
+
+    const trackPageView = async () => {
+      try {
+        // Generate or get session ID
+        let sessionId = sessionStorage.getItem("rmg_session_id")
+        if (!sessionId) {
+          sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          sessionStorage.setItem("rmg_session_id", sessionId)
+          sessionStorage.setItem("rmg_session_start", Date.now().toString())
+        }
+
+        // Track page view
+        await fetch("/api/analytics/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            athleteId: athlete.id,
+            sessionId,
+            pageView: {
+              path: window.location.pathname,
+              title: document.title,
+              referrer: document.referrer,
+              timeOnPage: 0,
+            },
+            session: {
+              sessionId,
+              startTime: sessionStorage.getItem("rmg_session_start") || Date.now().toString(),
+              referrer: document.referrer,
+              pagesVisited: 1,
+              totalTime: 0,
+            },
+          }),
+        })
+      } catch (error) {
+        // Silently fail - don't break the page
+        console.debug("Analytics tracking failed:", error)
+      }
+    }
+
+    trackPageView()
+  }, [athlete.id])
 
   const getHeroImage = () => {
     // If user has a custom hero image (Pro feature), use that first
@@ -459,10 +498,10 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
     )
   }
 
-  // Check privacy settings - profile is private
-  if (athlete.profile_visibility === "private") {
+  // Check privacy settings - add this right after the loading check
+  if (athlete.profile_visibility === ("private" as any)) {
     return (
-      <Flex justify="center" align="center" h="400px" bg={bgColor} direction="column">
+      <Flex justify="center" align="center" h="100vh" bg={bgColor} direction="column">
         <Heading size="lg" color={textColor} mb={4}>
           Profile Not Available
         </Heading>
@@ -489,12 +528,6 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
     athlete.ncsa_url ||
     athlete.other_recruiting_profiles
 
-  // Create sharing content
-  const shareTitle = `${athlete.athlete_name} - ${athlete.sport} Athlete`
-  const shareDescription =
-    athlete.bio ||
-    `${athlete.athlete_name} is a ${athlete.sport} athlete${athlete.school ? ` at ${athlete.school}` : ""}.`
-
   return (
     <Box bg={bgColor} minH="100vh">
       {/* Hero Section */}
@@ -509,21 +542,6 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
 
       <Container maxW="6xl" py={8}>
         <VStack spacing={8} align="stretch">
-          {/* Social Sharing Section - only show if enabled */}
-          {athlete.enable_social_sharing !== false && (
-            <SocialShareButtons
-              url={currentUrl}
-              title={shareTitle}
-              description={shareDescription}
-              athleteName={athlete.athlete_name}
-              sport={athlete.sport}
-              primaryColor={primaryColor}
-              isDarkTheme={isDarkTheme}
-              size="md"
-              showLabels={false}
-            />
-          )}
-
           {/* Videos Section - only show if tier allows */}
           {tierFeatures.videos > 0 && videos.length > 0 && (
             <Box>
@@ -669,6 +687,25 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
               cardBgColor={cardBgColor}
               borderColor={borderColor}
               isDarkTheme={isDarkTheme}
+            />
+          )}
+          {/* Social Sharing Section - only show if enabled */}
+          {athlete.enable_social_sharing !== false && (
+            <SocialShareButtons
+              url={
+                typeof window !== "undefined" ? window.location.href : `https://recruitmygame.com/${athlete.username}`
+              }
+              title={`Check out ${athlete.athlete_name}'s ${athlete.sport} profile!`}
+              description={
+                athlete.bio ||
+                `${athlete.athlete_name} is a talented ${athlete.sport} player from ${athlete.school || "their school"}.`
+              }
+              athleteName={athlete.athlete_name}
+              sport={athlete.sport}
+              primaryColor={primaryColor}
+              isDarkTheme={isDarkTheme}
+              size="md"
+              showLabels={true}
             />
           )}
         </VStack>

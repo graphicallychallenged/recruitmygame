@@ -46,6 +46,7 @@ import {
   HelpCircle,
   Users,
   Menu,
+  BarChart3,
 } from "lucide-react"
 import Link from "next/link"
 import { type SubscriptionTier, hasFeature, getTierColor, getTierDisplayName } from "@/utils/tierFeatures"
@@ -99,6 +100,13 @@ const navItems: NavItem[] = [
     requiredTier: "pro",
     feature: "multiple_sports",
   },
+  {
+    href: "/dashboard/analytics",
+    icon: BarChart3,
+    label: "Analytics",
+    requiredTier: "pro",
+    feature: "analytics",
+  },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
   { href: "/subscription", icon: CreditCard, label: "Subscription" },
   { href: "/dashboard/support", icon: HelpCircle, label: "Support" },
@@ -138,8 +146,8 @@ function SidebarContent({
   // Group navigation items
   const mainNavItems = navItems.slice(0, 4) // Overview, Profile, Photos, Teams
   const premiumNavItems = navItems.slice(4, 7) // Videos, Awards, Reviews
-  const proNavItems = navItems.slice(7, 11) // Schedule, Business Cards, Verified Reviews, Multiple Sports
-  const settingsNavItems = navItems.slice(11) // Settings, Subscription, Support
+  const proNavItems = navItems.slice(7, 12) // Schedule, Business Cards, Verified Reviews, Multiple Sports, Analytics
+  const settingsNavItems = navItems.slice(12) // Settings, Subscription, Support
 
   return (
     <Box w="full" bg={bgColor} p={2} overflowY="auto">

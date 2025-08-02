@@ -177,6 +177,225 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_analytics: {
+        Row: {
+          id: string
+          athlete_id: string
+          date: string
+          page_views: number
+          unique_visitors: number
+          bounce_rate: number
+          avg_session_duration: number
+          referrer_data: Json
+          device_data: Json
+          location_data: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          athlete_id: string
+          date: string
+          page_views?: number
+          unique_visitors?: number
+          bounce_rate?: number
+          avg_session_duration?: number
+          referrer_data?: Json
+          device_data?: Json
+          location_data?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          athlete_id?: string
+          date?: string
+          page_views?: number
+          unique_visitors?: number
+          bounce_rate?: number
+          avg_session_duration?: number
+          referrer_data?: Json
+          device_data?: Json
+          location_data?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_analytics_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_audits: {
+        Row: {
+          id: string
+          athlete_id: string
+          audit_date: string
+          completeness_score: number
+          seo_score: number
+          social_score: number
+          content_score: number
+          recommendations: Json
+          missing_fields: Json
+          strengths: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          athlete_id: string
+          audit_date?: string
+          completeness_score: number
+          seo_score: number
+          social_score: number
+          content_score: number
+          recommendations?: Json
+          missing_fields?: Json
+          strengths?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          athlete_id?: string
+          audit_date?: string
+          completeness_score?: number
+          seo_score?: number
+          social_score?: number
+          content_score?: number
+          recommendations?: Json
+          missing_fields?: Json
+          strengths?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_audits_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visitor_sessions: {
+        Row: {
+          id: string
+          athlete_id: string
+          session_id: string
+          visitor_ip: string | null
+          user_agent: string | null
+          referrer: string | null
+          country: string | null
+          city: string | null
+          device_type: string | null
+          browser: string | null
+          os: string | null
+          pages_visited: Json
+          session_start: string
+          session_end: string | null
+          total_time: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          athlete_id: string
+          session_id: string
+          visitor_ip?: string | null
+          user_agent?: string | null
+          referrer?: string | null
+          country?: string | null
+          city?: string | null
+          device_type?: string | null
+          browser?: string | null
+          os?: string | null
+          pages_visited?: Json
+          session_start?: string
+          session_end?: string | null
+          total_time?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          athlete_id?: string
+          session_id?: string
+          visitor_ip?: string | null
+          user_agent?: string | null
+          referrer?: string | null
+          country?: string | null
+          city?: string | null
+          device_type?: string | null
+          browser?: string | null
+          os?: string | null
+          pages_visited?: Json
+          session_start?: string
+          session_end?: string | null
+          total_time?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitor_sessions_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      page_views: {
+        Row: {
+          id: string
+          athlete_id: string
+          session_id: string | null
+          page_path: string
+          page_title: string | null
+          view_time: string
+          time_on_page: number
+          referrer: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          athlete_id: string
+          session_id?: string | null
+          page_path: string
+          page_title?: string | null
+          view_time?: string
+          time_on_page?: number
+          referrer?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          athlete_id?: string
+          session_id?: string | null
+          page_path?: string
+          page_title?: string | null
+          view_time?: string
+          time_on_page?: number
+          referrer?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_views_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "page_views_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "visitor_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athlete_awards: {
         Row: {
           id: string
@@ -702,6 +921,67 @@ export type Database = {
       [_ in never]: never
     }
   }
+}
+
+// Analytics-specific types
+export interface ProfileAnalytics {
+  id: string
+  athlete_id: string
+  date: string
+  page_views: number
+  unique_visitors: number
+  bounce_rate: number
+  avg_session_duration: number
+  referrer_data: Record<string, any>
+  device_data: Record<string, any>
+  location_data: Record<string, any>
+  created_at: string
+  updated_at: string
+}
+
+export interface ProfileAudit {
+  id: string
+  athlete_id: string
+  audit_date: string
+  completeness_score: number
+  seo_score: number
+  social_score: number
+  content_score: number
+  recommendations: string[]
+  missing_fields: string[]
+  strengths: string[]
+  created_at: string
+}
+
+export interface VisitorSession {
+  id: string
+  athlete_id: string
+  session_id: string
+  visitor_ip?: string
+  user_agent?: string
+  referrer?: string
+  country?: string
+  city?: string
+  device_type?: string
+  browser?: string
+  os?: string
+  pages_visited: string[]
+  session_start: string
+  session_end?: string
+  total_time: number
+  created_at: string
+}
+
+export interface PageView {
+  id: string
+  athlete_id: string
+  session_id?: string
+  page_path: string
+  page_title?: string
+  view_time: string
+  time_on_page: number
+  referrer?: string
+  created_at: string
 }
 
 // Derived types for easier use

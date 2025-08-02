@@ -22,20 +22,19 @@ import {
 } from "@chakra-ui/react"
 import {
   Trophy,
-  Users,
   Video,
   MessageSquare,
   CheckCircle,
   Shield,
-  Zap,
   ArrowRight,
   Star,
   Play,
   Globe,
-  Crown,
   Calendar,
   QrCode,
   Heart,
+  Bell,
+  Share2,
 } from "lucide-react"
 import { keyframes } from "@emotion/react"
 import Link from "next/link"
@@ -103,7 +102,7 @@ export default function HomePage() {
   return (
     <Box minH="100vh" position="relative">
       {/* Navigation */}
-     <SiteHeader/>
+      <SiteHeader />
       {/* Hero Section with Background */}
       <Box
         position="relative"
@@ -184,7 +183,9 @@ export default function HomePage() {
                     Create Your Profile
                   </Button>
                 </Link>
+                  <Link href="/demo">
                 <Button
+                  
                   size="xl"
                   variant="outline"
                   color="white"
@@ -202,6 +203,7 @@ export default function HomePage() {
                 >
                   See Demo
                 </Button>
+                </Link>
               </HStack>
 
               {/* Product Stats */}
@@ -564,7 +566,342 @@ export default function HomePage() {
         </Container>
       </Box>
 
-     {/* Pricing Section */}
+      {/* Feature Section 1: Video Management System */}
+      <Box bg="white" py={24}>
+        <Container maxW="7xl">
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={16} alignItems="center">
+            <VStack spacing={8} align="start">
+              <Badge colorScheme="teal" px={4} py={2} borderRadius="full" fontSize="md">
+                🎬 Video Showcase
+              </Badge>
+              <Heading size="2xl" fontWeight="black" color="gray.900">
+                Professional Video Management System
+              </Heading>
+              <Text fontSize="xl" color="gray.600" lineHeight="tall">
+                Upload up to 15 high-definition videos with our advanced video management system. Each video supports
+                custom thumbnails, detailed descriptions, and categorization by position, season, or highlight type.
+                Coaches can easily browse your game film organized exactly how they want to see it.
+              </Text>
+              <List spacing={4} fontSize="lg">
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="teal.500" />
+                  HD video streaming with adaptive quality
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="teal.500" />
+                  Custom thumbnail generation and upload
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="teal.500" />
+                  YouTube and Vimeo integration support
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="teal.500" />
+                  Video categorization and tagging system
+                </ListItem>
+              </List>
+            
+            </VStack>
+            <Box>
+              <Image
+                src="/placeholder.svg?height=400&width=600&text=Video+Management+System"
+                alt="Video Management System"
+                borderRadius="2xl"
+                shadow="2xl"
+              />
+            </Box>
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Feature Section 2: Verified Coach Reviews */}
+      <Box bg="gray.50" py={24}>
+        <Container maxW="7xl">
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={16} alignItems="center">
+            <Box order={{ base: 2, lg: 1 }}>
+              <Image
+                src="/placeholder.svg?height=400&width=600&text=Verified+Coach+Reviews"
+                alt="Verified Coach Reviews System"
+                borderRadius="2xl"
+                shadow="2xl"
+              />
+            </Box>
+            <VStack spacing={8} align="start" order={{ base: 1, lg: 2 }}>
+              <Badge colorScheme="purple" px={4} py={2} borderRadius="full" fontSize="md">
+                ⭐ Verified Reviews
+              </Badge>
+              <Heading size="2xl" fontWeight="black" color="gray.900">
+                Build Credibility with Verified Coach Testimonials
+              </Heading>
+              <Text fontSize="xl" color="gray.600" lineHeight="tall">
+                Request and display verified testimonials from coaches who have worked with you. Our email verification
+                system ensures authenticity and builds credibility with recruiting coaches. Each review includes
+                detailed ratings for athleticism, character, work ethic, leadership, coachability, and teamwork.
+              </Text>
+              <List spacing={4} fontSize="lg">
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="purple.500" />
+                  Email verification system for coaches
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="purple.500" />
+                  Detailed rating categories with 5-star system
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="purple.500" />
+                  Automated review request workflow
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="purple.500" />
+                  Professional review display with coach credentials
+                </ListItem>
+              </List>
+            </VStack>
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Feature Section 3: Business Card Generator */}
+      <Box bg="white" py={24}>
+        <Container maxW="7xl">
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={16} alignItems="center">
+            <VStack spacing={8} align="start">
+              <Badge colorScheme="cyan" px={4} py={2} borderRadius="full" fontSize="md">
+                📱 QR Codes
+              </Badge>
+              <Heading size="2xl" fontWeight="black" color="gray.900">
+                Professional Business Cards with QR Codes
+              </Heading>
+              <Text fontSize="xl" color="gray.600" lineHeight="tall">
+                Generate professional business cards with QR codes that link directly to your profile. Perfect for
+                tournaments, showcases, and networking events with coaches and recruiters. Pro accounts receive 250
+                professionally printed cards delivered to your door.
+              </Text>
+              <List spacing={4} fontSize="lg">
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="cyan.500" />
+                  Instant QR code generation linking to your profile
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="cyan.500" />
+                  Professional design templates with your photo
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="cyan.500" />
+                  Print-ready PDF download for local printing
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="cyan.500" />
+                  Pro accounts get 250 cards professionally printed
+                </ListItem>
+              </List>
+            
+            </VStack>
+            <Box>
+              <Image
+                src="/placeholder.svg?height=400&width=600&text=Business+Card+Generator"
+                alt="Business Card Generator"
+                borderRadius="2xl"
+                shadow="2xl"
+              />
+            </Box>
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Feature Section 4: Analytics Dashboard */}
+      <Box bg="gray.50" py={24}>
+        <Container maxW="7xl">
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={16} alignItems="center">
+            <Box order={{ base: 2, lg: 1 }}>
+              <Image
+                src="/placeholder.svg?height=400&width=600&text=Analytics+Dashboard"
+                alt="Analytics Dashboard"
+                borderRadius="2xl"
+                shadow="2xl"
+              />
+            </Box>
+            <VStack spacing={8} align="start" order={{ base: 1, lg: 2 }}>
+              <Badge colorScheme="orange" px={4} py={2} borderRadius="full" fontSize="md">
+                📊 Analytics
+              </Badge>
+              <Heading size="2xl" fontWeight="black" color="gray.900">
+                Track Your Profile Performance
+              </Heading>
+              <Text fontSize="xl" color="gray.600" lineHeight="tall">
+                Monitor your profile's performance with detailed analytics including page views, visitor demographics,
+                device types, and engagement metrics. Understand which coaches are viewing your profile and optimize
+                your recruitment strategy with data-driven insights.
+              </Text>
+              <List spacing={4} fontSize="lg">
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="orange.500" />
+                  Real-time visitor tracking and page views
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="orange.500" />
+                  Geographic visitor data and device analytics
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="orange.500" />
+                  Profile completeness scoring and recommendations
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="orange.500" />
+                  Engagement metrics and optimization tips
+                </ListItem>
+              </List>
+            
+            </VStack>
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Feature Section 5: Schedule Management */}
+      <Box bg="white" py={24}>
+        <Container maxW="7xl">
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={16} alignItems="center">
+            <VStack spacing={8} align="start">
+              <Badge colorScheme="green" px={4} py={2} borderRadius="full" fontSize="md">
+                📅 Schedule
+              </Badge>
+              <Heading size="2xl" fontWeight="black" color="gray.900">
+                Smart Schedule Management System
+              </Heading>
+              <Text fontSize="xl" color="gray.600" lineHeight="tall">
+                Keep coaches informed about your availability with our comprehensive schedule system. Add unlimited
+                games, tournaments, camps, showcases, and training sessions with detailed location and timing
+                information. Coaches can see exactly when and where you'll be playing.
+              </Text>
+              <List spacing={4} fontSize="lg">
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="green.500" />
+                  Unlimited event creation and management
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="green.500" />
+                  Detailed venue and location information
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="green.500" />
+                  Event categorization (games, tournaments, camps)
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="green.500" />
+                  Automatic chronological sorting and notifications
+                </ListItem>
+              </List>
+              
+            </VStack>
+            <Box>
+              <Image
+                src="/placeholder.svg?height=400&width=600&text=Schedule+Management"
+                alt="Schedule Management System"
+                borderRadius="2xl"
+                shadow="2xl"
+              />
+            </Box>
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Feature Section 6: Subscribe to Athlete Updates */}
+      <Box bg="gray.50" py={24}>
+        <Container maxW="7xl">
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={16} alignItems="center">
+            <Box order={{ base: 2, lg: 1 }}>
+              <Image
+                src="/placeholder.svg?height=400&width=600&text=Subscribe+to+Updates"
+                alt="Subscribe to Athlete Updates"
+                borderRadius="2xl"
+                shadow="2xl"
+              />
+            </Box>
+            <VStack spacing={8} align="start" order={{ base: 1, lg: 2 }}>
+              <Badge colorScheme="blue" px={4} py={2} borderRadius="full" fontSize="md">
+                🔔 Notifications
+              </Badge>
+              <Heading size="2xl" fontWeight="black" color="gray.900">
+                Stay Connected with Athlete Updates
+              </Heading>
+              <Text fontSize="xl" color="gray.600" lineHeight="tall">
+                Coaches and fans can subscribe to receive notifications when athletes update their profiles with new
+                videos, schedule changes, awards, or achievements. Our smart notification system ensures coaches never
+                miss important updates from their top prospects.
+              </Text>
+              <List spacing={4} fontSize="lg">
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="blue.500" />
+                  Email notifications for profile updates
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="blue.500" />
+                  Customizable notification preferences
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="blue.500" />
+                  New video and achievement alerts
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="blue.500" />
+                  Schedule change notifications
+                </ListItem>
+              </List>
+            
+            </VStack>
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Feature Section 7: Social Share */}
+      <Box bg="white" py={24}>
+        <Container maxW="7xl">
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={16} alignItems="center">
+            <VStack spacing={8} align="start">
+              <Badge colorScheme="pink" px={4} py={2} borderRadius="full" fontSize="md">
+                📢 Social Sharing
+              </Badge>
+              <Heading size="2xl" fontWeight="black" color="gray.900">
+                Amplify Your Reach with Social Sharing
+              </Heading>
+              <Text fontSize="xl" color="gray.600" lineHeight="tall">
+                Expand your visibility with built-in social media sharing capabilities. Athletes can easily share their
+                profiles across all major social platforms with custom messages and hashtags. Privacy controls allow you
+                to manage who can share your profile and when.
+              </Text>
+              <List spacing={4} fontSize="lg">
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="pink.500" />
+                  One-click sharing to all major social platforms
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="pink.500" />
+                  Custom share messages and hashtags
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="pink.500" />
+                  Privacy controls for sharing permissions
+                </ListItem>
+                <ListItem display="flex" alignItems="center">
+                  <ListIcon as={CheckCircle} color="pink.500" />
+                  Track social engagement and reach
+                </ListItem>
+              </List>
+            
+            </VStack>
+            <Box>
+              <Image
+                src="/placeholder.svg?height=400&width=600&text=Social+Sharing"
+                alt="Social Sharing Features"
+                borderRadius="2xl"
+                shadow="2xl"
+              />
+            </Box>
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Pricing Section */}
       <Container maxW="7xl" py={24}>
         <VStack spacing={16}>
           <VStack spacing={6} textAlign="center">
@@ -577,7 +914,11 @@ export default function HomePage() {
       </Container>
 
       {/* CTA Section */}
-      <Box color="white" py={24} bg="linear-gradient(135deg, rgba(132, 204, 22, 0.9) 0%, rgba(20, 184, 166, 0.8) 50%, rgba(6, 182, 212, 0.9) 100%)">
+      <Box
+        color="white"
+        py={24}
+        bg="linear-gradient(135deg, rgba(132, 204, 22, 0.9) 0%, rgba(20, 184, 166, 0.8) 50%, rgba(6, 182, 212, 0.9) 100%)"
+      >
         <Container maxW="7xl">
           <VStack spacing={12} textAlign="center">
             <Heading size="2xl" fontWeight="black">
@@ -647,7 +988,7 @@ export default function HomePage() {
       </Box>
 
       {/* Footer */}
-      <SiteFooter/>
+      <SiteFooter />
     </Box>
   )
 }
