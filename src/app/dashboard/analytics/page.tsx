@@ -36,6 +36,13 @@ import {
   Code,
   Select,
   useColorModeValue,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
 } from "@chakra-ui/react"
 import {
   BarChart,
@@ -62,6 +69,8 @@ import {
   AlertCircle,
   RefreshCw,
   CodeIcon,
+  MapPin,
+  Globe,
 } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
@@ -74,7 +83,7 @@ interface AnalyticsData {
   pageViews: PageView[]
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"]
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658", "#FF7C7C"]
 
 export default function AnalyticsPage() {
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
@@ -227,7 +236,7 @@ export default function AnalyticsPage() {
 
   // Process analytics data for charts
   const processAnalyticsData = () => {
-    if (!analyticsData) return { chartData: [], deviceData: [], locationData: [], referrerData: [] }
+    if (!analyticsData) return { chartData: [], deviceData: [], locationData: [], referrerData: [], countryData: [] }
 
     const chartData = analyticsData.analytics.map((item) => ({
       date: new Date(item.date).toLocaleDateString(),
@@ -249,9 +258,22 @@ export default function AnalyticsPage() {
       return acc
     }, [])
 
-    // Process location data
+    // Process location data by country
+    const countryData = analyticsData.sessions.reduce((acc: any[], session) => {
+      const country = session.country || "Unknown"
+      const existing = acc.find((item) => item.name === country)
+      if (existing) {
+        existing.value += 1
+      } else {
+        acc.push({ name: country, value: 1 })
+      }
+      return acc
+    }, [])
+
+    // Process location data by city
     const locationData = analyticsData.sessions.reduce((acc: any[], session) => {
-      const location = session.country || "Unknown"
+      const location =
+        session.city && session.country ? `${session.city}, ${session.country}` : session.country || "Unknown"
       const existing = acc.find((item) => item.name === location)
       if (existing) {
         existing.value += 1
@@ -263,7 +285,14 @@ export default function AnalyticsPage() {
 
     // Process referrer data
     const referrerData = analyticsData.sessions.reduce((acc: any[], session) => {
-      const referrer = session.referrer ? new URL(session.referrer).hostname : "Direct"
+      let referrer = "Direct"
+      if (session.referrer) {
+        try {
+          referrer = new URL(session.referrer).hostname
+        } catch {
+          referrer = session.referrer
+        }
+      }
       const existing = acc.find((item) => item.name === referrer)
       if (existing) {
         existing.value += 1
@@ -273,10 +302,10 @@ export default function AnalyticsPage() {
       return acc
     }, [])
 
-    return { chartData, deviceData, locationData, referrerData }
+    return { chartData, deviceData, locationData, referrerData, countryData }
   }
 
-  const { chartData, deviceData, locationData, referrerData } = processAnalyticsData()
+  const { chartData, deviceData, locationData, referrerData, countryData } = processAnalyticsData()
 
   if (loading) {
     return (
@@ -353,6 +382,12 @@ export default function AnalyticsPage() {
               <HStack spacing={2}>
                 <Icon as={Users} size={16} />
                 <Text>Visitor Analytics</Text>
+              </HStack>
+            </Tab>
+            <Tab>
+              <HStack spacing={2}>
+                <Icon as={MapPin} size={16} />
+                <Text>Geographic Data</Text>
               </HStack>
             </Tab>
             <Tab>
@@ -503,15 +538,23 @@ export default function AnalyticsPage() {
                     <Card>
                       <CardBody>
                         <Heading size="sm" mb={4}>
-                          Top Locations
+                          <HStack spacing={2}>
+                            <Icon as={Globe} size={16} />
+                            <Text>Top Countries</Text>
+                          </HStack>
                         </Heading>
                         <VStack spacing={3} align="stretch">
-                          {locationData.slice(0, 5).map((location, index) => (
-                            <HStack key={location.name} justify="space-between">
-                              <Text>{location.name}</Text>
-                              <Badge colorScheme="blue">{location.value} visits</Badge>
+                          {countryData.slice(0, 5).map((country, index) => (
+                            <HStack key={country.name} justify="space-between">
+                              <Text>{country.name}</Text>
+                              <Badge colorScheme="blue">{country.value} visits</Badge>
                             </HStack>
                           ))}
+                          {countryData.length === 0 && (
+                            <Text fontSize="sm" color="gray.500" textAlign="center" py={4}>
+                              No location data available yet
+                            </Text>
+                          )}
                         </VStack>
                       </CardBody>
                     </Card>
@@ -774,7 +817,9 @@ export default function AnalyticsPage() {
                                 Location
                               </Text>
                               <Text fontWeight="medium">
-                                {session.city ? `${session.city}, ${session.country}` : session.country || "Unknown"}
+                                {session.city && session.country
+                                  ? `${session.city}, ${session.country}`
+                                  : session.country || "Unknown"}
                               </Text>
                             </GridItem>
                             <GridItem>
@@ -806,6 +851,100 @@ export default function AnalyticsPage() {
                     </VStack>
                   </CardBody>
                 </Card>
+              </VStack>
+            </TabPanel>
+
+            {/* Geographic Data Tab */}
+            <TabPanel>
+              <VStack spacing={6} align="stretch">
+                <Box>
+                  <Heading size="md" mb={2}>
+                    <HStack spacing={2}>
+                      <Icon as={MapPin} color="blue.500" />
+                      <Text>Geographic Analytics</Text>
+                    </HStack>
+                  </Heading>
+                  <Text color="gray.600">See where your visitors are coming from around the world</Text>
+                </Box>
+
+                {/* Country Distribution Chart */}
+                <Card>
+                  <CardBody>
+                    <Heading size="sm" mb={4}>
+                      Visitors by Country
+                    </Heading>
+                    <Box h="400px">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={countryData.slice(0, 10)} layout="horizontal">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis dataKey="name" type="category" width={100} />
+                          <Tooltip />
+                          <Bar dataKey="value" fill="#3182CE" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Box>
+                  </CardBody>
+                </Card>
+
+                {/* Detailed Location Table */}
+                <Card>
+                  <CardBody>
+                    <Heading size="sm" mb={4}>
+                      Detailed Location Breakdown
+                    </Heading>
+                    <TableContainer>
+                      <Table variant="simple" size="sm">
+                        <Thead>
+                          <Tr>
+                            <Th>Location</Th>
+                            <Th isNumeric>Visitors</Th>
+                            <Th isNumeric>Percentage</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {locationData.slice(0, 15).map((location, index) => {
+                            const total = locationData.reduce((sum, item) => sum + item.value, 0)
+                            const percentage = total > 0 ? ((location.value / total) * 100).toFixed(1) : "0"
+                            return (
+                              <Tr key={index}>
+                                <Td>
+                                  <HStack spacing={2}>
+                                    <Icon as={MapPin} size={14} color="gray.400" />
+                                    <Text>{location.name}</Text>
+                                  </HStack>
+                                </Td>
+                                <Td isNumeric>
+                                  <Badge colorScheme="blue" variant="subtle">
+                                    {location.value}
+                                  </Badge>
+                                </Td>
+                                <Td isNumeric>{percentage}%</Td>
+                              </Tr>
+                            )
+                          })}
+                        </Tbody>
+                      </Table>
+                    </TableContainer>
+                    {locationData.length === 0 && (
+                      <Text fontSize="sm" color="gray.500" textAlign="center" py={8}>
+                        No location data available yet. Location data will appear as visitors access your profile.
+                      </Text>
+                    )}
+                  </CardBody>
+                </Card>
+
+                {/* Location Insights */}
+                <Alert status="info">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle>Location Data</AlertTitle>
+                    <AlertDescription>
+                      Location information is automatically detected from visitor IP addresses. This helps you
+                      understand your geographic reach and can inform recruitment strategies.
+                    </AlertDescription>
+                  </Box>
+                </Alert>
               </VStack>
             </TabPanel>
 

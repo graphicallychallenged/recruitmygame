@@ -139,6 +139,7 @@ export default function HomePage() {
               </Badge>
 
               <Heading
+                as="h1"
                 size="4xl"
                 color="white"
                 fontWeight="black"

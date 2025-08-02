@@ -173,7 +173,7 @@ export function HeroSection({ athlete, heroImage, primaryColor, secondaryColor, 
                 transition="all 0.2s"
                 onClick={() => setShowSubscriptionModal(true)}
               >
-                Subscribe to Athlete Updates
+                Subscribe to My Updates
               </Button>
             </Box>
           </Box>

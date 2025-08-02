@@ -21,14 +21,6 @@ import {
 } from "@chakra-ui/react"
 import { Play } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
-import { VideoPlaylist } from "@/components/VideoPlaylist"
-import { HeroSection } from "@/components/profile/HeroSection"
-import { AthleteStats } from "@/components/profile/AthleteStats"
-import { PhotoGallerySection } from "@/components/profile/PhotoGallerySection"
-import { AwardsSection } from "@/components/profile/AwardsSection"
-import { ContactModal } from "@/components/profile/ContactModal"
-import { SocialMediaSection } from "@/components/profile/SocialMediaSection"
-import { TeamsSection } from "@/components/profile/TeamsSection"
 import type {
   AthleteProfile,
   AthletePhoto,
@@ -38,10 +30,19 @@ import type {
   AthleteReview,
   AthleteTeam,
 } from "@/types/database"
+import { VideoPlaylist } from "@/components/VideoPlaylist"
+import { HeroSection } from "@/components/profile/HeroSection"
+import { AthleteStats } from "@/components/profile/AthleteStats"
+import { PhotoGallerySection } from "@/components/profile/PhotoGallerySection"
+import { AwardsSection } from "@/components/profile/AwardsSection"
+import { ContactModal } from "@/components/profile/ContactModal"
+import { SocialMediaSection } from "@/components/profile/SocialMediaSection"
+import { TeamsSection } from "@/components/profile/TeamsSection"
 import { ReviewsSection } from "@/components/profile/ReviewsSection"
 import { ScheduleSection } from "@/components/profile/ScheduleSection"
 import { getSubscriptionLimits, type SubscriptionTier } from "@/utils/tierFeatures"
 import { SocialShareButtons } from "@/components/SocialShareButtons"
+import { AnalyticsTracker } from "@/components/AnalyticsTracker"
 
 interface PublicProfileClientProps {
   athlete: AthleteProfile
@@ -117,7 +118,6 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
   const cardBgColor = isDarkTheme ? "gray.800" : "white"
   const borderColor = isDarkTheme ? "gray.600" : "gray.200"
   const mutedTextColor = isDarkTheme ? "gray.300" : "gray.600"
-  // Generate a unique session ID for this visitor
 
   useEffect(() => {
     const fetchFreshData = async () => {
@@ -405,19 +405,9 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           body: JSON.stringify({
             athleteId: athlete.id,
             sessionId,
-            pageView: {
-              path: window.location.pathname,
-              title: document.title,
-              referrer: document.referrer,
-              timeOnPage: 0,
-            },
-            session: {
-              sessionId,
-              startTime: sessionStorage.getItem("rmg_session_start") || Date.now().toString(),
-              referrer: document.referrer,
-              pagesVisited: 1,
-              totalTime: 0,
-            },
+            pagePath: window.location.pathname,
+            pageTitle: document.title,
+            referrer: document.referrer,
           }),
         })
       } catch (error) {
@@ -530,6 +520,9 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
 
   return (
     <Box bg={bgColor} minH="100vh">
+      {/* Add the analytics tracker - it renders nothing visible */}
+      <AnalyticsTracker athleteId={athlete.id} athleteName={athlete.athlete_name} />
+
       {/* Hero Section */}
       <HeroSection
         athlete={athlete}
