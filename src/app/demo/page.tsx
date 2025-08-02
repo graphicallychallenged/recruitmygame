@@ -104,7 +104,7 @@ export default function DemoPage() {
       location: "Los Angeles, CA", // Update with actual data
       classOf: "2026", // Update with actual data
       image: "https://fuvapddevwtiftgysikn.supabase.co/storage/v1/object/public/profile-pictures/6b13067f-da3a-4757-9989-842921f5cc9a/4ct609m0u24-1754023607314.png",
-      profileUrl: "/markymark",
+      profileUrl: "https://markymark.recruitmygame.com",
       loginEmail: "marcusthompson@test.com",
       loginPassword: "TestPassword123!",
       stats: {

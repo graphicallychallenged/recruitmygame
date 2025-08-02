@@ -32,7 +32,7 @@ import {
   RadioGroup,
   Radio,
 } from "@chakra-ui/react"
-import { User, Palette, Eye, Save } from "lucide-react"
+import { User, Palette, Eye, Save, Lock } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -40,6 +40,7 @@ import type { AthleteProfile } from "@/types/database"
 import { hasFeature, getTierDisplayName, getTierColor } from "@/utils/tierFeatures"
 import { HeroImageUpload } from "@/components/HeroImageUpload"
 import { ProfilePictureUpload } from "@/components/ProfilePictureUpload"
+import { DEMO_ACCOUNT_USERNAMES } from "@/const/const"
 
 const SPORTS_OPTIONS = [
   "Football",
@@ -162,6 +163,7 @@ export default function ProfilePage() {
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [isDemoAccount, setIsDemoAccount] = useState(false)
   const [formData, setFormData] = useState({
     athlete_name: "",
     sport: "",
@@ -238,6 +240,11 @@ export default function ProfilePage() {
       }
 
       setAthlete(athleteData)
+
+      // Check if this is a demo account
+      const isDemo = DEMO_ACCOUNT_USERNAMES.includes(athleteData.username?.toLowerCase() || "")
+      setIsDemoAccount(isDemo)
+
       setFormData({
         athlete_name: athleteData.athlete_name || "",
         sport: athleteData.sport || "",
@@ -354,6 +361,18 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!athlete) return
 
+    // Block demo account saves
+    if (isDemoAccount) {
+      toast({
+        title: "Demo Account",
+        description: "Demo accounts cannot be modified. Create your own account to make changes.",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+      })
+      return
+    }
+
     // Validate subdomain if it's being changed
     if (hasFeature(currentTier, "custom_subdomain") && formData.subdomain && formData.subdomain !== athlete.subdomain) {
       if (subdomainAvailable === false || subdomainError) {
@@ -467,6 +486,7 @@ export default function ProfilePage() {
   }
 
   const handlePositionToggle = (position: string) => {
+    if (isDemoAccount) return
     setFormData((prev) => ({
       ...prev,
       positions_played: prev.positions_played.includes(position)
@@ -476,6 +496,7 @@ export default function ProfilePage() {
   }
 
   const handleSportToggle = (sport: string) => {
+    if (isDemoAccount) return
     setFormData((prev) => ({
       ...prev,
       sports: prev.sports.includes(sport) ? prev.sports.filter((s) => s !== sport) : [...prev.sports, sport],
@@ -483,6 +504,7 @@ export default function ProfilePage() {
   }
 
   const addRecruitingProfile = () => {
+    if (isDemoAccount) return
     setFormData((prev) => ({
       ...prev,
       other_recruiting_profiles: [...prev.other_recruiting_profiles, { name: "", url: "" }],
@@ -490,6 +512,7 @@ export default function ProfilePage() {
   }
 
   const updateRecruitingProfile = (index: number, field: "name" | "url", value: string) => {
+    if (isDemoAccount) return
     setFormData((prev) => ({
       ...prev,
       other_recruiting_profiles: prev.other_recruiting_profiles.map((profile, i) =>
@@ -499,6 +522,7 @@ export default function ProfilePage() {
   }
 
   const removeRecruitingProfile = (index: number) => {
+    if (isDemoAccount) return
     setFormData((prev) => ({
       ...prev,
       other_recruiting_profiles: prev.other_recruiting_profiles.filter((_, i) => i !== index),
@@ -506,6 +530,7 @@ export default function ProfilePage() {
   }
 
   const handleHeroImageUpload = (url: string) => {
+    if (isDemoAccount) return
     setFormData((prev) => ({
       ...prev,
       hero_image_url: url,
@@ -524,7 +549,7 @@ export default function ProfilePage() {
     return (
       <Container maxW="4xl" py={8}>
         <Flex justify="center" align="center" h="400px">
-          <Spinner size="xl" color="teal.500" />
+          <Spinner size="xl" color="blue.500" />
         </Flex>
       </Container>
     )
@@ -550,14 +575,37 @@ export default function ProfilePage() {
         <Box>
           <Heading size="lg" mb={2}>
             <HStack spacing={2}>
-              <Icon as={User} color="teal.500" />
+              <Icon as={User} color="blue.500" />
               <Text>Profile Settings</Text>
               <Badge colorScheme={getTierColor(currentTier)} variant="subtle">
                 {getTierDisplayName(currentTier)}
               </Badge>
+              {isDemoAccount && (
+                <Badge colorScheme="orange" variant="solid">
+                  <HStack spacing={1}>
+                    <Lock size={12} />
+                    <Text>Demo Account</Text>
+                  </HStack>
+                </Badge>
+              )}
             </HStack>
           </Heading>
           <Text color="gray.600">Manage your athlete profile information and preferences</Text>
+          {isDemoAccount && (
+            <Alert status="info" mt={4}>
+              <AlertIcon />
+              <Box>
+                <AlertTitle>Demo Account - Read Only</AlertTitle>
+                <AlertDescription>
+                  This is a demo account for showcase purposes. Most fields are read-only.
+                  <Link href="/login" style={{ color: "blue", textDecoration: "underline", marginLeft: "4px" }}>
+                    Create your own account
+                  </Link>{" "}
+                  to make changes.
+                </AlertDescription>
+              </Box>
+            </Alert>
+          )}
         </Box>
 
         {/* Basic Information */}
@@ -569,21 +617,38 @@ export default function ProfilePage() {
             {/* Profile Picture Upload */}
             <Box mb={6}>
               <FormLabel mb={3}>Profile Picture</FormLabel>
-              <ProfilePictureUpload
-                currentImageUrl={athlete.profile_picture_url}
-                onImageUpdate={(url) => {
-                  setAthlete((prev) => (prev ? { ...prev, profile_picture_url: url } : null))
-                  // Dispatch custom event for layout to update
-                  window.dispatchEvent(
-                    new CustomEvent("profilePictureUpdated", {
-                      detail: { athleteId: athlete.id, newUrl: url },
-                    }),
-                  )
-                }}
-                userId={athlete.user_id}
-                athleteName={athlete.athlete_name}
-                size="xl"
-              />
+              {isDemoAccount ? (
+                <Box>
+                  <ProfilePictureUpload
+                    currentImageUrl={athlete.profile_picture_url}
+                    onImageUpdate={() => {}} // No-op for demo
+                    userId={athlete.user_id}
+                    athleteName={athlete.athlete_name}
+                    size="xl"
+                    disabled={true}
+                  />
+                  <Text fontSize="sm" color="gray.500" mt={2}>
+                    <Icon as={Lock} size={12} mr={1} />
+                    Profile picture changes disabled for demo accounts
+                  </Text>
+                </Box>
+              ) : (
+                <ProfilePictureUpload
+                  currentImageUrl={athlete.profile_picture_url}
+                  onImageUpdate={(url) => {
+                    setAthlete((prev) => (prev ? { ...prev, profile_picture_url: url } : null))
+                    // Dispatch custom event for layout to update
+                    window.dispatchEvent(
+                      new CustomEvent("profilePictureUpdated", {
+                        detail: { athleteId: athlete.id, newUrl: url },
+                      }),
+                    )
+                  }}
+                  userId={athlete.user_id}
+                  athleteName={athlete.athlete_name}
+                  size="xl"
+                />
+              )}
             </Box>
             <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
               <GridItem>
@@ -591,9 +656,17 @@ export default function ProfilePage() {
                   <FormLabel>Full Name</FormLabel>
                   <Input
                     value={formData.athlete_name}
-                    onChange={(e) => setFormData({ ...formData, athlete_name: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, athlete_name: e.target.value })}
                     placeholder="Enter your full name"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
+                  {isDemoAccount && (
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      <Icon as={Lock} size={10} mr={1} />
+                      Read-only for demo accounts
+                    </Text>
+                  )}
                 </FormControl>
               </GridItem>
               {hasFeature(currentTier, "custom_subdomain") && (
@@ -607,9 +680,11 @@ export default function ProfilePage() {
                     </FormLabel>
                     <Input
                       value={formData.subdomain}
-                      onChange={(e) => setFormData({ ...formData, subdomain: e.target.value })}
+                      onChange={(e) => !isDemoAccount && setFormData({ ...formData, subdomain: e.target.value })}
                       placeholder="your-custom-name"
-                      isDisabled={subdomainChecking}
+                      isDisabled={subdomainChecking || isDemoAccount}
+                      isReadOnly={isDemoAccount}
+                      bg={isDemoAccount ? "gray.50" : "white"}
                     />
                     <HStack spacing={2} mt={1}>
                       <Text fontSize="xs" color="gray.500" flex={1}>
@@ -632,9 +707,16 @@ export default function ProfilePage() {
                         {subdomainError}
                       </Text>
                     )}
-                    <Text fontSize="xs" color="blue.600" mt={2}>
-                      💡 Setting a custom subdomain will update your profile URL and username
-                    </Text>
+                    {isDemoAccount ? (
+                      <Text fontSize="xs" color="gray.500" mt={1}>
+                        <Icon as={Lock} size={10} mr={1} />
+                        Read-only for demo accounts
+                      </Text>
+                    ) : (
+                      <Text fontSize="xs" color="blue.600" mt={2}>
+                        💡 Setting a custom subdomain will update your profile URL and username
+                      </Text>
+                    )}
                   </FormControl>
                 </GridItem>
               )}
@@ -643,8 +725,12 @@ export default function ProfilePage() {
                   <FormLabel>Primary Sport</FormLabel>
                   <Select
                     value={formData.sport}
-                    onChange={(e) => setFormData({ ...formData, sport: e.target.value, positions_played: [] })}
+                    onChange={(e) =>
+                      !isDemoAccount && setFormData({ ...formData, sport: e.target.value, positions_played: [] })
+                    }
                     placeholder="Select your primary sport"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   >
                     {SPORTS_OPTIONS.map((sport) => (
                       <option key={sport} value={sport}>
@@ -652,6 +738,12 @@ export default function ProfilePage() {
                       </option>
                     ))}
                   </Select>
+                  {isDemoAccount && (
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      <Icon as={Lock} size={10} mr={1} />
+                      Read-only for demo accounts
+                    </Text>
+                  )}
                 </FormControl>
               </GridItem>
               <GridItem>
@@ -659,8 +751,10 @@ export default function ProfilePage() {
                   <FormLabel>Grade Level</FormLabel>
                   <Select
                     value={formData.grade}
-                    onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, grade: e.target.value })}
                     placeholder="Select your grade"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   >
                     {GRADE_OPTIONS.map((grade) => (
                       <option key={grade} value={grade}>
@@ -676,10 +770,12 @@ export default function ProfilePage() {
                   <Input
                     type="number"
                     value={formData.graduation_year}
-                    onChange={(e) => setFormData({ ...formData, graduation_year: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, graduation_year: e.target.value })}
                     placeholder="2025"
                     min="2020"
                     max="2030"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -688,8 +784,10 @@ export default function ProfilePage() {
                   <FormLabel>School</FormLabel>
                   <Input
                     value={formData.school}
-                    onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, school: e.target.value })}
                     placeholder="Your school name"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -698,8 +796,10 @@ export default function ProfilePage() {
                   <FormLabel>Location</FormLabel>
                   <Input
                     value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, location: e.target.value })}
                     placeholder="City, State"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -708,10 +808,18 @@ export default function ProfilePage() {
               <FormLabel>Bio</FormLabel>
               <Textarea
                 value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                onChange={(e) => !isDemoAccount && setFormData({ ...formData, bio: e.target.value })}
                 placeholder="Tell us about yourself, your goals, and achievements..."
                 rows={4}
+                isReadOnly={isDemoAccount}
+                bg={isDemoAccount ? "gray.50" : "white"}
               />
+              {isDemoAccount && (
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  <Icon as={Lock} size={10} mr={1} />
+                  Bio editing disabled for demo accounts
+                </Text>
+              )}
             </FormControl>
           </CardBody>
         </Card>
@@ -728,8 +836,10 @@ export default function ProfilePage() {
                   <FormLabel>Height</FormLabel>
                   <Input
                     value={formData.height}
-                    onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, height: e.target.value })}
                     placeholder="5'10&quot;"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -738,8 +848,10 @@ export default function ProfilePage() {
                   <FormLabel>Weight</FormLabel>
                   <Input
                     value={formData.weight}
-                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, weight: e.target.value })}
                     placeholder="170 lbs"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -752,8 +864,10 @@ export default function ProfilePage() {
                     min="0"
                     max="4"
                     value={formData.gpa}
-                    onChange={(e) => setFormData({ ...formData, gpa: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, gpa: e.target.value })}
                     placeholder="3.75"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -765,8 +879,10 @@ export default function ProfilePage() {
                     min="400"
                     max="1600"
                     value={formData.sat_score}
-                    onChange={(e) => setFormData({ ...formData, sat_score: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, sat_score: e.target.value })}
                     placeholder="1200"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -778,8 +894,10 @@ export default function ProfilePage() {
                     min="1"
                     max="36"
                     value={formData.act_score}
-                    onChange={(e) => setFormData({ ...formData, act_score: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, act_score: e.target.value })}
                     placeholder="28"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -788,8 +906,10 @@ export default function ProfilePage() {
                   <FormLabel>Dominant Foot</FormLabel>
                   <Select
                     value={formData.dominant_foot}
-                    onChange={(e) => setFormData({ ...formData, dominant_foot: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, dominant_foot: e.target.value })}
                     placeholder="Select dominant foot"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   >
                     {DOMINANCE_OPTIONS.map((option) => (
                       <option key={option} value={option}>
@@ -804,8 +924,10 @@ export default function ProfilePage() {
                   <FormLabel>Dominant Hand</FormLabel>
                   <Select
                     value={formData.dominant_hand}
-                    onChange={(e) => setFormData({ ...formData, dominant_hand: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, dominant_hand: e.target.value })}
                     placeholder="Select dominant hand"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   >
                     {DOMINANCE_OPTIONS.map((option) => (
                       <option key={option} value={option}>
@@ -826,6 +948,61 @@ export default function ProfilePage() {
               Sports & Positions
             </Heading>
 
+            {/* Additional Sports - Only for Pro */}
+            <FormControl mb={6}>
+              <FormLabel>
+                Additional Sports (Optional)
+                {!hasMultipleSports && (
+                  <Badge ml={2} colorScheme="purple" variant="outline">
+                    Pro
+                  </Badge>
+                )}
+              </FormLabel>
+              <Text fontSize="sm" color="gray.600" mb={3}>
+                Select any additional sports you play besides your primary sport
+              </Text>
+              {hasMultipleSports ? (
+                <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }} gap={2}>
+                  {SPORTS_OPTIONS.filter((sport) => sport !== formData.sport).map((sport) => (
+                    <GridItem key={sport}>
+                      <Button
+                        size="sm"
+                        variant={formData.sports.includes(sport) ? "solid" : "outline"}
+                        colorScheme={formData.sports.includes(sport) ? "blue" : "gray"}
+                        onClick={() => handleSportToggle(sport)}
+                        w="full"
+                        isDisabled={isDemoAccount}
+                        opacity={isDemoAccount ? 0.6 : 1}
+                      >
+                        {sport}
+                      </Button>
+                    </GridItem>
+                  ))}
+                </Grid>
+              ) : (
+                <Alert status="info">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle>Pro Feature</AlertTitle>
+                    <AlertDescription>
+                      Upgrade to Pro to add multiple sports to your profile.{" "}
+                      <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                        Upgrade Now
+                      </Button>
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+              )}
+              {isDemoAccount && hasMultipleSports && (
+                <Text fontSize="xs" color="gray.500" mt={2}>
+                  <Icon as={Lock} size={10} mr={1} />
+                  Sport selection disabled for demo accounts
+                </Text>
+              )}
+            </FormControl>
+
+            <Divider mb={6} />
+
             {/* Positions */}
             {formData.sport && availablePositions.length > 0 && (
               <FormControl>
@@ -839,15 +1016,23 @@ export default function ProfilePage() {
                       <Button
                         size="sm"
                         variant={formData.positions_played.includes(position) ? "solid" : "outline"}
-                        colorScheme={formData.positions_played.includes(position) ? "teal" : "gray"}
+                        colorScheme={formData.positions_played.includes(position) ? "green" : "gray"}
                         onClick={() => handlePositionToggle(position)}
                         w="full"
+                        isDisabled={isDemoAccount}
+                        opacity={isDemoAccount ? 0.6 : 1}
                       >
                         {position}
                       </Button>
                     </GridItem>
                   ))}
                 </Grid>
+                {isDemoAccount && (
+                  <Text fontSize="xs" color="gray.500" mt={2}>
+                    <Icon as={Lock} size={10} mr={1} />
+                    Position selection disabled for demo accounts
+                  </Text>
+                )}
               </FormControl>
             )}
           </CardBody>
@@ -866,15 +1051,24 @@ export default function ProfilePage() {
                   <Input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, email: e.target.value })}
                     placeholder="your.email@example.com"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
+                  {isDemoAccount && (
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      <Icon as={Lock} size={10} mr={1} />
+                      Contact info protected for demo accounts
+                    </Text>
+                  )}
                 </FormControl>
                 <FormControl mt={2}>
                   <HStack>
                     <Switch
                       isChecked={formData.show_email}
-                      onChange={(e) => setFormData({ ...formData, show_email: e.target.checked })}
+                      onChange={(e) => !isDemoAccount && setFormData({ ...formData, show_email: e.target.checked })}
+                      isDisabled={isDemoAccount}
                     />
                     <Text fontSize="sm">Show email on public profile</Text>
                   </HStack>
@@ -886,15 +1080,18 @@ export default function ProfilePage() {
                   <Input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(555) 123-4567"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
                 <FormControl mt={2}>
                   <HStack>
                     <Switch
                       isChecked={formData.show_phone}
-                      onChange={(e) => setFormData({ ...formData, show_phone: e.target.checked })}
+                      onChange={(e) => !isDemoAccount && setFormData({ ...formData, show_phone: e.target.checked })}
+                      isDisabled={isDemoAccount}
                     />
                     <Text fontSize="sm">Show phone on public profile</Text>
                   </HStack>
@@ -919,8 +1116,10 @@ export default function ProfilePage() {
                   <FormLabel>Instagram</FormLabel>
                   <Input
                     value={formData.instagram}
-                    onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, instagram: e.target.value })}
                     placeholder="@username or full URL"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -929,8 +1128,10 @@ export default function ProfilePage() {
                   <FormLabel>Facebook</FormLabel>
                   <Input
                     value={formData.facebook}
-                    onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, facebook: e.target.value })}
                     placeholder="Profile URL or username"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -939,8 +1140,10 @@ export default function ProfilePage() {
                   <FormLabel>TikTok</FormLabel>
                   <Input
                     value={formData.tiktok}
-                    onChange={(e) => setFormData({ ...formData, tiktok: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, tiktok: e.target.value })}
                     placeholder="@username or full URL"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -949,8 +1152,10 @@ export default function ProfilePage() {
                   <FormLabel>Twitter</FormLabel>
                   <Input
                     value={formData.twitter}
-                    onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, twitter: e.target.value })}
                     placeholder="@username or full URL"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -959,8 +1164,10 @@ export default function ProfilePage() {
                   <FormLabel>YouTube</FormLabel>
                   <Input
                     value={formData.youtube}
-                    onChange={(e) => setFormData({ ...formData, youtube: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, youtube: e.target.value })}
                     placeholder="Channel URL"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -969,8 +1176,10 @@ export default function ProfilePage() {
                   <FormLabel>LinkedIn</FormLabel>
                   <Input
                     value={formData.linkedin}
-                    onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, linkedin: e.target.value })}
                     placeholder="Profile URL"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -979,12 +1188,20 @@ export default function ProfilePage() {
                   <FormLabel>Personal Website</FormLabel>
                   <Input
                     value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, website: e.target.value })}
                     placeholder="https://yourwebsite.com"
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
             </Grid>
+            {isDemoAccount && (
+              <Text fontSize="xs" color="gray.500" mt={3}>
+                <Icon as={Lock} size={10} mr={1} />
+                Social media links are read-only for demo accounts
+              </Text>
+            )}
           </CardBody>
         </Card>
 
@@ -1003,8 +1220,10 @@ export default function ProfilePage() {
                   <FormLabel>MaxPreps Profile</FormLabel>
                   <Input
                     value={formData.maxpreps_url}
-                    onChange={(e) => setFormData({ ...formData, maxpreps_url: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, maxpreps_url: e.target.value })}
                     placeholder="https://www.maxpreps.com/..."
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -1013,8 +1232,10 @@ export default function ProfilePage() {
                   <FormLabel>NCSA Profile</FormLabel>
                   <Input
                     value={formData.ncsa_url}
-                    onChange={(e) => setFormData({ ...formData, ncsa_url: e.target.value })}
+                    onChange={(e) => !isDemoAccount && setFormData({ ...formData, ncsa_url: e.target.value })}
                     placeholder="https://www.ncsasports.org/..."
+                    isReadOnly={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   />
                 </FormControl>
               </GridItem>
@@ -1024,7 +1245,13 @@ export default function ProfilePage() {
             <Box>
               <HStack justify="space-between" mb={3}>
                 <Text fontWeight="medium">Other Recruiting Profiles</Text>
-                <Button size="sm" colorScheme="teal" variant="outline" onClick={addRecruitingProfile}>
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  variant="outline"
+                  onClick={addRecruitingProfile}
+                  isDisabled={isDemoAccount}
+                >
                   Add Profile
                 </Button>
               </HStack>
@@ -1036,14 +1263,24 @@ export default function ProfilePage() {
                       value={profile.name}
                       onChange={(e) => updateRecruitingProfile(index, "name", e.target.value)}
                       flex={1}
+                      isReadOnly={isDemoAccount}
+                      bg={isDemoAccount ? "gray.50" : "white"}
                     />
                     <Input
                       placeholder="Profile URL"
                       value={profile.url}
                       onChange={(e) => updateRecruitingProfile(index, "url", e.target.value)}
                       flex={2}
+                      isReadOnly={isDemoAccount}
+                      bg={isDemoAccount ? "gray.50" : "white"}
                     />
-                    <Button size="sm" colorScheme="red" variant="ghost" onClick={() => removeRecruitingProfile(index)}>
+                    <Button
+                      size="sm"
+                      colorScheme="red"
+                      variant="ghost"
+                      onClick={() => removeRecruitingProfile(index)}
+                      isDisabled={isDemoAccount}
+                    >
                       Remove
                     </Button>
                   </HStack>
@@ -1054,6 +1291,12 @@ export default function ProfilePage() {
                   </Text>
                 )}
               </VStack>
+              {isDemoAccount && (
+                <Text fontSize="xs" color="gray.500" mt={3}>
+                  <Icon as={Lock} size={10} mr={1} />
+                  Recruiting profile management disabled for demo accounts
+                </Text>
+              )}
             </Box>
           </CardBody>
         </Card>
@@ -1081,13 +1324,24 @@ export default function ProfilePage() {
               </Text>
               <RadioGroup
                 value={formData.default_hero_gender}
-                onChange={(value) => setFormData({ ...formData, default_hero_gender: value })}
+                onChange={(value) => !isDemoAccount && setFormData({ ...formData, default_hero_gender: value })}
+                isDisabled={isDemoAccount}
               >
                 <HStack spacing={6}>
-                  <Radio value="male">Male Athlete Images</Radio>
-                  <Radio value="female">Female Athlete Images</Radio>
+                  <Radio value="male" isDisabled={isDemoAccount}>
+                    Male Athlete Images
+                  </Radio>
+                  <Radio value="female" isDisabled={isDemoAccount}>
+                    Female Athlete Images
+                  </Radio>
                 </HStack>
               </RadioGroup>
+              {isDemoAccount && (
+                <Text fontSize="xs" color="gray.500" mt={2}>
+                  <Icon as={Lock} size={10} mr={1} />
+                  Theme settings disabled for demo accounts
+                </Text>
+              )}
             </FormControl>
 
             <Divider mb={6} />
@@ -1100,7 +1354,9 @@ export default function ProfilePage() {
                       <FormLabel>Theme Mode</FormLabel>
                       <Select
                         value={formData.theme_mode}
-                        onChange={(e) => setFormData({ ...formData, theme_mode: e.target.value })}
+                        onChange={(e) => !isDemoAccount && setFormData({ ...formData, theme_mode: e.target.value })}
+                        isDisabled={isDemoAccount}
+                        bg={isDemoAccount ? "gray.50" : "white"}
                       >
                         <option value="light">Light Theme</option>
                         <option value="dark">Dark Theme</option>
@@ -1113,8 +1369,9 @@ export default function ProfilePage() {
                       <Input
                         type="color"
                         value={formData.primary_color}
-                        onChange={(e) => setFormData({ ...formData, primary_color: e.target.value })}
+                        onChange={(e) => !isDemoAccount && setFormData({ ...formData, primary_color: e.target.value })}
                         h="40px"
+                        isDisabled={isDemoAccount}
                       />
                     </FormControl>
                   </GridItem>
@@ -1124,8 +1381,11 @@ export default function ProfilePage() {
                       <Input
                         type="color"
                         value={formData.secondary_color}
-                        onChange={(e) => setFormData({ ...formData, secondary_color: e.target.value })}
+                        onChange={(e) =>
+                          !isDemoAccount && setFormData({ ...formData, secondary_color: e.target.value })
+                        }
                         h="40px"
+                        isDisabled={isDemoAccount}
                       />
                     </FormControl>
                   </GridItem>
@@ -1145,6 +1405,12 @@ export default function ProfilePage() {
                     </Badge>
                   </HStack>
                 </Box>
+                {isDemoAccount && (
+                  <Text fontSize="xs" color="gray.500" mt={3}>
+                    <Icon as={Lock} size={10} mr={1} />
+                    Color customization disabled for demo accounts
+                  </Text>
+                )}
               </>
             ) : (
               <Alert status="info">
@@ -1153,7 +1419,7 @@ export default function ProfilePage() {
                   <AlertTitle>Premium Feature</AlertTitle>
                   <AlertDescription>
                     Customize your profile colors and theme with Premium or Pro plans.{" "}
-                    <Button as={Link} href="/subscription" size="sm" colorScheme="teal" variant="link">
+                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
                       Upgrade Now
                     </Button>
                   </AlertDescription>
@@ -1179,19 +1445,37 @@ export default function ProfilePage() {
             </Heading>
 
             {hasCustomHero ? (
-              <HeroImageUpload
-                currentHeroUrl={formData.hero_image_url}
-                athleteId={athlete.id}
-                onUploadComplete={handleHeroImageUpload}
-              />
+              <>
+                {isDemoAccount ? (
+                  <Alert status="info">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle>Demo Account Restriction</AlertTitle>
+                      <AlertDescription>
+                        Hero image uploads are disabled for demo accounts.
+                        <Link href="/login" style={{ color: "blue", textDecoration: "underline", marginLeft: "4px" }}>
+                          Create your own account
+                        </Link>{" "}
+                        to upload custom hero images.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                ) : (
+                  <HeroImageUpload
+                    currentHeroUrl={formData.hero_image_url}
+                    athleteId={athlete.id}
+                    onUploadComplete={handleHeroImageUpload}
+                  />
+                )}
+              </>
             ) : (
-              <Alert status="info" colorScheme="purple">
+              <Alert status="info">
                 <AlertIcon />
                 <Box>
                   <AlertTitle>Pro Feature</AlertTitle>
                   <AlertDescription>
                     Upload a custom hero image for your profile with Pro plan.{" "}
-                    <Button as={Link} href="/subscription" size="sm" colorScheme="purple" variant="link">
+                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
                       Upgrade to Pro
                     </Button>
                   </AlertDescription>
@@ -1205,27 +1489,28 @@ export default function ProfilePage() {
         <Flex justify="end">
           <Button
             leftIcon={<Save size={16} />}
-            colorScheme="teal"
+            colorScheme="blue"
             size="lg"
             onClick={handleSave}
             isLoading={saving}
             loadingText="Saving..."
+            isDisabled={isDemoAccount}
           >
-            Save Profile
+            {isDemoAccount ? "Demo Account - Read Only" : "Save Profile"}
           </Button>
         </Flex>
 
         {/* Public Profile Link */}
         {(athlete.subdomain || athlete.username) && (
-          <Card bg="teal.50" borderColor="teal.200">
+          <Card bg="blue.50" borderColor="blue.200">
             <CardBody>
               <HStack spacing={2} mb={2}>
-                <Icon as={Eye} color="teal.500" />
-                <Text fontWeight="semibold" color="teal.700">
+                <Icon as={Eye} color="blue.500" />
+                <Text fontWeight="semibold" color="blue.700">
                   Your Public Profile
                 </Text>
               </HStack>
-              <Text fontSize="sm" color="teal.600" mb={3}>
+              <Text fontSize="sm" color="blue.600" mb={3}>
                 Your profile is available at:
                 <Text as="span" fontWeight="medium" ml={1}>
                   {getPublicProfileUrl()}
@@ -1236,7 +1521,7 @@ export default function ProfilePage() {
                 href={getPublicProfileUrl()}
                 target="_blank"
                 size="sm"
-                colorScheme="teal"
+                colorScheme="blue"
                 variant="outline"
               >
                 View Public Profile

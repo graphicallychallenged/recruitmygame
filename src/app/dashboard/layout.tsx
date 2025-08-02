@@ -92,7 +92,7 @@ const navItems: NavItem[] = [
     icon: Shield,
     label: "Verified Reviews",
     requiredTier: "pro",
-    feature: "reviews",
+    feature: "verified_reviews",
   },
   {
     href: "/dashboard/sports",

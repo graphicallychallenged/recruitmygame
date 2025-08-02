@@ -1092,6 +1092,12 @@ export interface AthleteSchedule {
 }
 
 export interface AthleteReview {
+  leadership: any
+  coachability: any
+  teamwork: any
+  work_ethic: any
+  character: any
+  athleticism: any
   id: string
   athlete_id: string
   reviewer_name: string

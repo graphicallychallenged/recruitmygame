@@ -391,20 +391,26 @@ export default function TeamsPage() {
                             <Text fontSize="sm" fontWeight="semibold" mb={2}>
                               Statistics
                             </Text>
-                            <Grid templateColumns="repeat(auto-fit, minmax(100px, 1fr))" gap={2}>
-                              {Object.entries(team.stats).map(([key, value]) => (
-                                <GridItem key={key}>
-                                  <Box textAlign="center" p={2} bg="gray.50" borderRadius="sm">
-                                    <Text fontSize="md" fontWeight="bold" color="teal.600">
-                                      {String(value)}
-                                    </Text>
-                                    <Text fontSize="xs" color="gray.500" textTransform="capitalize">
-                                      {key.replace(/_/g, " ")}
-                                    </Text>
-                                  </Box>
-                                </GridItem>
-                              ))}
-                            </Grid>
+                          <Flex wrap="wrap" gap={2}>
+                            {Object.entries(team.stats).map(([key, value]) => (
+                              <Box
+                                key={key}
+                                flex="1" // This will make the boxes take up available space
+                                minWidth="100px" // Ensures a minimum width for each box
+                                textAlign="center"
+                                p={2}
+                                bg="gray.50"
+                                borderRadius="sm"
+                              >
+                                <Text fontSize="md" fontWeight="bold" color="teal.600">
+                                  {String(value)}
+                                </Text>
+                                <Text fontSize="xs" color="gray.500" textTransform="capitalize">
+                                  {key.replace(/_/g, " ")}
+                                </Text>
+                              </Box>
+                            ))}
+                          </Flex>
                           </Box>
                         )}
                       </VStack>
@@ -482,10 +488,17 @@ export default function TeamsPage() {
                             <Text fontSize="sm" fontWeight="semibold" mb={2}>
                               Statistics
                             </Text>
-                            <Grid templateColumns="repeat(auto-fit, minmax(100px, 1fr))" gap={2}>
-                              {Object.entries(team.stats).map(([key, value]) => (
-                                <GridItem key={key}>
-                                  <Box textAlign="center" p={2} bg="gray.50" borderRadius="sm">
+                                  <Flex wrap="wrap" gap={2}>
+                                {Object.entries(team.stats).map(([key, value]) => (
+                                  <Box
+                                    key={key}
+                                    flex="1" // This will make the boxes take up available space
+                                    minWidth="100px" // Ensures a minimum width for each box
+                                    textAlign="center"
+                                    p={2}
+                                    bg="gray.50"
+                                    borderRadius="sm"
+                                  >
                                     <Text fontSize="md" fontWeight="bold" color="teal.600">
                                       {String(value)}
                                     </Text>
@@ -493,9 +506,8 @@ export default function TeamsPage() {
                                       {key.replace(/_/g, " ")}
                                     </Text>
                                   </Box>
-                                </GridItem>
-                              ))}
-                            </Grid>
+                                ))}
+                              </Flex>
                           </Box>
                         )}
                       </VStack>

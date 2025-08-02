@@ -47,6 +47,8 @@ import { useUserSettings } from "@/hooks/useUserSettings"
 import { ConsentManager } from "@/components/compliance/ConsentManager"
 import { DataExportManager } from "@/components/compliance/DataExportManager"
 import { AccountDeletionManager } from "@/components/compliance/AccountDeletionManager"
+import { CookiePreferencesManager } from "@/components/CookiePreferencesManager"
+import { DEMO_ACCOUNT_USERNAMES } from "@/const/const"
 
 interface UserProfile {
   id: string
@@ -72,6 +74,7 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [isDemoAccount, setIsDemoAccount] = useState(false)
 
   // MFA states
   const [mfaFactors, setMfaFactors] = useState<MFAFactor[]>([])
@@ -122,6 +125,10 @@ export default function SettingsPage() {
           created_at: profileData.created_at || "",
           enable_social_sharing: profileData.enable_social_sharing ?? true,
         })
+
+        // Check if this is a demo account
+        const isDemo = DEMO_ACCOUNT_USERNAMES.includes(profileData.username?.toLowerCase() || "")
+        setIsDemoAccount(isDemo)
       }
 
       setLoading(false)
@@ -155,6 +162,16 @@ export default function SettingsPage() {
   }
 
   const handlePasswordChange = async () => {
+    if (isDemoAccount) {
+      toast({
+        title: "Demo Account",
+        description: "Password changes are disabled for demo accounts.",
+        status: "warning",
+        duration: 3000,
+      })
+      return
+    }
+
     if (newPassword !== confirmPassword) {
       toast({
         title: "Error",
@@ -208,6 +225,16 @@ export default function SettingsPage() {
   }
 
   const handleSocialSharingToggle = async (enabled: boolean) => {
+    if (isDemoAccount) {
+      toast({
+        title: "Demo Account",
+        description: "Social sharing settings cannot be changed for demo accounts.",
+        status: "warning",
+        duration: 3000,
+      })
+      return
+    }
+
     setSaving(true)
     try {
       const {
@@ -251,6 +278,16 @@ export default function SettingsPage() {
   }
 
   const handleMfaEnroll = async () => {
+    if (isDemoAccount) {
+      toast({
+        title: "Demo Account",
+        description: "MFA setup is disabled for demo accounts.",
+        status: "warning",
+        duration: 3000,
+      })
+      return
+    }
+
     setMfaLoading(true)
     try {
       const { data, error } = await supabase.auth.mfa.enroll({
@@ -345,6 +382,16 @@ export default function SettingsPage() {
   }
 
   const handleMfaDisable = async (factorId: string) => {
+    if (isDemoAccount) {
+      toast({
+        title: "Demo Account",
+        description: "MFA settings cannot be changed for demo accounts.",
+        status: "warning",
+        duration: 3000,
+      })
+      return
+    }
+
     setMfaLoading(true)
     try {
       const { error } = await supabase.auth.mfa.unenroll({
@@ -392,6 +439,17 @@ export default function SettingsPage() {
   }
 
   const handleDataExport = async () => {
+    if (isDemoAccount) {
+      toast({
+        title: "Demo Account",
+        description: "Data export is disabled for demo accounts.",
+        status: "warning",
+        duration: 3000,
+      })
+      onExportClose()
+      return
+    }
+
     try {
       const {
         data: { user },
@@ -463,6 +521,17 @@ export default function SettingsPage() {
   }
 
   const handleAccountDeletion = async () => {
+    if (isDemoAccount) {
+      toast({
+        title: "Demo Account",
+        description: "Demo accounts cannot be deleted.",
+        status: "warning",
+        duration: 3000,
+      })
+      onDeleteClose()
+      return
+    }
+
     try {
       await logActivity("account_deletion_requested")
 
@@ -512,8 +581,27 @@ export default function SettingsPage() {
           <HStack spacing={3} mb={2}>
             <Settings size={28} />
             <Heading size="lg">Account Settings</Heading>
+            {isDemoAccount && (
+              <Badge colorScheme="orange" variant="solid">
+                <HStack spacing={1}>
+                  <Lock size={12} />
+                  <Text>Demo Account</Text>
+                </HStack>
+              </Badge>
+            )}
           </HStack>
           <Text color="gray.600">Manage your account preferences, privacy, and security settings</Text>
+          {isDemoAccount && (
+            <Alert status="info" mt={4}>
+              <AlertIcon />
+              <Box>
+                <AlertTitle>Demo Account - Limited Access</AlertTitle>
+                <AlertDescription>
+                  This is a demo account. Most settings are read-only for security purposes.
+                </AlertDescription>
+              </Box>
+            </Alert>
+          )}
         </Box>
 
         {/* Tab Navigation */}
@@ -548,10 +636,13 @@ export default function SettingsPage() {
                   <Select
                     value={privacy?.profile_visibility || "public"}
                     onChange={(e) =>
+                      !isDemoAccount &&
                       updatePrivacy({
                         profile_visibility: e.target.value as "public" | "private" | "coaches_only",
                       })
                     }
+                    isDisabled={isDemoAccount}
+                    bg={isDemoAccount ? "gray.50" : "white"}
                   >
                     <option value="public">Public - Anyone can view your profile</option>
                     <option value="coaches_only">Coaches Only - Only verified coaches can view</option>
@@ -560,6 +651,12 @@ export default function SettingsPage() {
                   <FormHelperText>
                     This controls who can see your athlete profile and recruitment information
                   </FormHelperText>
+                  {isDemoAccount && (
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      <Lock size={10} style={{ display: "inline", marginRight: "4px" }} />
+                      Privacy settings are read-only for demo accounts
+                    </Text>
+                  )}
                 </FormControl>
 
                 <Divider />
@@ -576,8 +673,8 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={privacy?.show_contact_info || false}
-                      onChange={(e) => updatePrivacy({ show_contact_info: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) => !isDemoAccount && updatePrivacy({ show_contact_info: e.target.checked })}
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
 
@@ -590,8 +687,8 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={privacy?.show_location || false}
-                      onChange={(e) => updatePrivacy({ show_location: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) => !isDemoAccount && updatePrivacy({ show_location: e.target.checked })}
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
 
@@ -604,8 +701,8 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={privacy?.show_birth_date || false}
-                      onChange={(e) => updatePrivacy({ show_birth_date: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) => !isDemoAccount && updatePrivacy({ show_birth_date: e.target.checked })}
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
 
@@ -618,10 +715,17 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={privacy?.allow_reviews || false}
-                      onChange={(e) => updatePrivacy({ allow_reviews: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) => !isDemoAccount && updatePrivacy({ allow_reviews: e.target.checked })}
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
+
+                  {isDemoAccount && (
+                    <Text fontSize="xs" color="gray.500" mt={2}>
+                      <Lock size={10} style={{ display: "inline", marginRight: "4px" }} />
+                      Privacy toggles are disabled for demo accounts
+                    </Text>
+                  )}
                 </VStack>
               </VStack>
             </CardBody>
@@ -649,8 +753,8 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={notifications?.email_notifications || false}
-                      onChange={(e) => updateNotifications({ email_notifications: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) => !isDemoAccount && updateNotifications({ email_notifications: e.target.checked })}
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
 
@@ -663,8 +767,8 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={notifications?.push_notifications || false}
-                      onChange={(e) => updateNotifications({ push_notifications: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) => !isDemoAccount && updateNotifications({ push_notifications: e.target.checked })}
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
 
@@ -677,8 +781,8 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={notifications?.marketing_emails || false}
-                      onChange={(e) => updateNotifications({ marketing_emails: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) => !isDemoAccount && updateNotifications({ marketing_emails: e.target.checked })}
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
 
@@ -691,8 +795,10 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={notifications?.review_notifications || false}
-                      onChange={(e) => updateNotifications({ review_notifications: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) =>
+                        !isDemoAccount && updateNotifications({ review_notifications: e.target.checked })
+                      }
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
 
@@ -705,10 +811,17 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={notifications?.schedule_reminders || false}
-                      onChange={(e) => updateNotifications({ schedule_reminders: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) => !isDemoAccount && updateNotifications({ schedule_reminders: e.target.checked })}
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
+
+                  {isDemoAccount && (
+                    <Text fontSize="xs" color="gray.500" mt={2}>
+                      <Lock size={10} style={{ display: "inline", marginRight: "4px" }} />
+                      Notification settings are disabled for demo accounts
+                    </Text>
+                  )}
                 </VStack>
               </CardBody>
             </Card>
@@ -753,8 +866,10 @@ export default function SettingsPage() {
                     </VStack>
                     <Switch
                       isChecked={notifications?.allow_profile_notifications || false}
-                      onChange={(e) => updateNotifications({ allow_profile_notifications: e.target.checked })}
-                      isDisabled={settingsSaving}
+                      onChange={(e) =>
+                        !isDemoAccount && updateNotifications({ allow_profile_notifications: e.target.checked })
+                      }
+                      isDisabled={settingsSaving || isDemoAccount}
                     />
                   </HStack>
 
@@ -782,6 +897,13 @@ export default function SettingsPage() {
                         </AlertDescription>
                       </Box>
                     </Alert>
+                  )}
+
+                  {isDemoAccount && (
+                    <Text fontSize="xs" color="gray.500" mt={2}>
+                      <Lock size={10} style={{ display: "inline", marginRight: "4px" }} />
+                      Profile notification settings are disabled for demo accounts
+                    </Text>
                   )}
                 </VStack>
               </CardBody>
@@ -821,7 +943,7 @@ export default function SettingsPage() {
                   <Switch
                     isChecked={profile?.enable_social_sharing || false}
                     onChange={(e) => handleSocialSharingToggle(e.target.checked)}
-                    isDisabled={saving}
+                    isDisabled={saving || isDemoAccount}
                   />
                 </HStack>
 
@@ -849,6 +971,13 @@ export default function SettingsPage() {
                       </AlertDescription>
                     </Box>
                   </Alert>
+                )}
+
+                {isDemoAccount && (
+                  <Text fontSize="xs" color="gray.500" mt={2}>
+                    <Lock size={10} style={{ display: "inline", marginRight: "4px" }} />
+                    Social sharing settings are disabled for demo accounts
+                  </Text>
                 )}
 
                 <Divider />
@@ -884,12 +1013,15 @@ export default function SettingsPage() {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="Enter new password"
+                        isDisabled={isDemoAccount}
+                        bg={isDemoAccount ? "gray.50" : "white"}
                       />
                       <IconButton
                         aria-label="Toggle password visibility"
                         icon={showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         onClick={() => setShowPassword(!showPassword)}
                         variant="ghost"
+                        isDisabled={isDemoAccount}
                       />
                     </HStack>
                     <FormHelperText>Password must be at least 6 characters long</FormHelperText>
@@ -902,6 +1034,8 @@ export default function SettingsPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm new password"
+                      isDisabled={isDemoAccount}
+                      bg={isDemoAccount ? "gray.50" : "white"}
                     />
                   </FormControl>
 
@@ -909,11 +1043,18 @@ export default function SettingsPage() {
                     colorScheme="teal"
                     onClick={handlePasswordChange}
                     isLoading={saving}
-                    isDisabled={!newPassword || !confirmPassword}
+                    isDisabled={!newPassword || !confirmPassword || isDemoAccount}
                     alignSelf="flex-start"
                   >
-                    Update Password
+                    {isDemoAccount ? "Demo Account - Read Only" : "Update Password"}
                   </Button>
+
+                  {isDemoAccount && (
+                    <Text fontSize="xs" color="gray.500" alignSelf="flex-start">
+                      <Lock size={10} style={{ display: "inline", marginRight: "4px" }} />
+                      Password changes are disabled for demo accounts
+                    </Text>
+                  )}
                 </VStack>
               </CardBody>
             </Card>
@@ -959,8 +1100,9 @@ export default function SettingsPage() {
                               colorScheme="red"
                               onClick={() => handleMfaDisable(factor.id)}
                               isLoading={mfaLoading}
+                              isDisabled={isDemoAccount}
                             >
-                              Disable
+                              {isDemoAccount ? "Demo" : "Disable"}
                             </Button>
                           </HStack>
                         ))}
@@ -983,10 +1125,18 @@ export default function SettingsPage() {
                         onClick={handleMfaEnroll}
                         isLoading={mfaLoading}
                         colorScheme="teal"
+                        isDisabled={isDemoAccount}
                       >
-                        Enable MFA
+                        {isDemoAccount ? "Demo Account - MFA Disabled" : "Enable MFA"}
                       </Button>
                     </>
+                  )}
+
+                  {isDemoAccount && (
+                    <Text fontSize="xs" color="gray.500" mt={2}>
+                      <Lock size={10} style={{ display: "inline", marginRight: "4px" }} />
+                      MFA settings are disabled for demo accounts
+                    </Text>
                   )}
                 </VStack>
               </CardBody>
@@ -997,9 +1147,26 @@ export default function SettingsPage() {
         {/* Privacy & Data Settings */}
         {activeTab === "data" && (
           <VStack spacing={6} align="stretch">
-            <ConsentManager />
-            <DataExportManager />
-            <AccountDeletionManager />
+            {isDemoAccount && (
+              <Alert status="info">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle>Demo Account Data Restrictions</AlertTitle>
+                  <AlertDescription>
+                    Data export and account deletion are disabled for demo accounts. Cookie preferences can still be
+                    managed.
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            )}
+            <CookiePreferencesManager />
+            {!isDemoAccount && (
+              <>
+                <ConsentManager />
+                <DataExportManager />
+                <AccountDeletionManager />
+              </>
+            )}
           </VStack>
         )}
       </VStack>
@@ -1129,8 +1296,8 @@ export default function SettingsPage() {
             <Button variant="ghost" mr={3} onClick={onExportClose}>
               Cancel
             </Button>
-            <Button colorScheme="teal" onClick={handleDataExport}>
-              Download Data
+            <Button colorScheme="teal" onClick={handleDataExport} isDisabled={isDemoAccount}>
+              {isDemoAccount ? "Demo Account - Disabled" : "Download Data"}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -1166,8 +1333,8 @@ export default function SettingsPage() {
             <Button variant="ghost" mr={3} onClick={onDeleteClose}>
               Cancel
             </Button>
-            <Button colorScheme="red" onClick={handleAccountDeletion}>
-              Request Account Deletion
+            <Button colorScheme="red" onClick={handleAccountDeletion} isDisabled={isDemoAccount}>
+              {isDemoAccount ? "Demo Account - Cannot Delete" : "Request Account Deletion"}
             </Button>
           </ModalFooter>
         </ModalContent>

@@ -14,6 +14,7 @@ export interface TierFeatures {
   custom_hero: boolean // custom hero image
   priority_support: boolean // priority customer support
   custom_subdomain:boolean
+  verified_reviews:boolean
 }
 
 export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
@@ -30,13 +31,14 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
     multiple_sports: false,
     custom_hero: false,
     priority_support: false,
-      custom_subdomain:false
+    custom_subdomain:false,
+    verified_reviews:false
   },
   premium: {
     photos: 20,
     videos: 5,
     awards: true,
-    schedule: true,
+    schedule: false,
     reviews: true,
     teams: true, // Available for all tiers
     custom_theming: true,
@@ -45,7 +47,8 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
     multiple_sports: false,
     custom_hero: false,
     priority_support: false,
-      custom_subdomain:false
+    custom_subdomain:false,
+    verified_reviews:false
   },
   pro: {
     photos: 999, // unlimited
@@ -60,7 +63,8 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
     multiple_sports: true,
     custom_hero: true,
     priority_support: true,
-    custom_subdomain:true
+    custom_subdomain:true,
+    verified_reviews:true
   },
 }
 
