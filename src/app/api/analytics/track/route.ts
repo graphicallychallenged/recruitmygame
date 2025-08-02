@@ -65,6 +65,8 @@ async function getLocationFromIP(ip: string) {
 
   const apiKey = process.env.IPGEOLOCATION_API_KEY
 
+  console.log("API Key check:", apiKey ? "Found" : "Not found")
+
   if (!apiKey) {
     console.warn("IPGEOLOCATION_API_KEY not found, falling back to ipapi.co")
 
@@ -108,6 +110,7 @@ async function getLocationFromIP(ip: string) {
   }
 
   try {
+    console.log("Using IPGeolocation.io API")
     // Use IPGeolocation.io API
     const response = await fetch(`https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}&ip=${ip}`, {
       headers: {
@@ -162,11 +165,45 @@ export async function POST(request: NextRequest) {
       totalSessionTime,
       isPageExit,
       isPeriodicUpdate,
+      subscriptionTier,
+      consentGiven,
+      trackingAllowed,
     } = body
 
     if (!athleteId || !sessionId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
+
+    // CRITICAL CHECK: Only allow analytics tracking for PRO accounts
+    if (subscriptionTier !== "pro") {
+      console.log(`Analytics tracking blocked - subscription tier: ${subscriptionTier} (PRO required)`)
+      return NextResponse.json({ error: "Analytics only available for PRO accounts" }, { status: 403 })
+    }
+
+    // SECOND CHECK: User must have given consent
+    if (!consentGiven || !trackingAllowed) {
+      console.log("Analytics tracking blocked - no user consent")
+      return NextResponse.json({ error: "Analytics tracking requires user consent" }, { status: 403 })
+    }
+
+    // Verify the athlete is actually PRO by checking the database
+    const { data: athleteData, error: athleteError } = await supabase
+      .from("athletes")
+      .select("subscription_tier")
+      .eq("id", athleteId)
+      .single()
+
+    if (athleteError || !athleteData) {
+      console.error("Error verifying athlete subscription:", athleteError)
+      return NextResponse.json({ error: "Athlete not found" }, { status: 404 })
+    }
+
+    if (athleteData.subscription_tier !== "pro") {
+      console.log(`Analytics tracking blocked - database shows tier: ${athleteData.subscription_tier} (PRO required)`)
+      return NextResponse.json({ error: "Analytics only available for PRO accounts" }, { status: 403 })
+    }
+
+    console.log(`✅ Analytics tracking approved for PRO account: ${athleteId}`)
 
     // Handle page exit or periodic update
     if (isPageExit || isPeriodicUpdate) {

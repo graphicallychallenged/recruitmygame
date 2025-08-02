@@ -43,6 +43,7 @@ import { ScheduleSection } from "@/components/profile/ScheduleSection"
 import { getSubscriptionLimits, type SubscriptionTier } from "@/utils/tierFeatures"
 import { SocialShareButtons } from "@/components/SocialShareButtons"
 import { AnalyticsTracker } from "@/components/AnalyticsTracker"
+import { CookieBanner } from "@/components/CookieBanner"
 
 interface PublicProfileClientProps {
   athlete: AthleteProfile
@@ -122,7 +123,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
   useEffect(() => {
     const fetchFreshData = async () => {
       try {
-        console.log("Fetching data for athlete:", initialAthlete.username)
+        //console.log("Fetching data for athlete:", initialAthlete.username)
 
         // Fetch fresh athlete data
         const { data: athleteData, error: athleteError } = await supabase
@@ -137,8 +138,10 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
           throw new Error("Athlete not found")
         }
 
-        console.log("Found athlete:", athleteData)
-        console.log("Sport positions data:", athleteData.sport_positions)
+      //  console.log("Found athlete:", athleteData)
+      //  console.log("Sport positions data:", athleteData.sport_positions)
+
+        console.log("Subscription tier:", athleteData.subscription_tier)
 
         // Transform athlete data
         const transformedAthlete: AthleteProfile = {
@@ -384,41 +387,6 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
     fetchFreshData()
   }, [initialAthlete.username])
 
-  // Analytics tracking - add this after the existing fetchFreshData useEffect
-  useEffect(() => {
-    if (typeof window === "undefined" || !athlete.id) return
-
-    const trackPageView = async () => {
-      try {
-        // Generate or get session ID
-        let sessionId = sessionStorage.getItem("rmg_session_id")
-        if (!sessionId) {
-          sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-          sessionStorage.setItem("rmg_session_id", sessionId)
-          sessionStorage.setItem("rmg_session_start", Date.now().toString())
-        }
-
-        // Track page view
-        await fetch("/api/analytics/track", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            athleteId: athlete.id,
-            sessionId,
-            pagePath: window.location.pathname,
-            pageTitle: document.title,
-            referrer: document.referrer,
-          }),
-        })
-      } catch (error) {
-        // Silently fail - don't break the page
-        console.debug("Analytics tracking failed:", error)
-      }
-    }
-
-    trackPageView()
-  }, [athlete.id])
-
   const getHeroImage = () => {
     // If user has a custom hero image (Pro feature), use that first
     if (athlete.hero_image_url) {
@@ -520,8 +488,17 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
 
   return (
     <Box bg={bgColor} minH="100vh">
-      {/* Add the analytics tracker - it renders nothing visible */}
-      <AnalyticsTracker athleteId={athlete.id} athleteName={athlete.athlete_name} />
+      {/* Analytics tracker for public profile visitors - only tracks with consent */}
+      <AnalyticsTracker
+        athleteId={athlete.id}
+        subscriptionTier={subscriptionTier}
+        athleteName={athlete.athlete_name}
+        pagePath={typeof window !== "undefined" ? window.location.pathname : undefined}
+        pageTitle={typeof window !== "undefined" ? document.title : undefined}
+      />
+
+      {/* Cookie banner for public profile visitors */}
+      <CookieBanner />
 
       {/* Hero Section */}
       <HeroSection
