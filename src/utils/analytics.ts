@@ -19,94 +19,220 @@ export async function auditAthleteProfile(athlete: AthleteProfile): Promise<Audi
   const missing_fields: string[] = []
   const audit_data: Record<string, any> = {}
 
-  // Completeness Score (0-100)
-  const requiredFields = [
-    "athlete_name",
-    "sport",
-    "school",
-    "location",
-    "bio",
-    "profile_picture_url",
-    "grade",
-    "graduation_year",
+  // REVISED COMPLETENESS SCORE - More comprehensive and meaningful
+  let completeness_score = 0
+
+  // Core Profile Information (40 points total)
+  const coreFields = [
+    { field: "athlete_name", points: 5, label: "Athlete Name" },
+    { field: "sport", points: 5, label: "Sport" },
+    { field: "bio", points: 8, label: "Bio" },
+    { field: "school", points: 5, label: "School" },
+    { field: "location", points: 5, label: "Location" },
+    { field: "graduation_year", points: 4, label: "Graduation Year" },
+    { field: "profile_picture_url", points: 5, label: "Profile Picture" },
+    { field: "grade", points: 3, label: "Grade" },
   ]
 
-  const optionalFields = ["height", "weight", "gpa", "positions_played", "email", "phone"]
-
-  const socialFields = ["instagram", "twitter", "facebook", "youtube", "linkedin", "website"]
-
-  let completedRequired = 0
-  let completedOptional = 0
-  let completedSocial = 0
-
-  // Check required fields
-  requiredFields.forEach((field) => {
+  coreFields.forEach(({ field, points, label }) => {
     const value = athlete[field as keyof AthleteProfile]
     if (value && value !== "") {
-      completedRequired++
+      completeness_score += points
+      audit_data[`has_${field}`] = true
     } else {
-      missing_fields.push(field.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()))
+      missing_fields.push(label)
+      audit_data[`has_${field}`] = false
     }
   })
 
-  // Check optional fields
-  optionalFields.forEach((field) => {
+  // Athletic Details (20 points total)
+  const athleticFields = [
+    { field: "height", points: 3, label: "Height" },
+    { field: "weight", points: 3, label: "Weight" },
+    { field: "positions_played", points: 5, label: "Positions Played" },
+    { field: "gpa", points: 4, label: "GPA" },
+    { field: "sat_score", points: 2.5, label: "SAT Score" },
+    { field: "act_score", points: 2.5, label: "ACT Score" },
+  ]
+
+  athleticFields.forEach(({ field, points, label }) => {
     const value = athlete[field as keyof AthleteProfile]
-    if (value && value !== "") {
-      completedOptional++
+    if (value && (Array.isArray(value) ? value.length > 0 : value !== "")) {
+      completeness_score += points
+      audit_data[`has_${field}`] = true
+    } else {
+      if (points >= 4) missing_fields.push(label) // Only add important missing fields
+      audit_data[`has_${field}`] = false
     }
   })
 
-  // Check social fields
+  // Teams (10 points) - CRITICAL for athlete profiles
+  try {
+    const { data: teams } = await supabase.from("athlete_teams").select("id").eq("athlete_id", athlete.id)
+    const teamCount = teams?.length || 0
+    audit_data.team_count = teamCount
+
+    if (teamCount > 0) {
+      completeness_score += 10
+      strengths.push(`Listed ${teamCount} team${teamCount > 1 ? "s" : ""} in athletic history`)
+    } else {
+      missing_fields.push("Team History")
+      recommendations.push("Add your current and past teams to show your athletic journey")
+    }
+  } catch (error) {
+    console.error("Error checking teams:", error)
+    audit_data.team_count = 0
+  }
+
+  // Content & Media (15 points)
+  let contentPoints = 0
+
+  // Photos (3 points)
+  try {
+    const { data: photos } = await supabase.from("athlete_photos").select("id").eq("athlete_id", athlete.id)
+    const photoCount = photos?.length || 0
+    audit_data.photo_count = photoCount
+
+    if (photoCount > 0) {
+      contentPoints += 3
+      if (photoCount >= 5) {
+        strengths.push(`Strong photo gallery with ${photoCount} images`)
+      }
+    } else {
+      recommendations.push("Add photos to showcase your athletic abilities")
+    }
+  } catch (error) {
+    audit_data.photo_count = 0
+  }
+
+  // Videos (4 points)
+  try {
+    const { data: videos } = await supabase.from("athlete_videos").select("id").eq("athlete_id", athlete.id)
+    const videoCount = videos?.length || 0
+    audit_data.video_count = videoCount
+
+    if (videoCount > 0) {
+      contentPoints += 4
+      strengths.push(`${videoCount} video${videoCount > 1 ? "s" : ""} showcasing athletic skills`)
+    } else if (athlete.subscription_tier !== "free") {
+      recommendations.push("Add highlight videos to attract recruiters")
+    }
+  } catch (error) {
+    audit_data.video_count = 0
+  }
+
+  // Awards (4 points)
+  try {
+    const { data: awards } = await supabase.from("athlete_awards").select("id").eq("athlete_id", athlete.id)
+    const awardCount = awards?.length || 0
+    audit_data.award_count = awardCount
+
+    if (awardCount > 0) {
+      contentPoints += 4
+      strengths.push(`${awardCount} documented achievement${awardCount > 1 ? "s" : ""}`)
+    } else if (athlete.subscription_tier !== "free") {
+      recommendations.push("Add your awards and achievements")
+    }
+  } catch (error) {
+    audit_data.award_count = 0
+  }
+
+  // Verified Reviews (4 points) - CRITICAL for credibility
+  try {
+    const { data: allReviews } = await supabase
+      .from("athlete_reviews")
+      .select("id, is_verified")
+      .eq("athlete_id", athlete.id)
+
+    const totalReviews = allReviews?.length || 0
+    const verifiedReviews = allReviews?.filter((review) => review.is_verified) || []
+    const verifiedCount = verifiedReviews.length
+
+    audit_data.total_reviews = totalReviews
+    audit_data.verified_reviews = verifiedCount
+
+    if (verifiedCount > 0) {
+      contentPoints += 4
+      strengths.push(`${verifiedCount} verified review${verifiedCount > 1 ? "s" : ""} from coaches`)
+    } else if (totalReviews > 0) {
+      contentPoints += 1
+      recommendations.push("Request verification for your existing reviews to build credibility")
+    } 
+  } catch (error) {
+    audit_data.total_reviews = 0
+    audit_data.verified_reviews = 0
+  }
+
+  completeness_score += contentPoints
+
+  // Social Media & Contact (15 points)
+  const socialFields = ["instagram", "twitter", "facebook", "youtube", "linkedin", "website"]
+  const contactFields = ["email", "phone"]
+
+  let socialPoints = 0
+  let connectedSocial = 0
+
   socialFields.forEach((field) => {
     const value = athlete[field as keyof AthleteProfile]
     if (value && value !== "") {
-      completedSocial++
+      connectedSocial++
+      socialPoints += 2 // 12 points max for social
     }
   })
 
-  const completeness_score = Math.round(
-    (completedRequired / requiredFields.length) * 60 +
-      (completedOptional / optionalFields.length) * 25 +
-      (completedSocial / socialFields.length) * 15,
-  )
+  contactFields.forEach((field) => {
+    const value = athlete[field as keyof AthleteProfile]
+    if (value && value !== "") {
+      socialPoints += 1.5 // 3 points max for contact
+    } else {
+      if (field === "email") missing_fields.push("Contact Email")
+    }
+  })
 
-  // SEO Score (0-100)
+  completeness_score += Math.min(socialPoints, 15)
+  audit_data.social_platforms_connected = connectedSocial
+
+  // Cap completeness at 100
+  completeness_score = Math.min(Math.round(completeness_score), 100)
+
+  // SEO Score (0-100) - Enhanced
   let seo_score = 0
 
-  // Bio length and quality
+  // Bio quality and length (30 points)
   if (athlete.bio) {
-    if (athlete.bio.length > 150) {
-      seo_score += 25
-      strengths.push("Comprehensive bio that helps with search visibility")
-    } else if (athlete.bio.length > 50) {
-      seo_score += 15
-      recommendations.push("Expand your bio to at least 150 characters for better SEO")
+    const bioLength = athlete.bio.length
+    if (bioLength > 200) {
+      seo_score += 30
+      strengths.push("Comprehensive bio that tells your story well")
+    } else if (bioLength > 100) {
+      seo_score += 20
+      recommendations.push("Expand your bio to over 200 characters for better storytelling")
+    } else if (bioLength > 50) {
+      seo_score += 10
+      recommendations.push("Write a more detailed bio to improve search visibility")
     } else {
       seo_score += 5
-      recommendations.push("Write a longer, more detailed bio for better search rankings")
+      recommendations.push("Create a compelling bio that tells your athletic story")
     }
   } else {
     recommendations.push("Add a bio to improve your profile's search visibility")
   }
 
-  // Location for local SEO
-  if (athlete.location) {
-    seo_score += 20
-    strengths.push("Location information helps with local search results")
-  } else {
-    recommendations.push("Add your location to improve local search visibility")
-  }
-
-  // School information
-  if (athlete.school) {
-    seo_score += 20
-    strengths.push("School information enhances your athletic profile")
-  }
-
-  // Sport and positions
-  if (athlete.sport) {
+  // Location and school (25 points)
+  if (athlete.location && athlete.school) {
+    seo_score += 25
+    strengths.push("Location and school information enhance discoverability")
+  } else if (athlete.location || athlete.school) {
     seo_score += 15
+    if (!athlete.location) recommendations.push("Add your location for local search visibility")
+    if (!athlete.school) recommendations.push("Add your school information")
+  } else {
+    recommendations.push("Add location and school information for better search results")
+  }
+
+  // Sport and position specificity (20 points)
+  if (athlete.sport) {
+    seo_score += 10
     if (athlete.positions_played && athlete.positions_played.length > 0) {
       seo_score += 10
       strengths.push("Specific position information helps coaches find you")
@@ -115,21 +241,30 @@ export async function auditAthleteProfile(athlete: AthleteProfile): Promise<Audi
     }
   }
 
-  // Academic info
+  // Academic information (15 points)
   if (athlete.gpa || athlete.sat_score || athlete.act_score) {
-    seo_score += 10
+    seo_score += 15
     strengths.push("Academic information appeals to college recruiters")
   } else {
-    recommendations.push("Add academic information (GPA, SAT/ACT scores) to attract college recruiters")
+    recommendations.push("Add academic information (GPA, test scores) to attract college recruiters")
   }
 
-  // Social Score (0-100)
+  // Graduation year (10 points)
+  if (athlete.graduation_year) {
+    seo_score += 10
+  } else {
+    recommendations.push("Add graduation year to help recruiters find athletes in your class")
+  }
+
+  // Social Score (0-100) - Simplified but meaningful
   let social_score = 0
   const socialPlatforms = ["instagram", "twitter", "facebook", "youtube", "linkedin"]
   const activePlatforms = socialPlatforms.filter((platform) => athlete[platform as keyof AthleteProfile]).length
 
+  // Base social media presence (70 points)
   social_score = Math.round((activePlatforms / socialPlatforms.length) * 70)
 
+  // Personal website bonus (15 points)
   if (athlete.website) {
     social_score += 15
     strengths.push("Personal website adds professional credibility")
@@ -137,6 +272,7 @@ export async function auditAthleteProfile(athlete: AthleteProfile): Promise<Audi
     recommendations.push("Consider creating a personal website for additional online presence")
   }
 
+  // Social sharing enabled (15 points)
   if (athlete.enable_social_sharing) {
     social_score += 15
     strengths.push("Social sharing enabled to increase profile visibility")
@@ -152,94 +288,133 @@ export async function auditAthleteProfile(athlete: AthleteProfile): Promise<Audi
     recommendations.push("Add social media links to build your online presence")
   }
 
-  // Content Score (0-100)
+  // Content Score (0-100) - Rebalanced for meaningful assessment
   let content_score = 0
 
-  // Check for photos
-  try {
-    const { data: photos } = await supabase.from("athlete_photos").select("id").eq("athlete_id", athlete.id).limit(1)
+  // Photos (20 points)
+  const photoCount = audit_data.photo_count || 0
+  if (photoCount >= 5) {
+    content_score += 20
+    strengths.push("Excellent photo gallery showcasing your athletic journey")
+  } else if (photoCount >= 3) {
+    content_score += 15
+    strengths.push("Good photo collection")
+  } else if (photoCount >= 1) {
+    content_score += 10
+    recommendations.push("Add more photos to create a comprehensive visual portfolio")
+  } else {
+    recommendations.push("Add photos to make your profile more engaging")
+  }
 
-    if (photos && photos.length > 0) {
+  // Videos (25 points)
+  const videoCount = audit_data.video_count || 0
+  if (athlete.subscription_tier !== "free") {
+    if (videoCount >= 3) {
       content_score += 25
-      strengths.push("Photo gallery showcases your athletic achievements")
+      strengths.push("Great video content showcasing your athletic abilities")
+    } else if (videoCount >= 1) {
+      content_score += 15
+      recommendations.push("Add more highlight videos to showcase different skills")
     } else {
-      recommendations.push("Add photos to make your profile more engaging")
+      recommendations.push("Add highlight videos to showcase your athletic abilities")
+    }
+  }
+
+  // Awards (20 points)
+  const awardCount = audit_data.award_count || 0
+  if (athlete.subscription_tier !== "free") {
+    if (awardCount >= 3) {
+      content_score += 20
+      strengths.push("Documented achievements and awards")
+    } else if (awardCount >= 1) {
+      content_score += 12
+      recommendations.push("Add more of your achievements and awards")
+    } else {
+      recommendations.push("Add your awards and achievements to highlight your accomplishments")
+    }
+  }
+
+  // Verified Reviews (25 points) - High weight for credibility
+  const verifiedCount = audit_data.verified_reviews || 0
+  const totalReviews = audit_data.total_reviews || 0
+
+  if (athlete.subscription_tier !== "free") {
+    if (verifiedCount >= 3) {
+      content_score += 25
+      strengths.push(`${verifiedCount} verified reviews demonstrate strong coach endorsement`)
+    } else if (verifiedCount >= 1) {
+      content_score += 15
+      strengths.push(`${verifiedCount} verified review${verifiedCount > 1 ? "s" : ""} from coaches`)
+      recommendations.push("Request more verified reviews to build stronger credibility")
+    } else if (totalReviews > 0) {
+      content_score += 5
+      recommendations.push("Request verification for your existing reviews to increase credibility")
+    } else {
+      recommendations.push("Request verified reviews from coaches to build credibility and trust")
+    }
+  }
+
+  // Schedule/Events (10 points)
+  try {
+    const { data: schedule } = await supabase
+      .from("athlete_schedule")
+      .select("id")
+      .eq("athlete_id", athlete.id)
+      .gte("event_date", new Date().toISOString().split("T")[0])
+
+    const upcomingEvents = schedule?.length || 0
+    audit_data.upcoming_events = upcomingEvents
+
+    if (upcomingEvents > 0) {
+      content_score += 10
+      strengths.push("Event schedule helps coaches track your activities")
+    } else if (athlete.subscription_tier === "pro") {
+      recommendations.push("Add your game and event schedule to keep coaches informed")
     }
   } catch (error) {
-    console.error("Error checking photos:", error)
+    audit_data.upcoming_events = 0
   }
 
-  // Check for videos (Premium/Pro feature)
-  if (athlete.subscription_tier === "premium" || athlete.subscription_tier === "pro") {
-    try {
-      const { data: videos } = await supabase.from("athlete_videos").select("id").eq("athlete_id", athlete.id).limit(1)
-
-      if (videos && videos.length > 0) {
-        content_score += 25
-        strengths.push("Video content provides dynamic showcase of your skills")
-      } else {
-        recommendations.push("Add highlight videos to showcase your athletic abilities")
-      }
-    } catch (error) {
-      console.error("Error checking videos:", error)
-    }
-  }
-
-  // Check for awards (Premium/Pro feature)
-  if (athlete.subscription_tier === "premium" || athlete.subscription_tier === "pro") {
-    try {
-      const { data: awards } = await supabase.from("athlete_awards").select("id").eq("athlete_id", athlete.id).limit(1)
-
-      if (awards && awards.length > 0) {
-        content_score += 25
-        strengths.push("Awards and achievements demonstrate your competitive success")
-      } else {
-        recommendations.push("Add your awards and achievements to highlight your accomplishments")
-      }
-    } catch (error) {
-      console.error("Error checking awards:", error)
-    }
-  }
-
-  // Check for reviews (Premium/Pro feature)
-  if (athlete.subscription_tier === "premium" || athlete.subscription_tier === "pro") {
-    try {
-      const { data: reviews } = await supabase
-        .from("athlete_reviews")
-        .select("id")
-        .eq("athlete_id", athlete.id)
-        .eq("is_approved", true)
-        .limit(1)
-
-      if (reviews && reviews.length > 0) {
-        content_score += 25
-        strengths.push("Coach and peer reviews add credibility to your profile")
-      } else {
-        recommendations.push("Request reviews from coaches and teammates to build credibility")
-      }
-    } catch (error) {
-      console.error("Error checking reviews:", error)
-    }
-  }
-
-  // Profile picture quality
+  // Profile picture quality check
   if (athlete.profile_picture_url) {
     strengths.push("Professional profile picture creates a strong first impression")
   } else {
     recommendations.push("Add a professional profile picture")
   }
 
-  // Store audit data
-  audit_data.required_fields_completed = completedRequired
-  audit_data.optional_fields_completed = completedOptional
-  audit_data.social_platforms_connected = activePlatforms
-  audit_data.total_fields_checked = requiredFields.length + optionalFields.length + socialFields.length
+  // Add hero image recommendation
+  if (!athlete.hero_image_url) {
+    recommendations.push("Add a hero image to make your profile more visually appealing")
+  }
+
+  // Store comprehensive audit data
+  audit_data.completeness_breakdown = {
+    core_profile: Math.round(
+      (coreFields.reduce((sum, field) => {
+        const value = athlete[field.field as keyof AthleteProfile]
+        return sum + (value && value !== "" ? field.points : 0)
+      }, 0) /
+        40) *
+        100,
+    ),
+    athletic_details: Math.round(
+      (athleticFields.reduce((sum, field) => {
+        const value = athlete[field.field as keyof AthleteProfile]
+        return sum + (value && (Array.isArray(value) ? value.length > 0 : value !== "") ? field.points : 0)
+      }, 0) /
+        20) *
+        100,
+    ),
+    teams: audit_data.team_count > 0 ? 100 : 0,
+    content_media: Math.round((contentPoints / 15) * 100),
+    social_contact: Math.round((Math.min(socialPoints, 15) / 15) * 100),
+  }
 
   return {
     completeness_score,
-    seo_score,
+    seo_score: Math.round(seo_score),
     social_score,
-    content_score,
+    content_score: Math.round(content_score),
     recommendations,
     strengths,
     missing_fields,
@@ -548,14 +723,14 @@ export async function auditProfile(athleteId: string): Promise<ProfileAuditResul
     recommendations.push("Connect social media accounts to increase visibility")
   }
 
-  // Content Score
+  // Content Score - Updated to include verified reviews
   let contentScore = 0
 
   // Check for photos
   const { data: photos } = await supabase.from("athlete_photos").select("id").eq("athlete_id", athleteId)
 
   if (photos && photos.length > 0) {
-    contentScore += 25
+    contentScore += 20
     strengths.push(`Has ${photos.length} photos`)
   } else {
     recommendations.push("Add photos to showcase your athletic abilities")
@@ -565,7 +740,7 @@ export async function auditProfile(athleteId: string): Promise<ProfileAuditResul
   const { data: videos } = await supabase.from("athlete_videos").select("id").eq("athlete_id", athleteId)
 
   if (videos && videos.length > 0) {
-    contentScore += 25
+    contentScore += 20
     strengths.push(`Has ${videos.length} videos`)
   } else {
     recommendations.push("Add highlight videos to attract recruiters")
@@ -575,27 +750,48 @@ export async function auditProfile(athleteId: string): Promise<ProfileAuditResul
   const { data: awards } = await supabase.from("athlete_awards").select("id").eq("athlete_id", athleteId)
 
   if (awards && awards.length > 0) {
-    contentScore += 25
+    contentScore += 20
     strengths.push(`Has ${awards.length} awards listed`)
   } else {
     recommendations.push("Add your awards and achievements")
   }
 
-  // Check for schedule
-  const { data: schedule } = await supabase.from("athlete_schedule").select("id").eq("athlete_id", athleteId)
+  // Check for verified reviews
+  const { data: allReviews } = await supabase
+    .from("athlete_reviews")
+    .select("id, is_verified")
+    .eq("athlete_id", athleteId)
 
-  if (schedule && schedule.length > 0) {
-    contentScore += 25
-    strengths.push("Has upcoming events scheduled")
+  const verifiedReviews = allReviews?.filter((review) => review.is_verified) || []
+  const totalReviews = allReviews?.length || 0
+
+  if (verifiedReviews.length > 0) {
+    contentScore += 20
+    strengths.push(`Has ${verifiedReviews.length} verified review${verifiedReviews.length > 1 ? "s" : ""} from coaches`)
+  } else if (totalReviews > 0) {
+    contentScore += 5
+    recommendations.push("Request verification for your existing reviews to increase credibility")
   } else {
-    recommendations.push("Add your game/event schedule")
+    recommendations.push("Request verified reviews from coaches to build credibility")
+  }
+
+  // Check for schedule - only if we haven't reached 100%
+  if (contentScore < 100) {
+    const { data: schedule } = await supabase.from("athlete_schedule").select("id").eq("athlete_id", athleteId)
+
+    if (schedule && schedule.length > 0) {
+      contentScore += Math.min(20, 100 - contentScore)
+      strengths.push("Has upcoming events scheduled")
+    } else {
+      recommendations.push("Add your game/event schedule")
+    }
   }
 
   return {
     completenessScore: Math.round(completenessScore),
     seoScore,
     socialScore: Math.round(socialScore),
-    contentScore,
+    contentScore: Math.round(contentScore),
     recommendations,
     strengths,
     missingFields,

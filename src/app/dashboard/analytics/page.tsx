@@ -71,6 +71,11 @@ import {
   CodeIcon,
   MapPin,
   Globe,
+  Shield,
+  Camera,
+  Video,
+  Award,
+  UserCheck,
 } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
@@ -423,7 +428,9 @@ export default function AnalyticsPage() {
                         <Stat>
                           <StatLabel>Total Views</StatLabel>
                           <StatNumber>
-                            {analyticsData?.analytics.reduce((sum, item) => sum + item.page_views, 0) || 0}
+                            {analyticsData?.analytics
+                              .reduce((sum, item) => sum + item.page_views, 0)
+                              ?.toLocaleString() || 0}
                           </StatNumber>
                           <StatHelpText>
                             <StatArrow type="increase" />
@@ -439,7 +446,9 @@ export default function AnalyticsPage() {
                         <Stat>
                           <StatLabel>Unique Visitors</StatLabel>
                           <StatNumber>
-                            {analyticsData?.analytics.reduce((sum, item) => sum + item.unique_visitors, 0) || 0}
+                            {analyticsData?.analytics
+                              .reduce((sum, item) => sum + item.unique_visitors, 0)
+                              ?.toLocaleString() || 0}
                           </StatNumber>
                           <StatHelpText>
                             <StatArrow type="increase" />
@@ -676,6 +685,155 @@ export default function AnalyticsPage() {
                         </Card>
                       </GridItem>
                     </Grid>
+
+                    {/* Content Breakdown - New section showing verified reviews */}
+                    {audit.audit_data && (
+                      <Card>
+                        <CardBody>
+                          <Heading size="sm" mb={4}>
+                            <HStack spacing={2}>
+                              <Icon as={BarChart3} color="blue.500" />
+                              <Text>Content Breakdown</Text>
+                            </HStack>
+                          </Heading>
+                          <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(5, 1fr)" }} gap={4}>
+                            <GridItem>
+                              <VStack spacing={2}>
+                                <Icon as={Camera} size={24} color="blue.500" />
+                                <Text fontSize="sm" fontWeight="medium">
+                                  Photos
+                                </Text>
+                                <Badge
+                                  colorScheme={audit.audit_data.photo_count > 0 ? "green" : "gray"}
+                                  variant="subtle"
+                                >
+                                  {audit.audit_data.photo_count || 0}
+                                </Badge>
+                              </VStack>
+                            </GridItem>
+                            <GridItem>
+                              <VStack spacing={2}>
+                                <Icon as={Video} size={24} color="purple.500" />
+                                <Text fontSize="sm" fontWeight="medium">
+                                  Videos
+                                </Text>
+                                <Badge
+                                  colorScheme={audit.audit_data.video_count > 0 ? "green" : "gray"}
+                                  variant="subtle"
+                                >
+                                  {audit.audit_data.video_count || 0}
+                                </Badge>
+                              </VStack>
+                            </GridItem>
+                            <GridItem>
+                              <VStack spacing={2}>
+                                <Icon as={Award} size={24} color="yellow.500" />
+                                <Text fontSize="sm" fontWeight="medium">
+                                  Awards
+                                </Text>
+                                <Badge
+                                  colorScheme={audit.audit_data.award_count > 0 ? "green" : "gray"}
+                                  variant="subtle"
+                                >
+                                  {audit.audit_data.award_count || 0}
+                                </Badge>
+                              </VStack>
+                            </GridItem>
+                            <GridItem>
+                              <VStack spacing={2}>
+                                <Icon as={UserCheck} size={24} color="teal.500" />
+                                <Text fontSize="sm" fontWeight="medium">
+                                  Teams
+                                </Text>
+                                <Badge colorScheme={audit.audit_data.team_count > 0 ? "green" : "red"} variant="subtle">
+                                  {audit.audit_data.team_count || 0}
+                                </Badge>
+                              </VStack>
+                            </GridItem>
+                            <GridItem>
+                              <VStack spacing={2}>
+                                <Icon as={Shield} size={24} color="orange.500" />
+                                <Text fontSize="sm" fontWeight="medium">
+                                  Verified Reviews
+                                </Text>
+                                <Badge
+                                  colorScheme={
+                                    audit.audit_data.verified_reviews > 0
+                                      ? "green"
+                                      : audit.audit_data.total_reviews > 0
+                                        ? "yellow"
+                                        : "gray"
+                                  }
+                                  variant="subtle"
+                                >
+                                  {audit.audit_data.verified_reviews || 0} of {audit.audit_data.total_reviews || 0}
+                                </Badge>
+                              </VStack>
+                            </GridItem>
+                          </Grid>
+
+                          {/* Critical Missing Elements Alert */}
+                          {(audit.audit_data.team_count === 0 || audit.audit_data.verified_reviews === 0) && (
+                            <Box
+                              mt={6}
+                              p={4}
+                              bg="red.50"
+                              borderRadius="md"
+                              borderLeft="4px solid"
+                              borderColor="red.500"
+                            >
+                              <HStack spacing={2} mb={2}>
+                                <Icon as={AlertCircle} size={16} color="red.500" />
+                                <Text fontSize="sm" fontWeight="bold" color="red.700">
+                                  Critical Profile Elements Missing
+                                </Text>
+                              </HStack>
+                              <VStack spacing={2} align="start">
+                                {audit.audit_data.team_count === 0 && (
+                                  <Text fontSize="sm" color="red.600">
+                                    • Team history is required for a complete profile - coaches need to see your
+                                    experience
+                                  </Text>
+                                )}
+                                {audit.audit_data.verified_reviews === 0 && (
+                                  <Text fontSize="sm" color="red.600">
+                                    • Verified reviews build credibility and trust with college coaches
+                                  </Text>
+                                )}
+                              </VStack>
+                            </Box>
+                          )}
+
+                          {/* Review Verification Status */}
+                          {audit.audit_data.total_reviews > 0 && (
+                            <Box
+                              mt={4}
+                              p={3}
+                              bg="orange.50"
+                              borderRadius="md"
+                              borderLeft="4px solid"
+                              borderColor="orange.500"
+                            >
+                              <HStack spacing={2}>
+                                <Icon as={Shield} size={16} color="orange.500" />
+                                <Text fontSize="sm" fontWeight="medium">
+                                  Review Verification Status
+                                </Text>
+                              </HStack>
+                              <Text fontSize="sm" color="gray.600" mt={1}>
+                                {audit.audit_data.verified_reviews} of {audit.audit_data.total_reviews} reviews are
+                                verified.
+                                {audit.audit_data.verified_reviews === 0 &&
+                                  " Consider requesting verification to increase credibility."}
+                                {audit.audit_data.verified_reviews > 0 &&
+                                  audit.audit_data.verified_reviews < audit.audit_data.total_reviews &&
+                                  " Request verification for remaining reviews to maximize credibility."}
+                              </Text>
+                            </Box>
+                          )}
+                        </CardBody>
+                      </Card>
+                    )}
 
                     {/* Recommendations and Strengths */}
                     <Grid templateColumns={{ base: "1fr", lg: "repeat(2, 1fr)" }} gap={6}>
