@@ -44,6 +44,16 @@ interface ProfileUpdateNotificationData {
   unsubscribeToken: string
 }
 
+interface ContactNotificationData {
+  athleteEmail: string
+  athleteName: string
+  contactorName: string
+  contactorEmail: string
+  contactorOrganization?: string
+  message: string
+  athleteUsername: string
+}
+
 export async function sendReviewRequestEmail(data: ReviewRequestEmailData) {
   const htmlContent = `
     <!DOCTYPE html>
@@ -506,6 +516,129 @@ RecruitMyGame Team
     return result
   } catch (error) {
     console.error("Failed to send profile update notification:", error)
+    throw error
+  }
+}
+
+export async function sendContactNotificationEmail(data: ContactNotificationData) {
+  const profileUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/${data.athleteUsername}`
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>New Contact Message from Your Profile</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #ffffff; padding: 30px; border: 1px solid #e1e5e9; }
+        .contact-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .message-box { background: #e3f2fd; padding: 20px; border-left: 4px solid #2196f3; margin: 20px 0; }
+        .cta-button { display: inline-block; background: #3182ce; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; border-radius: 0 0 8px 8px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>📧 New Contact Message</h1>
+          <p>Someone contacted you through your RecruitMyGame profile</p>
+        </div>
+        
+        <div class="content">
+          <p>Hello ${data.athleteName},</p>
+          
+          <p>You have received a new message through your RecruitMyGame profile contact form!</p>
+          
+          <div class="contact-info">
+            <h3>Contact Information:</h3>
+            <p><strong>Name:</strong> ${data.contactorName}</p>
+            <p><strong>Email:</strong> ${data.contactorEmail}</p>
+            ${data.contactorOrganization ? `<p><strong>Organization:</strong> ${data.contactorOrganization}</p>` : ""}
+          </div>
+          
+          <div class="message-box">
+            <h4>Message:</h4>
+            <p>${data.message.replace(/\n/g, "<br>")}</p>
+          </div>
+          
+          <p>This could be a coach, recruiter, or someone interested in learning more about your athletic journey. We recommend responding promptly to maintain good relationships with potential opportunities.</p>
+          
+          <div style="text-align: center;">
+            <a href="mailto:${data.contactorEmail}?subject=Re: Contact from RecruitMyGame Profile" class="cta-button">Reply to ${data.contactorName}</a>
+          </div>
+          
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${profileUrl}" style="color: #3182ce; text-decoration: none;">View Your Profile</a>
+          </div>
+          
+          <p><strong>Tips for responding:</strong></p>
+          <ul>
+            <li>Respond within 24-48 hours when possible</li>
+            <li>Be professional and courteous</li>
+            <li>Include relevant information about your athletic achievements</li>
+            <li>Ask questions about their program or organization</li>
+          </ul>
+          
+          <p>Good luck with your recruitment journey!</p>
+        </div>
+        
+        <div class="footer">
+          <p>This message was sent through your RecruitMyGame profile contact form.</p>
+          <p>© 2024 RecruitMyGame. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const textContent = `
+New Contact Message from Your Profile
+
+Hello ${data.athleteName},
+
+You have received a new message through your RecruitMyGame profile contact form!
+
+Contact Information:
+- Name: ${data.contactorName}
+- Email: ${data.contactorEmail}
+${data.contactorOrganization ? `- Organization: ${data.contactorOrganization}` : ""}
+
+Message:
+${data.message}
+
+This could be a coach, recruiter, or someone interested in learning more about your athletic journey. We recommend responding promptly to maintain good relationships with potential opportunities.
+
+Reply to: ${data.contactorEmail}
+Your Profile: ${profileUrl}
+
+Tips for responding:
+- Respond within 24-48 hours when possible
+- Be professional and courteous
+- Include relevant information about your athletic achievements
+- Ask questions about their program or organization
+
+Good luck with your recruitment journey!
+
+RecruitMyGame Team
+  `
+
+  try {
+    const result = await resend.emails.send({
+      from: "RecruitMyGame <notifications@recruitmygame.com>",
+      to: [data.athleteEmail],
+      replyTo: data.contactorEmail,
+      subject: `New contact message from ${data.contactorName}`,
+      html: htmlContent,
+      text: textContent,
+    })
+
+    return result
+  } catch (error) {
+    console.error("Failed to send contact notification email:", error)
     throw error
   }
 }

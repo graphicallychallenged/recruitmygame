@@ -38,6 +38,7 @@ interface DashboardStats {
   totalTeams: number
   averageRating: number
   upcomingEvents: number
+  profileViews: number
 }
 
 interface Review {
@@ -62,8 +63,8 @@ interface AthleteProfile {
   school: string
   profile_picture_url: string
   subscription_tier: SubscriptionTier
-  follower_count: number
-  allow_profile_notifications: boolean
+  follower_count?: number
+  allow_profile_notifications?: boolean
 }
 
 export default function DashboardPage() {
@@ -77,6 +78,7 @@ export default function DashboardPage() {
     totalTeams: 0,
     averageRating: 0,
     upcomingEvents: 0,
+    profileViews: 0,
   })
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,25 +95,57 @@ export default function DashboardPage() {
       } = await supabase.auth.getSession()
       if (!session) return
 
-      // Fetch athlete profile
-      const { data: athleteData, error: athleteError } = await supabase
+      // First try to fetch athlete profile with new columns
+      let { data: athleteData, error: athleteError } = await supabase
         .from("athletes")
         .select("*, follower_count, allow_profile_notifications")
         .eq("user_id", session.user.id)
         .single()
+
+      // If the new columns don't exist, fetch without them
+      if (athleteError && athleteError.code === "42703") {
+        console.log("New columns don't exist yet, fetching basic profile...")
+        const { data: basicAthleteData, error: basicError } = await supabase
+          .from("athletes")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .single()
+
+        if (basicError) {
+          console.error("Error fetching basic athlete profile:", basicError)
+          setLoading(false)
+          return
+        }
+
+        athleteData = {
+          ...basicAthleteData,
+          follower_count: 0,
+          allow_profile_notifications: true,
+        }
+        athleteError = null
+      }
 
       console.log("Dashboard - Athlete data:", athleteData)
       console.log("Dashboard - Athlete error:", athleteError)
 
       if (athleteError) {
         console.error("Error fetching athlete profile:", athleteError)
-        // Don't return early, let the component show the create profile message
         setLoading(false)
         return
       }
 
       if (athleteData) {
         setAthlete(athleteData)
+
+        // Fetch profile views from analytics
+        let profileViews = 0
+        try {
+          const { data: viewsData } = await supabase.from("page_views").select("id").eq("athlete_id", athleteData.id)
+
+          profileViews = viewsData?.length || 0
+        } catch (error) {
+          console.log("Analytics not available yet, using 0 for profile views")
+        }
 
         // Fetch all stats in parallel using correct table names
         const [
@@ -178,6 +212,7 @@ export default function DashboardPage() {
           totalTeams: teamsResult.data?.length || 0,
           averageRating: Math.round(averageRating * 10) / 10,
           upcomingEvents: upcomingEventsResult.data?.length || 0,
+          profileViews: profileViews,
         })
 
         setReviews(reviewData)
@@ -378,7 +413,7 @@ export default function DashboardPage() {
         </Box>
 
         {/* Key Metrics */}
-        <SimpleGrid columns={{ base: 2, md: 3, lg: 4, xl:6 }} spacing={6}>
+        <SimpleGrid columns={{ base: 2, md: 6 }} spacing={6}>
           <Card>
             <CardBody textAlign="center">
               <VStack spacing={2}>
@@ -386,11 +421,11 @@ export default function DashboardPage() {
                   <Eye size={32} />
                 </Box>
                 <Stat>
-                  <StatNumber fontSize="2xl">-</StatNumber>
+                  <StatNumber fontSize="2xl">{stats.profileViews}</StatNumber>
                   <StatLabel fontSize="sm">Profile Views</StatLabel>
                 </Stat>
                 <Text fontSize="xs" color="gray.500">
-                  Coming soon
+                  Total visits
                 </Text>
               </VStack>
             </CardBody>
@@ -476,7 +511,7 @@ export default function DashboardPage() {
           <Card>
             <CardBody textAlign="center">
               <VStack spacing={2}>
-                <Box color={athlete.allow_profile_notifications ? "teal.500" : "gray.400"}>
+                <Box color={(athlete.allow_profile_notifications ?? true) ? "teal.500" : "gray.400"}>
                   <Users size={32} />
                 </Box>
                 <Stat>
@@ -484,7 +519,9 @@ export default function DashboardPage() {
                   <StatLabel fontSize="sm">Followers</StatLabel>
                 </Stat>
                 <Text fontSize="xs" color="gray.500">
-                  {athlete.allow_profile_notifications ? "People following your updates" : "Notifications disabled"}
+                  {(athlete.allow_profile_notifications ?? true)
+                    ? "People following your updates"
+                    : "Notifications disabled"}
                 </Text>
               </VStack>
             </CardBody>
