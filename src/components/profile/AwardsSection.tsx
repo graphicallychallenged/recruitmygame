@@ -1,6 +1,6 @@
 "use client"
 
-import { Box, VStack, HStack, Text, Heading, Badge, Icon, Wrap, WrapItem, Divider } from "@chakra-ui/react"
+import { Box, VStack, HStack, Text, Heading, Badge, Icon, Wrap, WrapItem, Divider, Flex, Card, CardBody } from "@chakra-ui/react"
 import { Trophy, Award, Star, Medal, Crown } from "lucide-react"
 
 interface AwardsSectionProps {
@@ -82,51 +82,22 @@ export function AwardsSection({
   return (
     <VStack spacing={8} align="stretch">
       {/* Awards Statistics */}
-      <Box>
-        <Heading size="lg" color={textColor} mb={6}>
-          Awards & Recognition
-        </Heading>
-        <Wrap spacing={4}>
-              <WrapItem>
-            <Badge bg={isDarkTheme ? "gray.700" : "gray.900"} color="white" variant="solid" px={1} py={1} borderRadius="none" fontSize="xs">
-              <HStack spacing={2}>
-                <Icon as={Trophy} boxSize={4} />
-                <Text fontWeight="medium">{awardStats.academic} Academic</Text>
-              </HStack>
-            </Badge>
-          </WrapItem>
-          <WrapItem>
-            <Badge bg={isDarkTheme ? "gray.700" : "gray.900"} color="white" variant="solid" px={1} py={1} borderRadius="none" fontSize="xs">
-              <HStack spacing={2}>
-                <Icon as={Medal} boxSize={4} />
-                <Text fontWeight="medium">{awardStats.athletic} Athletic</Text>
-              </HStack>
-            </Badge>
-          </WrapItem>
-          <WrapItem>
-            <Badge bg={isDarkTheme ? "gray.700" : "gray.900"} color="white" variant="solid" px={1} py={1} borderRadius="none" fontSize="xs">
-              <HStack spacing={2}>
-                <Icon as={Crown} boxSize={4} />
-                <Text fontWeight="medium">{awardStats.leadership} Leadership</Text>
-              </HStack>
-            </Badge>
-          </WrapItem>
-          <WrapItem>
-            <Badge bg={isDarkTheme ? "gray.700" : "gray.900"} color="white" variant="solid" px={1} py={1} borderRadius="none" fontSize="xs">
-              <HStack spacing={2}>
-                <Icon as={Award} boxSize={4} />
-                <Text fontWeight="medium">{awardStats.community} Community</Text>
-              </HStack>
-            </Badge>
-          </WrapItem>
-        </Wrap>
-      </Box>
+          <Card h="fit-content" bg={cardBgColor} borderColor={borderColor}>
+            <CardBody>
+              <Flex justify="space-between" align="center" mb={4}>
+                  <Heading size="lg" color={textColor} mb={2}>
+                  <HStack spacing={2}>
+                    <Icon as={Trophy} color={primaryColor} />              
+                    <Text> Awards & Recognition</Text> 
+                  </HStack>
+                  </Heading>
+              </Flex>
 
       {/* Awards Grid */}
       {awards.slice(0, 5).map((award) => {
         const typeInfo = getAwardTypeInfo(award.award_type)
         return (
-          <Box key={award.id}>
+          <Box key={award.id}   p={2}>
             <VStack align="stretch" spacing={3}>
               <HStack spacing={3} align="start">
                 <Box
@@ -179,6 +150,8 @@ export function AwardsSection({
           </Box>
         )
       })}
+        </CardBody>
+        </Card>
     </VStack>
   )
 }

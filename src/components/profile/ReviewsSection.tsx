@@ -19,7 +19,8 @@ import {
   Divider,
   useColorModeValue,
 } from "@chakra-ui/react"
-import { Star, MessageCircle, Shield, Trophy, Users, Heart, Brain, Target, Calendar, CheckCircle } from "lucide-react"
+import { Star, MessageCircle, Shield, Trophy, Users, Heart, Brain, Target, Calendar, CheckCircle,   ChevronDown,
+  ChevronUp, } from "lucide-react"
 import type { AthleteReview } from "@/types/database"
 import { useState } from "react"
 
@@ -33,6 +34,12 @@ interface ReviewsSectionProps {
   cardBgColor: string
   borderColor: string
   isDarkTheme: boolean
+  athleticism: number
+  character: number
+  work_ethic: number
+  leadership: number
+  coachability: number
+  teamwork: number
   onContactReviewer?: (review: AthleteReview) => void
 }
 
@@ -50,7 +57,7 @@ export function ReviewsSection({
 }: ReviewsSectionProps) {
   const [selectedReview, setSelectedReview] = useState<AthleteReview | null>(null)
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
-
+  const [showAllReviews, setShowAllReviews] = useState(false)
   // Responsive values
   const isMobile = useBreakpointValue({ base: true, md: false })
 
@@ -74,8 +81,9 @@ export function ReviewsSection({
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
 
-  const displayedReviews = sortedReviews.slice(0, maxDisplay)
+  const displayedReviews = showAllReviews ? sortedReviews : sortedReviews.slice(0, maxDisplay)
   const verifiedReviews = reviews.filter((review) => (review as any).is_verified)
+ const hasMoreReviews = reviews.length > maxDisplay
 
   const renderStars = (rating: number | null | undefined) => {
     const validRating = rating && rating >= 1 && rating <= 5 ? rating : 5
@@ -370,11 +378,23 @@ export function ReviewsSection({
           })}
         </VStack>
 
-        {reviews.length > maxDisplay && (
+          {hasMoreReviews && (
           <Box textAlign="center" pt={4}>
-            <Text fontSize="sm" color={mutedTextColor}>
-              +{reviews.length - maxDisplay} more reviews available
-            </Text>
+               <Button
+              variant="outline"
+              colorScheme="blue"
+              onClick={() => setShowAllReviews(!showAllReviews)}
+              leftIcon={showAllReviews ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              size="md"
+              borderRadius="full"
+              _hover={{
+                bg: primaryColor,
+                color: "white",
+                borderColor: primaryColor,
+              }}
+            >
+              {showAllReviews ? "Show Less Reviews" : `Show ${reviews.length - maxDisplay} More Reviews`}
+            </Button>
           </Box>
         )}
       </VStack>

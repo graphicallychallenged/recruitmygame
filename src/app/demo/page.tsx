@@ -87,7 +87,7 @@ export default function DemoPage() {
         reviews: 0, // Update from query results
         avgRating: 0, // Update from query results
       },
-      subscriptionTier: "free", // Update from query results
+      subscriptionTier: "premium", // Update from query results
       highlights: [
         // Update with actual achievements from database
         "Demo Account - Soccer Player",
@@ -102,27 +102,27 @@ export default function DemoPage() {
       position: "Wide Receiver", // Update with actual data
       school: "Metro Academy", // Update with actual data
       location: "Los Angeles, CA", // Update with actual data
-      classOf: "2024", // Update with actual data
-      image: "/placeholder.svg?height=120&width=120&text=MT",
-      profileUrl: "/marcusthompson",
+      classOf: "2026", // Update with actual data
+      image: "https://fuvapddevwtiftgysikn.supabase.co/storage/v1/object/public/profile-pictures/6b13067f-da3a-4757-9989-842921f5cc9a/4ct609m0u24-1754023607314.png",
+      profileUrl: "/markymark",
       loginEmail: "marcusthompson@test.com",
       loginPassword: "TestPassword123!",
       stats: {
-        videos: 0, // Update from query results
-        photos: 0, // Update from query results
-        awards: 0, // Update from query results
-        events: 0, // Update from query results
-        reviews: 0, // Update from query results
-        avgRating: 0, // Update from query results
+        videos: 5, // Update from query results
+        photos: 3, // Update from query results
+        awards: 3, // Update from query results
+        events: 8, // Update from query results
+        reviews: 5, // Update from query results
+        avgRating: 5.0, // Update from query results
       },
-      subscriptionTier: "free", // Update from query results
+      subscriptionTier: "pro", // Update from query results
       highlights: [
         // Update with actual achievements from database
         "Demo Account - Football Player",
         "Available for Testing Platform Features",
-        "Sample Profile for Coach Review",
+        "Sample Profile for Coach Reviews",
       ],
-      featuredTools: ["Analytics Dashboard", "Coach Reviews", "Business Cards"],
+      featuredTools: ["Analytics Dashboard", "Coach Reviews", "Business Cards", "Multiple Sports"],
     },
   ]
 
@@ -167,7 +167,7 @@ export default function DemoPage() {
             </Heading>
 
             <Text fontSize="xl" maxW="4xl" opacity={0.95} textShadow="1px 1px 2px rgba(0,0,0,0.2)">
-              Explore real athlete profiles showcasing our complete platform features. Each demo profile highlights
+              Dont just take our word for it! Try it out here - explore demo athlete profiles showcasing our complete platform features. Each demo profile highlights
               different aspects of our comprehensive recruitment system.
             </Text>
 
@@ -256,11 +256,10 @@ export default function DemoPage() {
         <VStack spacing={16}>
           <VStack spacing={6} textAlign="center">
             <Heading size="2xl" fontWeight="black">
-              Featured Demo Profiles
+              Featured Demo Athlete Profiles
             </Heading>
             <Text fontSize="lg" color="gray.600" maxW="4xl">
-              Each profile demonstrates different features and use cases. The data shown below will be updated once you
-              run the database query to reflect actual profile information.
+              Each profile demonstrates different features and use cases. 
             </Text>
           </VStack>
 
@@ -310,9 +309,9 @@ export default function DemoPage() {
                         <Badge
                           colorScheme={
                             athlete.subscriptionTier === "premium"
-                              ? "purple"
+                              ? "blue"
                               : athlete.subscriptionTier === "pro"
-                                ? "blue"
+                                ? "purple"
                                 : "gray"
                           }
                           variant="subtle"

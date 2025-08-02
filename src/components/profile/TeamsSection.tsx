@@ -109,12 +109,12 @@ export function TeamsSection({
                   <Box
                     textAlign="center"
                     p={3}
-                    bg={isDarkTheme ? "gray.600" : "gray.50"}
+                    bg={primaryColor}
                     borderRadius="lg"
                     border="1px solid"
                     borderColor={borderColor}
                   >
-                    <Text fontSize="xl" fontWeight="bold" color={primaryColor}>
+                    <Text fontSize="xl" fontWeight="bold" color={"white"}>
                       {String(value)}
                     </Text>
                     <Text fontSize="xs" color={mutedTextColor} textTransform="capitalize" mt={1}>
