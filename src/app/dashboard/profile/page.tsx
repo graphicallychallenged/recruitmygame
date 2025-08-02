@@ -524,7 +524,7 @@ export default function ProfilePage() {
     return (
       <Container maxW="4xl" py={8}>
         <Flex justify="center" align="center" h="400px">
-          <Spinner size="xl" color="blue.500" />
+          <Spinner size="xl" color="teal.500" />
         </Flex>
       </Container>
     )
@@ -550,7 +550,7 @@ export default function ProfilePage() {
         <Box>
           <Heading size="lg" mb={2}>
             <HStack spacing={2}>
-              <Icon as={User} color="blue.500" />
+              <Icon as={User} color="teal.500" />
               <Text>Profile Settings</Text>
               <Badge colorScheme={getTierColor(currentTier)} variant="subtle">
                 {getTierDisplayName(currentTier)}
@@ -826,53 +826,6 @@ export default function ProfilePage() {
               Sports & Positions
             </Heading>
 
-            {/* Additional Sports - Only for Pro */}
-            <FormControl mb={6}>
-              <FormLabel>
-                Additional Sports (Optional)
-                {!hasMultipleSports && (
-                  <Badge ml={2} colorScheme="purple" variant="outline">
-                    Pro
-                  </Badge>
-                )}
-              </FormLabel>
-              <Text fontSize="sm" color="gray.600" mb={3}>
-                Select any additional sports you play besides your primary sport
-              </Text>
-              {hasMultipleSports ? (
-                <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }} gap={2}>
-                  {SPORTS_OPTIONS.filter((sport) => sport !== formData.sport).map((sport) => (
-                    <GridItem key={sport}>
-                      <Button
-                        size="sm"
-                        variant={formData.sports.includes(sport) ? "solid" : "outline"}
-                        colorScheme={formData.sports.includes(sport) ? "blue" : "gray"}
-                        onClick={() => handleSportToggle(sport)}
-                        w="full"
-                      >
-                        {sport}
-                      </Button>
-                    </GridItem>
-                  ))}
-                </Grid>
-              ) : (
-                <Alert status="info">
-                  <AlertIcon />
-                  <Box>
-                    <AlertTitle>Pro Feature</AlertTitle>
-                    <AlertDescription>
-                      Upgrade to Pro to add multiple sports to your profile.{" "}
-                      <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
-                        Upgrade Now
-                      </Button>
-                    </AlertDescription>
-                  </Box>
-                </Alert>
-              )}
-            </FormControl>
-
-            <Divider mb={6} />
-
             {/* Positions */}
             {formData.sport && availablePositions.length > 0 && (
               <FormControl>
@@ -886,7 +839,7 @@ export default function ProfilePage() {
                       <Button
                         size="sm"
                         variant={formData.positions_played.includes(position) ? "solid" : "outline"}
-                        colorScheme={formData.positions_played.includes(position) ? "green" : "gray"}
+                        colorScheme={formData.positions_played.includes(position) ? "teal" : "gray"}
                         onClick={() => handlePositionToggle(position)}
                         w="full"
                       >
@@ -1071,7 +1024,7 @@ export default function ProfilePage() {
             <Box>
               <HStack justify="space-between" mb={3}>
                 <Text fontWeight="medium">Other Recruiting Profiles</Text>
-                <Button size="sm" colorScheme="blue" variant="outline" onClick={addRecruitingProfile}>
+                <Button size="sm" colorScheme="teal" variant="outline" onClick={addRecruitingProfile}>
                   Add Profile
                 </Button>
               </HStack>
@@ -1200,7 +1153,7 @@ export default function ProfilePage() {
                   <AlertTitle>Premium Feature</AlertTitle>
                   <AlertDescription>
                     Customize your profile colors and theme with Premium or Pro plans.{" "}
-                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                    <Button as={Link} href="/subscription" size="sm" colorScheme="teal" variant="link">
                       Upgrade Now
                     </Button>
                   </AlertDescription>
@@ -1232,43 +1185,13 @@ export default function ProfilePage() {
                 onUploadComplete={handleHeroImageUpload}
               />
             ) : (
-              <Alert status="info">
+              <Alert status="info" colorScheme="purple">
                 <AlertIcon />
                 <Box>
                   <AlertTitle>Pro Feature</AlertTitle>
                   <AlertDescription>
                     Upload a custom hero image for your profile with Pro plan.{" "}
-                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
-                      Upgrade to Pro
-                    </Button>
-                  </AlertDescription>
-                </Box>
-              </Alert>
-            )}
-          </CardBody>
-        </Card>
-
-        {/* Advanced Analytics - Pro Feature */}
-        <Card>
-          <CardBody>
-            <Heading size="md" mb={4}>
-              Advanced Analytics
-              {!hasAnalytics && (
-                <Badge colorScheme="purple" variant="outline">
-                  Pro
-                </Badge>
-              )}
-            </Heading>
-            {hasAnalytics ? (
-              <Text>Advanced analytics will be displayed here.</Text>
-            ) : (
-              <Alert status="info">
-                <AlertIcon />
-                <Box>
-                  <AlertTitle>Pro Feature</AlertTitle>
-                  <AlertDescription>
-                    Get detailed analytics about your profile performance with Pro plan.{" "}
-                    <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+                    <Button as={Link} href="/subscription" size="sm" colorScheme="purple" variant="link">
                       Upgrade to Pro
                     </Button>
                   </AlertDescription>
@@ -1282,7 +1205,7 @@ export default function ProfilePage() {
         <Flex justify="end">
           <Button
             leftIcon={<Save size={16} />}
-            colorScheme="blue"
+            colorScheme="teal"
             size="lg"
             onClick={handleSave}
             isLoading={saving}
@@ -1294,15 +1217,15 @@ export default function ProfilePage() {
 
         {/* Public Profile Link */}
         {(athlete.subdomain || athlete.username) && (
-          <Card bg="blue.50" borderColor="blue.200">
+          <Card bg="teal.50" borderColor="teal.200">
             <CardBody>
               <HStack spacing={2} mb={2}>
-                <Icon as={Eye} color="blue.500" />
-                <Text fontWeight="semibold" color="blue.700">
+                <Icon as={Eye} color="teal.500" />
+                <Text fontWeight="semibold" color="teal.700">
                   Your Public Profile
                 </Text>
               </HStack>
-              <Text fontSize="sm" color="blue.600" mb={3}>
+              <Text fontSize="sm" color="teal.600" mb={3}>
                 Your profile is available at:
                 <Text as="span" fontWeight="medium" ml={1}>
                   {getPublicProfileUrl()}
@@ -1313,7 +1236,7 @@ export default function ProfilePage() {
                 href={getPublicProfileUrl()}
                 target="_blank"
                 size="sm"
-                colorScheme="blue"
+                colorScheme="teal"
                 variant="outline"
               >
                 View Public Profile

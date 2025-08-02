@@ -293,7 +293,7 @@ export default function SportsPage() {
     return (
       <Container maxW="6xl" py={8}>
         <Flex justify="center" align="center" h="400px">
-          <Spinner size="xl" color="blue.500" />
+          <Spinner size="xl" color="teal.500" />
         </Flex>
       </Container>
     )
@@ -321,7 +321,7 @@ export default function SportsPage() {
         <Box>
           <Heading size="lg" mb={2}>
             <HStack spacing={2}>
-              <Icon as={Trophy} color="blue.500" />
+              <Icon as={Trophy} color="purple.500" />
               <Text>Sports & Positions</Text>
               <Badge colorScheme={getTierColor(currentTier)} variant="subtle">
                 {getTierDisplayName(currentTier)}
@@ -394,7 +394,7 @@ export default function SportsPage() {
                             <Button
                               size="sm"
                               variant={sportData.positions.includes(position) ? "solid" : "outline"}
-                              colorScheme={sportData.positions.includes(position) ? "green" : "gray"}
+                              colorScheme={sportData.positions.includes(position) ? "teal" : "gray"}
                               onClick={() => togglePosition(sportData.sport, position)}
                               w="full"
                               fontSize="xs"
@@ -449,25 +449,25 @@ export default function SportsPage() {
         )}
 
         {/* Sports Statistics */}
-        <Card bg="blue.50" borderColor="blue.200">
+        <Card bg="teal.50" borderColor="teal.200">
           <CardBody>
-            <Heading size="md" mb={4} color="blue.700">
+            <Heading size="md" mb={4} color="teal.700">
               Sports Summary
             </Heading>
             <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }} gap={4}>
               <Box textAlign="center">
-                <Text fontSize="2xl" fontWeight="bold" color="blue.600">
+                <Text fontSize="2xl" fontWeight="bold" color="teal.600">
                   {sportsData.length}
                 </Text>
-                <Text fontSize="sm" color="blue.600">
+                <Text fontSize="sm" color="teal.600">
                   Total Sports
                 </Text>
               </Box>
               <Box textAlign="center">
-                <Text fontSize="2xl" fontWeight="bold" color="green.600">
+                <Text fontSize="2xl" fontWeight="bold" color="teal.600">
                   {sportsData.reduce((total, sport) => total + sport.positions.length, 0)}
                 </Text>
-                <Text fontSize="sm" color="green.600">
+                <Text fontSize="sm" color="teal.600">
                   Total Positions
                 </Text>
               </Box>
@@ -508,7 +508,7 @@ export default function SportsPage() {
 
                 {/* Primary Sport */}
                 {sportsData.find((s) => s.isPrimary) && (
-                  <Badge variant="solid" fontSize="md" px={3} py={1} bg="blue.500" color="white">
+                  <Badge variant="solid" fontSize="md" px={3} py={1} bg="teal.500" color="white">
                     <HStack spacing={1}>
                       <Star size={14} fill="currentColor" />
                       <Text>{sportsData.find((s) => s.isPrimary)?.sport}</Text>
@@ -532,7 +532,7 @@ export default function SportsPage() {
                             fontSize="xs"
                             px={2}
                             py={1}
-                            bg="green.500"
+                            bg="teal.500"
                             color="white"
                             borderRadius="full"
                           >
@@ -560,7 +560,7 @@ export default function SportsPage() {
                             {sport.positions.map((position) => (
                               <Badge
                                 key={`${sport.sport}-${position}`}
-                                colorScheme="green"
+                                colorScheme="teal"
                                 variant="outline"
                                 fontSize="xs"
                                 px={2}

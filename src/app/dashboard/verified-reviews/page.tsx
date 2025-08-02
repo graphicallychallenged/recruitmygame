@@ -290,7 +290,7 @@ export default function VerifiedReviewsPage() {
           </HStack>
 
           {isPro && (
-            <Button leftIcon={<Plus size={16} />} colorScheme="green" onClick={onOpen}>
+            <Button leftIcon={<Plus size={16} />} colorScheme="teal" onClick={onOpen}>
               Request Review from Coach
             </Button>
           )}
@@ -452,7 +452,7 @@ export default function VerifiedReviewsPage() {
                   <Text color="gray.400" mb={6} fontSize="sm">
                     Send your first review request to a coach or mentor
                   </Text>
-                  <Button colorScheme="green" onClick={onOpen} leftIcon={<Plus size={16} />}>
+                  <Button colorScheme="teal" onClick={onOpen} leftIcon={<Plus size={16} />}>
                     Request Your First Verified Review
                   </Button>
                 </Box>
@@ -589,7 +589,7 @@ export default function VerifiedReviewsPage() {
               Cancel
             </Button>
             <Button
-              colorScheme="green"
+              colorScheme="teal"
               onClick={handleSubmitRequest}
               isLoading={submitting}
               loadingText="Sending Request..."

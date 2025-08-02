@@ -203,7 +203,7 @@ export function HeroImageUpload({ currentHeroUrl, athleteId, onUploadComplete }:
         </Button>
       </FormControl>
 
-      <Alert status="info" size="sm">
+      <Alert status="info" size="sm" colorScheme="purple">
         <AlertIcon />
         <Box>
           <AlertTitle fontSize="sm">Pro Feature</AlertTitle>
