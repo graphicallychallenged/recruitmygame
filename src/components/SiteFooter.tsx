@@ -105,7 +105,7 @@ export function SiteFooter() {
             <Text color="gray.400" _hover={{ color: "white" }} cursor="pointer">
               Help Center
             </Text>
-            <Link href="www.facebook.com/groups/recruitmygamecommunity/">
+            <Link href="https://www.facebook.com/groups/recruitmygamecommunity/">
             <Text color="gray.400" _hover={{ color: "white" }} cursor="pointer">
               Community
             </Text>
@@ -135,7 +135,7 @@ export function SiteFooter() {
         <Box borderTop="1px" borderColor="gray.700" mt={12} pt={8} textAlign="center">
           <Text color="gray.400" fontSize="lg">
             © 2025 Recruit My Game, Inc. All rights reserved. Built for student-athletes by student-athlete parents who want to help their kid showcase their complete
-            story. Yes, we are a US-based, family run business!
+            story.  Yes, we are a US-based, family run business! 
           </Text>
         </Box>
       </Container>
