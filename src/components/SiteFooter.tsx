@@ -105,9 +105,11 @@ export function SiteFooter() {
             <Text color="gray.400" _hover={{ color: "white" }} cursor="pointer">
               Help Center
             </Text>
+            <Link href="www.facebook.com/groups/recruitmygamecommunity/">
             <Text color="gray.400" _hover={{ color: "white" }} cursor="pointer">
               Community
             </Text>
+            </Link>
           </VStack>
 
           <VStack align="start" spacing={4}>
