@@ -15,15 +15,19 @@ import {
   useToast,
   HStack,
   Badge,
+  Image,
 } from "@chakra-ui/react"
 import { Upload, X, Video } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
+import { generateVideoThumbnail } from "@/utils/thumbnailGenerator"
+import { uploadVideoThumbnail } from "@/utils/supabase/storage"
 
 interface VideoUploadProps {
-  onUploadComplete?: (videoUrl: string) => void
+  onUploadComplete?: (videoUrl: string, thumbnailUrl?: string) => void
   onUploadStart?: () => void
   athleteId: string
   currentVideoUrl?: string
+  currentThumbnailUrl?: string
   onDelete?: () => void
 }
 
@@ -32,6 +36,7 @@ export function VideoUpload({
   onUploadStart,
   athleteId,
   currentVideoUrl,
+  currentThumbnailUrl,
   onDelete,
 }: VideoUploadProps) {
   const [uploading, setUploading] = useState(false)
@@ -39,13 +44,16 @@ export function VideoUpload({
   const [error, setError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string>(currentVideoUrl || "")
+  const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState<string>(currentThumbnailUrl || "")
+  const [generatingThumbnail, setGeneratingThumbnail] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
 
-  // Update uploaded video URL when currentVideoUrl changes
+  // Update uploaded URLs when props change
   useEffect(() => {
     setUploadedVideoUrl(currentVideoUrl || "")
-  }, [currentVideoUrl])
+    setUploadedThumbnailUrl(currentThumbnailUrl || "")
+  }, [currentVideoUrl, currentThumbnailUrl])
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -95,7 +103,7 @@ export function VideoUpload({
 
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 10, 90))
+        setUploadProgress((prev) => Math.min(prev + 5, 70))
       }, 200)
 
       // Generate unique filename
@@ -117,8 +125,6 @@ export function VideoUpload({
         upsert: false,
       })
 
-      clearInterval(progressInterval)
-
       if (uploadError) {
         console.error("Storage upload error:", uploadError)
         throw new Error(`Upload failed: ${uploadError.message}`)
@@ -133,20 +139,57 @@ export function VideoUpload({
 
       console.log("Video uploaded successfully, URL:", publicUrl)
 
+      // Update progress
+      setUploadProgress(75)
+
+      // Generate thumbnail
+      setGeneratingThumbnail(true)
+      console.log("Generating thumbnail...")
+
+      const thumbnailResult = await generateVideoThumbnail(file, {
+        width: 640,
+        height: 360,
+        quality: 0.8,
+        timeOffset: 2, // Capture at 2 seconds
+      })
+
+      let thumbnailUrl: string | undefined
+
+      if (thumbnailResult.success && thumbnailResult.blob) {
+        console.log("Thumbnail generated, uploading...")
+
+        // Upload thumbnail to storage
+        const thumbnailUploadResult = await uploadVideoThumbnail(thumbnailResult.blob, session.user.id)
+
+        if (thumbnailUploadResult.success && thumbnailUploadResult.url) {
+          thumbnailUrl = thumbnailUploadResult.url
+          setUploadedThumbnailUrl(thumbnailUrl)
+          console.log("Thumbnail uploaded successfully:", thumbnailUrl)
+        } else {
+          console.warn("Thumbnail upload failed:", thumbnailUploadResult.error)
+        }
+      } else {
+        console.warn("Thumbnail generation failed:", thumbnailResult.error)
+      }
+
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+
       // Set the uploaded video URL for preview
       setUploadedVideoUrl(publicUrl)
-      setUploadProgress(100)
 
       toast({
         title: "Video uploaded successfully",
-        description: "Video ready to save with title and description",
+        description: thumbnailUrl
+          ? "Video and thumbnail ready to save"
+          : "Video ready to save (thumbnail generation failed)",
         status: "success",
         duration: 3000,
         isClosable: true,
       })
 
-      // Call completion callback with just the URL - let parent handle saving to database
-      onUploadComplete?.(publicUrl)
+      // Call completion callback with video URL and thumbnail URL
+      onUploadComplete?.(publicUrl, thumbnailUrl)
     } catch (err: any) {
       console.error("Upload failed:", err)
       const errorMessage = err.message || err.code || "Upload failed"
@@ -160,6 +203,7 @@ export function VideoUpload({
       })
     } finally {
       setUploading(false)
+      setGeneratingThumbnail(false)
       setTimeout(() => setUploadProgress(0), 1000)
     }
   }
@@ -173,18 +217,31 @@ export function VideoUpload({
         const userId = urlParts[urlParts.length - 2]
         const filePath = `${userId}/${fileName}`
 
-        // Delete from storage
+        // Delete video from storage
         const { error: storageError } = await supabase.storage.from("athlete-videos").remove([filePath])
         if (storageError) {
-          console.warn("Storage deletion failed:", storageError)
+          console.warn("Video storage deletion failed:", storageError)
+        }
+
+        // Delete thumbnail if exists
+        if (uploadedThumbnailUrl) {
+          const thumbnailParts = uploadedThumbnailUrl.split("/")
+          const thumbnailFileName = thumbnailParts[thumbnailParts.length - 1]
+          const thumbnailPath = `${userId}/${thumbnailFileName}`
+
+          const { error: thumbnailError } = await supabase.storage.from("video-thumbnails").remove([thumbnailPath])
+          if (thumbnailError) {
+            console.warn("Thumbnail storage deletion failed:", thumbnailError)
+          }
         }
 
         setUploadedVideoUrl("")
+        setUploadedThumbnailUrl("")
         onDelete?.()
 
         toast({
           title: "Video removed",
-          description: "Video file has been deleted",
+          description: "Video and thumbnail have been deleted",
           status: "success",
           duration: 3000,
           isClosable: true,
@@ -230,13 +287,36 @@ export function VideoUpload({
           <Text fontSize="sm">Video uploaded! Add title and description below, then save.</Text>
         </Alert>
 
-        {/* Video Preview */}
+        {/* Video Preview with Thumbnail */}
         <Box position="relative" w="full">
           <Box bg="black" borderRadius="md" overflow="hidden" position="relative" aspectRatio="16/9">
-            <video controls style={{ width: "100%", height: "100%", objectFit: "cover" }}>
-              <source src={uploadedVideoUrl} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+            {uploadedThumbnailUrl ? (
+              <Box position="relative" w="full" h="full">
+                <Image
+                  src={uploadedThumbnailUrl || "/placeholder.svg"}
+                  alt="Video thumbnail"
+                  objectFit="cover"
+                  w="full"
+                  h="full"
+                />
+                <Box
+                  position="absolute"
+                  top="50%"
+                  left="50%"
+                  transform="translate(-50%, -50%)"
+                  bg="blackAlpha.700"
+                  borderRadius="full"
+                  p={3}
+                >
+                  <Video size={24} color="white" />
+                </Box>
+              </Box>
+            ) : (
+              <video controls style={{ width: "100%", height: "100%", objectFit: "cover" }}>
+                <source src={uploadedVideoUrl} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            )}
           </Box>
           <IconButton
             aria-label="Delete video"
@@ -250,7 +330,14 @@ export function VideoUpload({
           />
         </Box>
 
-        <Button size="sm" variant="outline" onClick={() => setUploadedVideoUrl("")}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setUploadedVideoUrl("")
+            setUploadedThumbnailUrl("")
+          }}
+        >
           Upload Different Video
         </Button>
       </VStack>
@@ -285,7 +372,7 @@ export function VideoUpload({
           {uploading ? (
             <VStack spacing={2} w="full">
               <Text fontSize="sm" color="blue.600">
-                Uploading video...
+                {generatingThumbnail ? "Generating thumbnail..." : "Uploading video..."}
               </Text>
               <Progress value={uploadProgress} colorScheme="blue" w="full" />
               <Text fontSize="xs" color="gray.500">
@@ -304,7 +391,7 @@ export function VideoUpload({
                 <Badge colorScheme="blue">AVI</Badge>
               </HStack>
               <Text fontSize="sm" color="gray.500">
-                Maximum file size: 100MB
+                Maximum file size: 100MB • Thumbnail auto-generated
               </Text>
             </>
           )}

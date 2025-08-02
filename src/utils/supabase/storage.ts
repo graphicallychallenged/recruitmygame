@@ -65,9 +65,9 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
       return { success: false, error: validationError }
     }
 
-    // Generate file path
+    // Generate file path - CRITICAL: use user_id as folder for storage policies
     const fileName = options.fileName || generateFileName(file.name)
-    const filePath = options.folder ? `${options.folder}/${fileName}` : fileName
+    const filePath = `${session.user.id}/${fileName}`
 
     console.log(`Uploading file to: ${options.bucket}/${filePath}`)
     console.log(`User ID: ${session.user.id}`)
@@ -95,6 +95,52 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
     }
   } catch (error: any) {
     console.error("Upload exception:", error)
+    return { success: false, error: error.message || "Upload failed" }
+  }
+}
+
+// Upload blob to Supabase Storage (for thumbnails)
+export async function uploadBlob(blob: Blob, options: UploadOptions): Promise<UploadResult> {
+  try {
+    // Check if user is authenticated
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError || !session) {
+      return { success: false, error: "User not authenticated" }
+    }
+
+    // Generate file path
+    const fileName = options.fileName || `thumbnail_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.jpg`
+    const filePath = `${session.user.id}/${fileName}`
+
+    console.log(`Uploading blob to: ${options.bucket}/${filePath}`)
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage.from(options.bucket).upload(filePath, blob, {
+      cacheControl: "3600",
+      upsert: false,
+    })
+
+    if (error) {
+      console.error("Blob upload error:", error)
+      return { success: false, error: error.message }
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage.from(options.bucket).getPublicUrl(data.path)
+
+    console.log("Blob upload successful:", { path: data.path, url: urlData.publicUrl })
+
+    return {
+      success: true,
+      path: data.path,
+      url: urlData.publicUrl,
+    }
+  } catch (error: any) {
+    console.error("Blob upload exception:", error)
     return { success: false, error: error.message || "Upload failed" }
   }
 }
@@ -152,7 +198,6 @@ export function getPublicUrl(bucket: string, path: string): string {
 export async function uploadProfilePicture(file: File, userId: string): Promise<UploadResult> {
   return uploadFile(file, {
     bucket: "profile-pictures",
-    folder: userId,
     fileName: `profile_${Date.now()}.${file.name.split(".").pop()}`,
     maxSizeBytes: 5 * 1024 * 1024, // 5MB for profile pictures
     allowedTypes: ["image/jpeg", "image/png", "image/webp"],
@@ -165,11 +210,19 @@ export async function uploadMedia(file: File, userId: string, type: "video" | "p
 
   return uploadFile(file, {
     bucket: isVideo ? "athlete-videos" : "athlete-photos",
-    folder: userId, // Use userId to match storage policy expectations
     maxSizeBytes: isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024, // 100MB for videos, 10MB for photos
     allowedTypes: isVideo
       ? ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"]
       : ["image/jpeg", "image/png", "image/webp", "image/gif"],
+  })
+}
+
+// Upload video thumbnail specifically
+export async function uploadVideoThumbnail(thumbnailBlob: Blob, userId: string): Promise<UploadResult> {
+  return uploadBlob(thumbnailBlob, {
+    bucket: "video-thumbnails",
+    maxSizeBytes: 2 * 1024 * 1024, // 2MB for thumbnails
+    allowedTypes: ["image/jpeg"],
   })
 }
 

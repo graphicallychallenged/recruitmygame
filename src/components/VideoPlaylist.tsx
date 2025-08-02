@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Box, VStack, HStack, Text, Card, CardBody, Image, AspectRatio, Badge, Icon, Flex } from "@chakra-ui/react"
 import { Play, Clock } from "lucide-react"
 import { VideoPlayer } from "@/components/VideoPlayer"
+import { getVideoThumbnail } from "@/utils/videoThumbnails"
 import type { AthleteVideo } from "@/types/database"
 
 interface VideoPlaylistProps {
@@ -28,49 +29,14 @@ export function VideoPlaylist({
   const borderColor = isDarkTheme ? "gray.600" : "gray.200"
   const hoverBgColor = isDarkTheme ? "gray.700" : "gray.50"
 
-  const isYouTubeUrl = (url: string) => {
-    return url.includes("youtube.com") || url.includes("youtu.be")
-  }
-
-  const isVimeoUrl = (url: string) => {
-    return url.includes("vimeo.com")
-  }
-
-  const getYouTubeThumbnail = (url: string) => {
-    if (url.includes("youtube.com/watch?v=")) {
-      const videoId = url.split("v=")[1]?.split("&")[0]
-      return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-    }
-    if (url.includes("youtu.be/")) {
-      const videoId = url.split("youtu.be/")[1]?.split("?")[0]
-      return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-    }
-    return "/placeholder.svg?height=180&width=320&text=Video"
-  }
-
-  const getVimeoThumbnail = (url: string) => {
-    // For Vimeo, we'll use a generic video thumbnail since getting actual thumbnails requires API calls
-    return "/placeholder.svg?height=180&width=320&text=Vimeo+Video"
-  }
-
-  const getVideoThumbnail = (video: AthleteVideo) => {
-    // If there's a custom thumbnail, use it
+  const getThumbnailForVideo = (video: AthleteVideo) => {
+    // First priority: use uploaded thumbnail if available
     if (video.thumbnail_url) {
       return video.thumbnail_url
     }
 
-    // For YouTube videos, get the thumbnail from YouTube
-    if (isYouTubeUrl(video.video_url)) {
-      return getYouTubeThumbnail(video.video_url)
-    }
-
-    // For Vimeo videos, use a generic Vimeo thumbnail
-    if (isVimeoUrl(video.video_url)) {
-      return getVimeoThumbnail(video.video_url)
-    }
-
-    // For uploaded videos or other URLs, use a generic video thumbnail
-    return "/placeholder.svg?height=180&width=320&text=Video+File"
+    // Second priority: use generated thumbnail from our utility
+    return getVideoThumbnail(video.video_url)
   }
 
   const getVideoDuration = (video: AthleteVideo) => {
@@ -105,7 +71,7 @@ export function VideoPlaylist({
                 <VideoPlayer
                   videoUrl={selectedVideo.video_url}
                   title={selectedVideo.title}
-                  thumbnailUrl={selectedVideo.thumbnail_url}
+                  thumbnailUrl={getThumbnailForVideo(selectedVideo)}
                 />
                 {/* Video Info Overlay */}
                 <Box
@@ -174,7 +140,7 @@ export function VideoPlaylist({
                         <Box position="relative" flexShrink={0}>
                           <AspectRatio ratio={16 / 9} w={{ base: "80px", md: "120px" }}>
                             <Image
-                              src={getVideoThumbnail(video) || "/placeholder.svg"}
+                              src={getThumbnailForVideo(video) || "/placeholder.svg"}
                               alt={video.title}
                               objectFit="cover"
                               borderRadius="md"
