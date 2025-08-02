@@ -60,6 +60,7 @@ interface AthleteProfile {
   school: string
   profile_picture_url: string
   subscription_tier: SubscriptionTier
+  subdomain?: string
 }
 
 interface NavItem {
@@ -126,6 +127,7 @@ function SidebarContent({
 }) {
   const bgColor = useColorModeValue("white", "gray.800")
   const borderColor = useColorModeValue("gray.200", "gray.700")
+  const currentTier = athlete?.subscription_tier || "free"
 
   const isFeatureAccessible = (item: NavItem) => {
     if (!item.feature || !athlete) return true
@@ -148,6 +150,13 @@ function SidebarContent({
   const premiumNavItems = navItems.slice(4, 7) // Videos, Awards, Reviews
   const proNavItems = navItems.slice(7, 12) // Schedule, Business Cards, Verified Reviews, Multiple Sports, Analytics
   const settingsNavItems = navItems.slice(12) // Settings, Subscription, Support
+
+  const getPublicProfileUrl = () => {
+    if (hasFeature(currentTier, "custom_subdomain") && athlete?.subdomain) {
+      return `https://${athlete.subdomain}.recruitmygame.com`
+    }
+    return `https://${athlete?.username}.recruitmygame.com`
+  }
 
   return (
     <Box w="full" bg={bgColor} p={2} overflowY="auto">
@@ -182,14 +191,14 @@ function SidebarContent({
                   {athlete.sport} • {athlete.school}
                 </Text>
                 <Text color="teal.500" fontSize="xs">
-                  Profile: {athlete.username}
+                  Profile: {athlete?.subdomain ? athlete.subdomain : athlete?.username}
                 </Text>
               </VStack>
             </HStack>
 
             {/* Quick Actions */}
             <HStack spacing={2}>
-              <Link href={`https://${athlete.username}.recruitmygame.com`} target="_blank" onClick={onClose}>
+              <Link href={getPublicProfileUrl()} target="_blank" onClick={onClose}>
                 <Button size="sm" variant="outline" leftIcon={<ExternalLink size={14} />} flex={1}>
                   View Profile
                 </Button>
