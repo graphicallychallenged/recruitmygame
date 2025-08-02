@@ -85,6 +85,7 @@ export default function TeamsPage() {
   })
   const [customStatKey, setCustomStatKey] = useState("")
   const [customStatValue, setCustomStatValue] = useState("")
+  const [athleteData, setAthleteData] = useState<any>(null)
 
   const { isOpen, onOpen, onClose } = useDisclosure()
   const toast = useToast()
@@ -101,17 +102,21 @@ export default function TeamsPage() {
       } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: athlete } = await supabase.from("athletes").select("id").eq("user_id", user.id).single()
+      const { data: athleteData } = await supabase.from("athletes").select("*").eq("user_id", user.id).single()
 
-      if (!athlete) return
+      if (athleteData) {
+        setAthleteData(athleteData)
+      }
 
-      setAthleteId(athlete.id)
+      if (!athleteData) return
+
+      setAthleteId(athleteData.id)
 
       // Fetch teams
       const { data: teamsData, error } = await supabase
         .from("athlete_teams")
         .select("*")
-        .eq("athlete_id", athlete.id)
+        .eq("athlete_id", athleteData.id)
         .order("is_current", { ascending: false })
         .order("created_at", { ascending: false })
 
@@ -297,7 +302,29 @@ export default function TeamsPage() {
     <Container maxW="4xl" py={8}>
       <VStack spacing={6} align="stretch">
         <HStack justify="space-between">
-          <Heading size="lg">My Teams</Heading>
+          <HStack spacing={3}>
+            <Heading size="lg">My Teams</Heading>
+            {athleteData && (
+              <Badge
+                colorScheme={
+                  athleteData.subscription_tier === "pro"
+                    ? "purple"
+                    : athleteData.subscription_tier === "premium"
+                      ? "blue"
+                      : "gray"
+                }
+                variant="subtle"
+                textTransform="uppercase"
+                fontSize="xs"
+              >
+                {athleteData.subscription_tier === "pro"
+                  ? "Pro"
+                  : athleteData.subscription_tier === "premium"
+                    ? "Premium"
+                    : "Free"}
+              </Badge>
+            )}
+          </HStack>
           <Button
             leftIcon={<Plus />}
             colorScheme="teal"
@@ -368,7 +395,7 @@ export default function TeamsPage() {
                               {Object.entries(team.stats).map(([key, value]) => (
                                 <GridItem key={key}>
                                   <Box textAlign="center" p={2} bg="gray.50" borderRadius="sm">
-                                    <Text fontSize="md" fontWeight="bold" color="blue.600">
+                                    <Text fontSize="md" fontWeight="bold" color="teal.600">
                                       {String(value)}
                                     </Text>
                                     <Text fontSize="xs" color="gray.500" textTransform="capitalize">
@@ -459,7 +486,7 @@ export default function TeamsPage() {
                               {Object.entries(team.stats).map(([key, value]) => (
                                 <GridItem key={key}>
                                   <Box textAlign="center" p={2} bg="gray.50" borderRadius="sm">
-                                    <Text fontSize="md" fontWeight="bold" color="blue.600">
+                                    <Text fontSize="md" fontWeight="bold" color="teal.600">
                                       {String(value)}
                                     </Text>
                                     <Text fontSize="xs" color="gray.500" textTransform="capitalize">

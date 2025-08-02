@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
     return (
       <Container maxW="7xl" py={8}>
         <Flex justify="center" align="center" h="400px">
-          <Spinner size="xl" color="blue.500" />
+          <Spinner size="xl" color="teal.500" />
         </Flex>
       </Container>
     )
@@ -343,7 +343,7 @@ export default function AnalyticsPage() {
             <AlertTitle>Pro Subscription Required</AlertTitle>
             <AlertDescription>
               Analytics are only available for Pro subscribers.{" "}
-              <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
+              <Button as={Link} href="/subscription" size="sm" colorScheme="teal" variant="link">
                 Upgrade to Pro
               </Button>
             </AlertDescription>
@@ -369,7 +369,7 @@ export default function AnalyticsPage() {
           <Text color="gray.600">Comprehensive insights into your profile performance and visitor behavior</Text>
         </Box>
 
-        <Tabs variant="enclosed" colorScheme="blue">
+        <Tabs variant="enclosed" colorScheme="teal">
           <TabList>
             <Tab>
               <HStack spacing={2}>
@@ -497,7 +497,7 @@ export default function AnalyticsPage() {
                           <XAxis dataKey="date" />
                           <YAxis />
                           <Tooltip />
-                          <Line type="monotone" dataKey="views" stroke="#3182CE" strokeWidth={2} name="Page Views" />
+                          <Line type="monotone" dataKey="views" stroke="teal" strokeWidth={2} name="Page Views" />
                           <Line
                             type="monotone"
                             dataKey="visitors"
@@ -586,7 +586,7 @@ export default function AnalyticsPage() {
                   </Box>
                   <Button
                     leftIcon={<RefreshCw size={16} />}
-                    colorScheme="blue"
+                    colorScheme="teal"
                     onClick={runProfileAudit}
                     isLoading={auditLoading}
                     loadingText="Analyzing..."
@@ -915,7 +915,7 @@ export default function AnalyticsPage() {
                       </Text>
                       <Button
                         leftIcon={<RefreshCw size={16} />}
-                        colorScheme="blue"
+                        colorScheme="teal"
                         onClick={runProfileAudit}
                         isLoading={auditLoading}
                         loadingText="Analyzing..."
@@ -946,7 +946,7 @@ export default function AnalyticsPage() {
                           <XAxis dataKey="name" />
                           <YAxis />
                           <Tooltip />
-                          <Bar dataKey="value" fill="#3182CE" />
+                          <Bar dataKey="value" fill="teal" />
                         </BarChart>
                       </ResponsiveContainer>
                     </Box>
@@ -1033,12 +1033,12 @@ export default function AnalyticsPage() {
                     </Heading>
                     <Box h="400px">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={countryData.slice(0, 10)} layout="horizontal">
+                        <BarChart data={countryData.slice(0, 10)}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" />
-                          <YAxis dataKey="name" type="category" width={100} />
+                          <XAxis dataKey="name" />
+                          <YAxis />
                           <Tooltip />
-                          <Bar dataKey="value" fill="#3182CE" />
+                          <Bar dataKey="value" fill="teal" />
                         </BarChart>
                       </ResponsiveContainer>
                     </Box>
@@ -1073,7 +1073,7 @@ export default function AnalyticsPage() {
                                   </HStack>
                                 </Td>
                                 <Td isNumeric>
-                                  <Badge colorScheme="blue" variant="subtle">
+                                  <Badge colorScheme="teal" variant="subtle">
                                     {location.value}
                                   </Badge>
                                 </Td>
