@@ -43,9 +43,9 @@ export function SocialShareButtons({
   const [copied, setCopied] = useState(false)
   const bgColor = useColorModeValue("gray.800", "gray.900")
   const borderColor = useColorModeValue("gray.600", "gray.700")
-  const textColor = useColorModeValue("gray.900", "gray.200")
+  const textColor = !isDarkTheme ? "gray.900" : "white"
   const iconColor = useColorModeValue("gray.300", "gray.400")
-  const helpTextColor = useColorModeValue("gray.900", "gray.500")
+  const helpTextColor = !isDarkTheme ? "gray.900" : "white"
 
   const iconSize = size === "sm" ? 32 : size === "md" ? 40 : 48
   const buttonSize = size === "sm" ? "sm" : size === "md" ? "md" : "lg"

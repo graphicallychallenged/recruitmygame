@@ -49,6 +49,8 @@ function validateFile(file: File, options: UploadOptions): string | null {
 // Upload file to Supabase Storage
 export async function uploadFile(file: File, options: UploadOptions): Promise<UploadResult> {
   try {
+    console.log("Storage: Starting upload process")
+
     // Check if user is authenticated
     const {
       data: { session },
@@ -56,12 +58,16 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
     } = await supabase.auth.getSession()
 
     if (sessionError || !session) {
+      console.error("Storage: User not authenticated", sessionError)
       return { success: false, error: "User not authenticated" }
     }
+
+    console.log("Storage: User authenticated, user_id:", session.user.id)
 
     // Validate file
     const validationError = validateFile(file, { ...DEFAULT_OPTIONS, ...options })
     if (validationError) {
+      console.error("Storage: File validation failed:", validationError)
       return { success: false, error: validationError }
     }
 
@@ -69,8 +75,8 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
     const fileName = options.fileName || generateFileName(file.name)
     const filePath = `${session.user.id}/${fileName}`
 
-    console.log(`Uploading file to: ${options.bucket}/${filePath}`)
-    console.log(`User ID: ${session.user.id}`)
+    console.log(`Storage: Uploading file to: ${options.bucket}/${filePath}`)
+    console.log(`Storage: File details:`, { name: file.name, type: file.type, size: file.size })
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage.from(options.bucket).upload(filePath, file, {
@@ -79,14 +85,16 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
     })
 
     if (error) {
-      console.error("Upload error:", error)
+      console.error("Storage: Upload error:", error)
       return { success: false, error: error.message }
     }
+
+    console.log("Storage: Upload successful, data:", data)
 
     // Get public URL
     const { data: urlData } = supabase.storage.from(options.bucket).getPublicUrl(data.path)
 
-    console.log("Upload successful:", { path: data.path, url: urlData.publicUrl })
+    console.log("Storage: Public URL generated:", urlData.publicUrl)
 
     return {
       success: true,
@@ -94,7 +102,7 @@ export async function uploadFile(file: File, options: UploadOptions): Promise<Up
       url: urlData.publicUrl,
     }
   } catch (error: any) {
-    console.error("Upload exception:", error)
+    console.error("Storage: Upload exception:", error)
     return { success: false, error: error.message || "Upload failed" }
   }
 }

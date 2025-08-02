@@ -19,8 +19,6 @@ import {
 } from "@chakra-ui/react"
 import { Upload, X, Video } from "lucide-react"
 import { supabase } from "@/utils/supabase/client"
-import { generateVideoThumbnail } from "@/utils/thumbnailGenerator"
-import { uploadVideoThumbnail } from "@/utils/supabase/storage"
 
 interface VideoUploadProps {
   onUploadComplete?: (videoUrl: string, thumbnailUrl?: string) => void
@@ -29,6 +27,67 @@ interface VideoUploadProps {
   currentVideoUrl?: string
   currentThumbnailUrl?: string
   onDelete?: () => void
+}
+
+// Simple thumbnail generation without blob URL issues
+const generateSimpleThumbnail = async (file: File): Promise<Blob | null> => {
+  return new Promise((resolve) => {
+    const video = document.createElement("video")
+    const canvas = document.createElement("canvas")
+    const ctx = canvas.getContext("2d")
+
+    if (!ctx) {
+      resolve(null)
+      return
+    }
+
+    video.muted = true
+    video.playsInline = true
+    video.preload = "metadata"
+
+    const cleanup = () => {
+      video.remove()
+      canvas.remove()
+    }
+
+    video.onloadedmetadata = () => {
+      canvas.width = 640
+      canvas.height = 360
+      video.currentTime = Math.min(2, video.duration / 2)
+    }
+
+    video.onseeked = () => {
+      try {
+        ctx.drawImage(video, 0, 0, 640, 360)
+        canvas.toBlob(
+          (blob) => {
+            cleanup()
+            resolve(blob)
+          },
+          "image/jpeg",
+          0.8,
+        )
+      } catch (error) {
+        console.error("Thumbnail generation error:", error)
+        cleanup()
+        resolve(null)
+      }
+    }
+
+    video.onerror = () => {
+      cleanup()
+      resolve(null)
+    }
+
+    // Create object URL and clean it up properly
+    const objectUrl = URL.createObjectURL(file)
+    video.src = objectUrl
+
+    // Clean up object URL after a delay
+    setTimeout(() => {
+      URL.revokeObjectURL(objectUrl)
+    }, 5000)
+  })
 }
 
 export function VideoUpload({
@@ -146,30 +205,36 @@ export function VideoUpload({
       setGeneratingThumbnail(true)
       console.log("Generating thumbnail...")
 
-      const thumbnailResult = await generateVideoThumbnail(file, {
-        width: 640,
-        height: 360,
-        quality: 0.8,
-        timeOffset: 2, // Capture at 2 seconds
-      })
-
+      const thumbnailBlob = await generateSimpleThumbnail(file)
       let thumbnailUrl: string | undefined
 
-      if (thumbnailResult.success && thumbnailResult.blob) {
+      if (thumbnailBlob) {
         console.log("Thumbnail generated, uploading...")
 
         // Upload thumbnail to storage
-        const thumbnailUploadResult = await uploadVideoThumbnail(thumbnailResult.blob, session.user.id)
+        const thumbnailFileName = `thumbnail_${Date.now()}_${Math.random().toString(36).substring(2)}.jpg`
+        const thumbnailPath = `${session.user.id}/${thumbnailFileName}`
 
-        if (thumbnailUploadResult.success && thumbnailUploadResult.url) {
-          thumbnailUrl = thumbnailUploadResult.url
+        const { data: thumbnailData, error: thumbnailError } = await supabase.storage
+          .from("video-thumbnails")
+          .upload(thumbnailPath, thumbnailBlob, {
+            cacheControl: "3600",
+            upsert: false,
+          })
+
+        if (!thumbnailError && thumbnailData) {
+          const {
+            data: { publicUrl: thumbnailPublicUrl },
+          } = supabase.storage.from("video-thumbnails").getPublicUrl(thumbnailData.path)
+
+          thumbnailUrl = thumbnailPublicUrl
           setUploadedThumbnailUrl(thumbnailUrl)
           console.log("Thumbnail uploaded successfully:", thumbnailUrl)
         } else {
-          console.warn("Thumbnail upload failed:", thumbnailUploadResult.error)
+          console.warn("Thumbnail upload failed:", thumbnailError)
         }
       } else {
-        console.warn("Thumbnail generation failed:", thumbnailResult.error)
+        console.warn("Thumbnail generation failed")
       }
 
       clearInterval(progressInterval)

@@ -511,7 +511,7 @@ export default function PublicProfileClient({ athlete: initialAthlete }: PublicP
       />
 
       <Container maxW="6xl" py={8}>
-        <VStack spacing={8} align="stretch">
+        <VStack spacing={10} align="stretch">
           {/* Videos Section - only show if tier allows */}
           {tierFeatures.videos > 0 && videos.length > 0 && (
             <Box>

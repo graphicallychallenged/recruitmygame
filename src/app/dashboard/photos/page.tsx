@@ -468,7 +468,11 @@ export default function PhotosPage() {
                   <FormControl isRequired>
                     <FormLabel>Photo</FormLabel>
                     <PhotoUpload
-                      onUploadComplete={handlePhotoUpload}
+                      onUploadComplete={(photoUrl) => {
+                        if (photoUrl) {
+                          setFormData({ ...formData, photo_url: photoUrl })
+                        }
+                      }}
                       athleteId={athlete.id}
                       currentPhotoUrl={formData.photo_url}
                       onDelete={() => setFormData({ ...formData, photo_url: "" })}
