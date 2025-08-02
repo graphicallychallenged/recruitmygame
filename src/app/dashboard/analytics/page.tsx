@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
     return (
       <Container maxW="7xl" py={8}>
         <Flex justify="center" align="center" h="400px">
-          <Spinner size="xl" color="teal.500" />
+          <Spinner size="xl" color="blue.500" />
         </Flex>
       </Container>
     )
@@ -343,7 +343,7 @@ export default function AnalyticsPage() {
             <AlertTitle>Pro Subscription Required</AlertTitle>
             <AlertDescription>
               Analytics are only available for Pro subscribers.{" "}
-              <Button as={Link} href="/subscription" size="sm" colorScheme="teal" variant="link">
+              <Button as={Link} href="/subscription" size="sm" colorScheme="blue" variant="link">
                 Upgrade to Pro
               </Button>
             </AlertDescription>
@@ -369,7 +369,7 @@ export default function AnalyticsPage() {
           <Text color="gray.600">Comprehensive insights into your profile performance and visitor behavior</Text>
         </Box>
 
-        <Tabs variant="enclosed" colorScheme="teal">
+        <Tabs variant="enclosed" colorScheme="blue">
           <TabList>
             <Tab>
               <HStack spacing={2}>
@@ -414,10 +414,29 @@ export default function AnalyticsPage() {
                       <CardBody>
                         <Stat>
                           <StatLabel>Overall Score</StatLabel>
-                          <StatNumber color={`${getScoreColor(getOverallScore())}.500`}>
-                            {getOverallScore()}%
-                          </StatNumber>
-                          <StatHelpText>Profile health</StatHelpText>
+                          {audit ? (
+                            <>
+                              <StatNumber color={`${getScoreColor(getOverallScore())}.500`}>
+                                {getOverallScore()}%
+                              </StatNumber>
+                              <StatHelpText>Profile health</StatHelpText>
+                            </>
+                          ) : (
+                            <>
+                              <StatNumber color="gray.400">--</StatNumber>
+                              <StatHelpText>
+                                <Button
+                                  size="xs"
+                                  colorScheme="blue"
+                                  variant="link"
+                                  onClick={runProfileAudit}
+                                  isLoading={auditLoading}
+                                >
+                                  Run Audit
+                                </Button>
+                              </StatHelpText>
+                            </>
+                          )}
                         </Stat>
                       </CardBody>
                     </Card>
@@ -497,7 +516,7 @@ export default function AnalyticsPage() {
                           <XAxis dataKey="date" />
                           <YAxis />
                           <Tooltip />
-                          <Line type="monotone" dataKey="views" stroke="teal" strokeWidth={2} name="Page Views" />
+                          <Line type="monotone" dataKey="views" stroke="#3182CE" strokeWidth={2} name="Page Views" />
                           <Line
                             type="monotone"
                             dataKey="visitors"
@@ -586,7 +605,7 @@ export default function AnalyticsPage() {
                   </Box>
                   <Button
                     leftIcon={<RefreshCw size={16} />}
-                    colorScheme="teal"
+                    colorScheme="blue"
                     onClick={runProfileAudit}
                     isLoading={auditLoading}
                     loadingText="Analyzing..."
@@ -915,7 +934,7 @@ export default function AnalyticsPage() {
                       </Text>
                       <Button
                         leftIcon={<RefreshCw size={16} />}
-                        colorScheme="teal"
+                        colorScheme="blue"
                         onClick={runProfileAudit}
                         isLoading={auditLoading}
                         loadingText="Analyzing..."
@@ -946,7 +965,7 @@ export default function AnalyticsPage() {
                           <XAxis dataKey="name" />
                           <YAxis />
                           <Tooltip />
-                          <Bar dataKey="value" fill="teal" />
+                          <Bar dataKey="value" fill="#3182CE" />
                         </BarChart>
                       </ResponsiveContainer>
                     </Box>
@@ -1038,7 +1057,7 @@ export default function AnalyticsPage() {
                           <XAxis dataKey="name" />
                           <YAxis />
                           <Tooltip />
-                          <Bar dataKey="value" fill="teal" />
+                          <Bar dataKey="value" fill="#3182CE" />
                         </BarChart>
                       </ResponsiveContainer>
                     </Box>
@@ -1073,7 +1092,7 @@ export default function AnalyticsPage() {
                                   </HStack>
                                 </Td>
                                 <Td isNumeric>
-                                  <Badge colorScheme="teal" variant="subtle">
+                                  <Badge colorScheme="blue" variant="subtle">
                                     {location.value}
                                   </Badge>
                                 </Td>
